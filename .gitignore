@@ -102,3 +102,17 @@ dist
 
 # TernJS port file
 .tern-port
+
+# builds
+build
+dist
+
+# circuit-specific powers of tau are ignored
+*.ptau 
+# universal ptaus not ignored
+!ptau/*
+# temporary ptaus are ignored
+tmp.ptau
+
+# is this still a thing lol
+.DS_Store
