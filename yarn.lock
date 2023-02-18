@@ -1339,10 +1339,10 @@ ethers@^5.5.1:
     "@ethersproject/web" "5.7.1"
     "@ethersproject/wordlists" "5.7.0"
 
-ethers@^6.0.3:
-  version "6.0.3"
-  resolved "https://registry.yarnpkg.com/ethers/-/ethers-6.0.3.tgz#00a525cc70306624dfc88d6438addcb001eb7a42"
-  integrity sha512-ECUt+AlY80eLA/XvOgy4/K5Pq5BsMzlKKcSuUXOgp4k6d3tcDphEiz+Fs3zut/zYQVgqLgm3f8YtCJEEtzl8kA==
+ethers@^6.0.4:
+  version "6.0.4"
+  resolved "https://registry.yarnpkg.com/ethers/-/ethers-6.0.4.tgz#4ff48a94e51248cdcdca762deda2b98d595a2889"
+  integrity sha512-El/9IN2A0ptmxdMQA/Rzn/F80/8OpwHSQ+CkU83y6XIT0fNUz2M2X12VCWzlkmLV0dTGk45gdWR6gxNfyXdylg==
   dependencies:
     "@adraffy/ens-normalize" "1.8.9"
     "@noble/hashes" "1.1.2"

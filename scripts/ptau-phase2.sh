@@ -19,7 +19,7 @@ NUM_CONTRIBS=$2                               # number of contributions
 CIRCUIT_DIR=./build/$CIRCUIT                  # circuit directory
 P1_PTAU=./ptau/powersOfTau28_hez_final_12.ptau # input directory of ptaus
 P2_PTAU=$CIRCUIT_DIR/pot12_final.ptau          # phase-2 ptau
-CUR=000                                       # zkey id, initially 0000 
+CUR=000                                       # zkey id, initially 0
 
 # create zkey output directory if not exists
 mkdir -p $ZKEY_DIR
