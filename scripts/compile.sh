@@ -23,5 +23,5 @@ CIRCOM_LINK=./node_modules
 mkdir -p $CIRCOM_OUT
 
 # compile
-circom $CIRCOM_IN -o $CIRCOM_OUT --r1cs --wasm -l $CIRCOM_LINK
+circom $CIRCOM_IN -o $CIRCOM_OUT --r1cs --sym --wasm -l $CIRCOM_LINK
 echo "Compiled $CIRCOM_IN under $CIRCOM_OUT"
