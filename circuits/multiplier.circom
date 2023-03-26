@@ -10,7 +10,7 @@ template Multiplier2() {
 }
 
 // Multiplication of N numbers
-template MultiplierN(N){
+template Multiplier(N){
   signal input in[N];
   signal output out;
   component comp[N-1];
@@ -30,5 +30,3 @@ template MultiplierN(N){
 
   out <== comp[N-2].out; 
 }
-
-component main = MultiplierN(3);

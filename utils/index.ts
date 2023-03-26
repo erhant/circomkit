@@ -10,8 +10,8 @@ const wasm_tester = require('circom_tester').wasm;
  * @param circuit name of circuit
  * @returns a `wasm_tester` object
  */
-export async function compileCircuit(circuit: string): Promise<WasmTester> {
-  return await wasm_tester(path.join(__dirname, '../circuits', circuit + '.circom'), {
+export async function compileCircuit(path: string): Promise<WasmTester> {
+  return await wasm_tester(path, {
     include: 'node_modules', // will link circomlib circuits
   });
 }

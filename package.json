@@ -1,7 +1,7 @@
 {
   "name": "circom-typescript-starter",
   "version": "0.0.1",
-  "description": "An opinionated development environment for developing circuits using Circom and TypeScript!",
+  "description": "A Circom development environment",
   "main": "index.js",
   "license": "MIT",
   "scripts": {
