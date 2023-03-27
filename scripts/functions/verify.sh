@@ -1,6 +1,6 @@
 ## Verify a witness & proof
 verify() {
-  echo -e "\n${TITLE_COLOR}=== Verifying proof ===${RESET}"
+  echo -e "\n${CLIENV_COLOR_TITLE}=== Verifying proof ===${CLIENV_COLOR_RESET}"
   local CIRCUIT=$1
   local INPUT=$2
   local CIRCUIT_DIR=./build/${CIRCUIT}
@@ -10,5 +10,5 @@ verify() {
     $CIRCUIT_DIR/$INPUT/public.json \
     $CIRCUIT_DIR/$INPUT/proof.json
 
-  echo -e "${LOG_COLOR}Verification complete.${RESET}"
+  echo -e "${CLIENV_COLOR_LOG}Verification complete.${CLIENV_COLOR_RESET}"
 }

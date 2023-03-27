@@ -4,14 +4,14 @@
   "description": "A Circom development environment",
   "license": "MIT",
   "scripts": {
-    "compile": "tsc",
     "test": "npx mocha",
-    "cli:compile": "./scripts/cli.sh -f compile",
-    "cli:clean": "./scripts/cli.sh -f clean",
-    "cli:ptau": "./scripts/cli.sh -f ptau",
-    "cli:prove": "./scripts/cli.sh -f prove",
-    "cli:verify": "./scripts/cli.sh -f verify",
-    "cli:help": "./scripts/cli.sh -f help"
+    "type": "./scripts/cli.sh -f type",
+    "compile": "./scripts/cli.sh -f compile",
+    "clean": "./scripts/cli.sh -f clean",
+    "ptau": "./scripts/cli.sh -f ptau",
+    "prove": "./scripts/cli.sh -f prove",
+    "verify": "./scripts/cli.sh -f verify",
+    "_help": "./scripts/cli.sh -f help"
   },
   "author": "erhant",
   "devDependencies": {

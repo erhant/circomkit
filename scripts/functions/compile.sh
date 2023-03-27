@@ -1,6 +1,6 @@
 ## Compile the circuit, outputting R1CS and JS files
 compile() {
-  echo -e "\n${TITLE_COLOR}=== Compiling the circuit ===${RESET}"
+  echo -e "\n${CLIENV_COLOR_TITLE}=== Compiling the circuit ===${CLIENV_COLOR_RESET}"
   local CIRCUIT=$1
   local CIRCOM_IN=./circuits/main/$CIRCUIT.circom
   local CIRCOM_OUT=./build/$CIRCUIT
@@ -13,5 +13,5 @@ compile() {
   # compile with circom
   circom $CIRCOM_IN -o $CIRCOM_OUT --r1cs --sym --wasm
 
-  echo -e "${LOG_COLOR}Built artifacts under $CIRCOM_OUT${RESET}"
+  echo -e "${CLIENV_COLOR_LOG}Built artifacts under $CIRCOM_OUT${CLIENV_COLOR_RESET}"
 }

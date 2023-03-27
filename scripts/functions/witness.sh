@@ -1,6 +1,6 @@
 ## Computes the witness for the given circuit and input
 witness() {
-  echo -e "\n${TITLE_COLOR}=== Computing witness ===${RESET}"
+  echo -e "\n${CLIENV_COLOR_TITLE}=== Computing witness ===${CLIENV_COLOR_RESET}"
   local CIRCUIT=$1
   local INPUT=$2
   local JS_DIR=./build/$CIRCUIT/${CIRCUIT}_js   # JS files for the circuit
@@ -15,5 +15,5 @@ witness() {
     $INPUT_DIR/$INPUT.json \
     $WITNESS
 
-  echo -e "${LOG_COLOR}Generated\n\tWitness: $WITNESS${RESET}"
+  echo -e "${CLIENV_COLOR_LOG}Generated\n\tWitness: $WITNESS${CLIENV_COLOR_RESET}"
 }

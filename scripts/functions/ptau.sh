@@ -1,7 +1,7 @@
 ## Commence a circuit-specific phase-2 powers-of-tau ceremony
 ptau() {
-  echo -e "\n${TITLE_COLOR}=== Phase-2 Powers of Tau ===${RESET}"
-  echo -e "${LOG_COLOR}this may take a while...${RESET}"
+  echo -e "\n${CLIENV_COLOR_TITLE}=== Phase-2 Powers of Tau ===${CLIENV_COLOR_RESET}"
+  echo -e "${CLIENV_COLOR_LOG}this may take a while...${CLIENV_COLOR_RESET}"
   local CIRCUIT=$1                                    # circuit name
   local NUM_CONTRIBS=$2                               # number of contributions
   local P1_PTAU=$3                                    # path to phase-1 ptau
@@ -43,5 +43,5 @@ ptau() {
   # export
   snarkjs zkey export verificationkey $PROVER_KEY $VERIFICATION_KEY
 
-  echo -e "${LOG_COLOR}Generated keys\n\tProver key: $PROVER_KEY\n\tVerification key: $VERIFICATION_KEY${RESET}"
+  echo -e "${CLIENV_COLOR_LOG}Generated keys\n\tProver key: $PROVER_KEY\n\tVerification key: $VERIFICATION_KEY${CLIENV_COLOR_RESET}"
 }
