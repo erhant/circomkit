@@ -3,12 +3,12 @@ pragma circom 2.0.0;
 // Assert that two elements are not equal.
 // Done via the check if in0 - in1 is non-zero.
 template NonEqual() {
-  signal input in0;
-  signal input in1;
+  signal input in[2];
   signal inv;
 
-  inv <-- 1/ (in0 - in1);
-  inv*(in0 - in1) === 1;
+  // 1/0 results in 0, so the constraint wont hold
+  inv <-- 1 / (in[1] - in[0]);
+  inv * (in[1] - in[0]) === 1;
 }
 
 // Assert that all given values are unique
@@ -18,13 +18,12 @@ template Distinct(n) {
   for(var i = 0; i < n; i++){
     for(var j = 0; j < i; j++){
       nonEqual[i][j] = NonEqual();
-      nonEqual[i][j].in0 <== in[i];
-      nonEqual[i][j].in1 <== in[j];
+      nonEqual[i][j].in <== [in[i], in[j]];
     }
   }
 }
 
-// Enforce that 0 <= in < 16
+// Enforce that 0 <= in <= 15
 template Bits4() {
   signal input in;
   signal bits[4];
@@ -38,19 +37,20 @@ template Bits4() {
 }
 
 // Check if a given signal is in range [1, 9]
+// This is true if 1-1 is 
 template OneToNine() {
   signal input in;
   component lowerBound = Bits4();
   component upperBound = Bits4();
-  lowerBound.in <== in - 1;
-  upperBound.in <== in + 6;
+  lowerBound.in <== in - 1; // 1 - 1 = 0 (for 0 <= in)
+  upperBound.in <== in + 6; // 9 + 6 = 15 (for in <= 15)
 }
 
-template Sudoku(n) {
-  // solution is a 2D array: indices are (row_i, col_i)
-  signal input solution[n][n];
-  // puzzle is the same, but a zero indicates a blank
-  signal input puzzle[n][n];
+template Sudoku(n_sqrt) {
+  var n = n_sqrt * n_sqrt;
+
+  signal input solution[n][n]; // solution is a 2D array: indices are (row_i, col_i)
+  signal input puzzle[n][n]; // puzzle is the same, but a zero indicates a blank
 
   // make sure the solution agrees with the puzzle
 	// meaning that non-empty cells of the puzzle should equal to the corresponding solution value
@@ -76,4 +76,3 @@ template Sudoku(n) {
   }
 }
 
-component main {public[puzzle]} = Sudoku(9);

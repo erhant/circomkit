@@ -7,7 +7,8 @@
   "scripts": {
     "clean": "rm -fR dist",
     "build": "npm run clean && tsc -p .tsconfig.json",
-    "test": "npx mocha"
+    "test": "npx mocha",
+    "_compile": "./scripts/compile.sh"
   },
   "author": "erhant",
   "devDependencies": {

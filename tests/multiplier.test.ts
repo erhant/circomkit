@@ -4,7 +4,7 @@ import type {FullProof} from '../types/circuit';
 import type {WasmTester} from '../types/wasmTester';
 import {assert, expect} from 'chai';
 
-const CIRCUIT_NAME = 'multiplier';
+const CIRCUIT_NAME = 'multiplier3';
 describe(CIRCUIT_NAME, () => {
   const INPUT = {
     in: [2n, 4n, 6n],
@@ -14,7 +14,7 @@ describe(CIRCUIT_NAME, () => {
     let circuit: WasmTester;
 
     before(async () => {
-      circuit = await compileCircuit('./circuits/' + CIRCUIT_NAME + '.circom');
+      circuit = await compileCircuit('../circuits/main/' + CIRCUIT_NAME + '.circom');
     });
 
     it('should compute correctly', async () => {

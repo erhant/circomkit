@@ -4,9 +4,7 @@ A template repository to write arithmetic circuits.
 
 ## Installation
 
-You need Circom to compile circuits, install it following the instructions [here](https://docs.circom.io/getting-started/installation/). We also make use of Circomlib circuit library, just `yarn` and it should be downloaded.
-
-Everything is `devDependency` right now, assuming that you will export the proofs and keys yourself.
+Clone the repository or create a new one with this as the template! You need [Circom](https://docs.circom.io/getting-started/installation/) to compile circuits. Other than that, just `yarn` or `npm install` to get started.
 
 ## Usage
 
