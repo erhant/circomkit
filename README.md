@@ -12,7 +12,7 @@ The repository follows an _opinionated file structure_ shown below, abstracting 
 circom-ts-starter
 ├── circuits  # where you write templates
 │   ├── main  # where you instantiate components
-│   │   │── foo-bar.circom
+│   │   │── foo-main.circom
 │   │   └── ...
 │   │── foo.circom
 │   └── ...
@@ -25,18 +25,18 @@ circom-ts-starter
 │   ├── powersOfTau28_hez_final_12.ptau
 │   └── ...
 └── build     # artifacts, .gitignore'd
-    │── foo-bar
-    │   │── foo-bar_js # artifacts of compilation
+    │── foo-main
+    │   │── foo-main_js # artifacts of compilation
     │   │   │── generate_witness.js
     │   │   │── witness_calculator.js
-    │   │   └── foo-bar.wasm
+    │   │   └── foo-main.wasm
     │   │── input-name # artifacts of witness & proof generation
     │   │   │── proof.json # proof object
     │   │   │── public.json # public signals
     │   │   └── witness.wtns
     │   │── ... # folders for other inputs
-    │   │── foo-bar.r1cs
-    │   │── foo-bar.sym
+    │   │── foo-main.r1cs
+    │   │── foo-main.sym
     │   │── prover_key.zkey
     │   └── verification_key.json
     └── ...

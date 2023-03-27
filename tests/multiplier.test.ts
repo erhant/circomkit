@@ -1,25 +1,28 @@
 import {compileCircuit} from '../utils';
 import {Circuit} from '../utils/circuit';
-import type {FullProof} from '../types/circuit';
+import type {CircuitSignals, FullProof} from '../types/circuit';
 import type {WasmTester} from '../types/wasmTester';
 import {assert, expect} from 'chai';
+// read inputs from file
+import input80 from '../inputs/multiplier3/80.json';
 
 const CIRCUIT_NAME = 'multiplier3';
 describe(CIRCUIT_NAME, () => {
-  const INPUT = {
-    in: [2n, 4n, 6n],
-  };
+  const INPUT: CircuitSignals = input80;
 
   describe('functionality', () => {
     let circuit: WasmTester;
 
     before(async () => {
-      circuit = await compileCircuit('../circuits/main/' + CIRCUIT_NAME + '.circom');
+      circuit = await compileCircuit('./circuits/main/' + CIRCUIT_NAME + '.circom');
+      await circuit.loadConstraints();
+      console.log('#constraints:', circuit.constraints!.length);
     });
 
     it('should compute correctly', async () => {
       // compute witness
       const witness = await circuit.calculateWitness(INPUT, true);
+      console.log(witness);
 
       // witness should have valid constraints
       await circuit.checkConstraints(witness);
@@ -54,7 +57,7 @@ describe(CIRCUIT_NAME, () => {
     });
   });
 
-  describe.skip('validation', () => {
+  describe('validation', () => {
     let fullProof: FullProof;
 
     const circuit = new Circuit(CIRCUIT_NAME);

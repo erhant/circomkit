@@ -14,5 +14,5 @@ export type WitnessType = bigint[];
  */
 export type FullProof = {
   proof: object;
-  publicSignals: CircuitSignals;
+  publicSignals: string[];
 };
