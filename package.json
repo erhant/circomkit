@@ -2,13 +2,16 @@
   "name": "circom-typescript-starter",
   "version": "0.0.1",
   "description": "A Circom development environment",
-  "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "clean": "rm -fR dist",
-    "build": "npm run clean && tsc -p .tsconfig.json",
+    "compile": "tsc",
     "test": "npx mocha",
-    "_compile": "./scripts/compile.sh"
+    "cli:compile": "./scripts/cli.sh -f compile",
+    "cli:clean": "./scripts/cli.sh -f clean",
+    "cli:ptau": "./scripts/cli.sh -f ptau",
+    "cli:prove": "./scripts/cli.sh -f prove",
+    "cli:verify": "./scripts/cli.sh -f verify",
+    "cli:help": "./scripts/cli.sh -f help"
   },
   "author": "erhant",
   "devDependencies": {
@@ -19,7 +22,6 @@
     "circom_tester": "^0.0.19",
     "circomlib": "^2.0.5",
     "circomlibjs": "^0.1.7",
-    "ethers": "^6.0.4",
     "gts": "^3.1.1",
     "mocha": "^10.2.0",
     "snarkjs": "^0.5.0",

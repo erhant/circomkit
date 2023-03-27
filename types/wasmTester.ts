@@ -24,4 +24,15 @@ export type WasmTester = {
    * @param sanityCheck ?
    */
   calculateWitness: (input: CircuitSignals, sanityCheck: boolean) => Promise<WitnessType>;
+
+  /**
+   * Loads the list of R1CS constraints to `this.constraints`
+   */
+  loadConstraints(): Promise<void>;
+
+  /**
+   * List of constraints, must call `loadConstraints` before
+   * accessing this key.
+   */
+  constraints: any[] | undefined;
 };

@@ -4,9 +4,8 @@ type() {
   CIRCUIT=$1
   SYM=./build/$CIRCUIT/$CIRCUIT.sym
 
-  # choose lines with 1 dot only (these are the signals in main file)
-  LINES=$(cat $SYM | grep -E '^[^.]*\.[^.]*$')
-  echo $LINES
+  # choose lines with 1 dot only (these are the signals in main file), extract their names
+  cat $SYM | grep -E '^.+main[^.]*\.[^.]*$'
 
   echo -e "\n${LOG_COLOR}Types generated!${RESET}" 
 }

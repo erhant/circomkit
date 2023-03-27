@@ -1,59 +1,59 @@
-# Circom + TypeScript Starter
+# Circom Starter
 
 A template repository to write arithmetic circuits.
 
-## Installation
+## Usage
 
 Clone the repository or create a new one with this as the template! You need [Circom](https://docs.circom.io/getting-started/installation/) to compile circuits. Other than that, just `yarn` or `npm install` to get started.
 
-## Usage
-
-You write your circuits under `circuits` folder, as simple as that. Tests and scripts are written in TypeScript. Note that almost all of Circom packages are untyped, so you gotta `require()` them instead of import and stuff. I have some helper Shell scripts to ease the rest of the process, you can see them under `scripts` folder. You might need to do `chmod +x ./scripts/*` to make sure they are executable.
-
-`./scripts/test.sh <circuit-name> <input-name>` will run the entire flow in a single script, and finish with a successful proof verification. It will look for the circuit under `circuits/<circuit-name>` and for a JSON input at `./inputs/<circuit-name>/<input-name>.json`.
-
-If you want to have more control over the flow, such as different number of contributions on different powers-of-tau ceremonies, you can use these scripts. As an example, suppose you have a circuit `foobar.circom`. Here is the entire workflow from compiling the circuit to verifying a proof:
-
-1. , you compile the circuit to generate `js` and `wasm` files. These will be generated under `build/foobar`.
+The repository follows an _opinionated file structure_ shown below, abstracting away the pathing and orientation behind the scenes. Shell scripts handle most of the work, and they are exposed through a [CLI](./scripts/main.sh).
 
 ```sh
-# args: <circuit-name>
-./scripts/compile.sh foobar
+circom-ts-starter
+├── circuits  # where you write templates
+│   ├── main  # where you instantiate components
+│   │   │── foo-bar.circom
+│   │   └── ...
+│   │── foo.circom
+│   └── ...
+├── inputs    # where you write JSON inputs per circuit
+│   ├── foo
+│   │   ├── input-name.json
+│   │   └── ...
+│   └── ...
+├── ptau      # universal phase-1 setups
+│   ├── powersOfTau28_hez_final_12.ptau
+│   └── ...
+└── build     # artifacts, .gitignore'd
+    │── foo-bar
+    │   │── foo-bar_js # artifacts of compilation
+    │   │   │── generate_witness.js
+    │   │   │── witness_calculator.js
+    │   │   └── foo-bar.wasm
+    │   │── input-name # artifacts of witness & proof generation
+    │   │   │── proof.json # proof object
+    │   │   │── public.json # public signals
+    │   │   └── witness.wtns
+    │   │── ... # folders for other inputs
+    │   │── foo-bar.r1cs
+    │   │── foo-bar.sym
+    │   │── prover_key.zkey
+    │   └── verification_key.json
+    └── ...
 ```
 
-2. Next, we will do the circuit-specific setup, that is phase-2 of powers-of-tau ceremony. For the phase-1 ceremony, we are using [Perpetual Powers-of-Tau Phase-1](https://github.com/privacy-scaling-explorations/perpetualpowersoftau), the `ptau` file from this is stored under the `ptau` folder. Simply:
+Write your circuits under `circuits` folder. The circuit code itself should be templates only. You should only create the main component under `circuits/main` folder.
 
-```sh
-# args: <circuit-name> <num-contributions>
-./scripts/ptau-phase2.sh foobar 3`
+Use the [CLI](./scripts/cli.sh), or its wrapper scripts in [package.json](./package.json) to do stuff with your circuits.
+
+```bash
+# yarn cli:function ==> ./scripts/cli.sh -f function
+yarn cli:compile -c circuit-name
+yarn cli:clean   -c circuit-name
+yarn cli:ptau    -c circuit-name -n num-contribs -p phase1-ptau-path
+yarn cli:prove   -c circuit-name -i input-name
+yarn cli:verify  -c circuit-name -i input-name
 ```
-
-For each contribution, you are expected to provide some entropy via command line.
-
-3. It is time to create a witness, i.e. providing our knowledge of some private input. Write you inputs under `inputs/foobar` folder. Say you wrote `dummy.json` with some inputs. You can create a witness for this input via the following:
-
-```sh
-# args: <circuit-name> <witness-name>
-./scripts/witness.sh foobar dummy
-```
-
-This will create a witness `dummy_witness.wtns` under `build/foobar`.
-
-4. To generate a proof, simply provide the circuit name and witness name, along with the ID of zkey you want to use:
-
-```sh
-# args: <circuit-name> <witness-name>
-./scripts/prove.sh foobar dummy
-```
-
-5. To verify, just provide the circuit and input names:
-
-```sh
-# args: <circuit-name> <witness-name>
-./scripts/verify.sh foobar dummy
-```
-
-The script will automatically look for `dummy_public.json` and `dummy_proof.json` and run the verification process.
 
 ## Testing
 

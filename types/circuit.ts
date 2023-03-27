@@ -5,7 +5,7 @@
 export type CircuitSignals = {[signalName: string]: any};
 
 /**
- * A witness is just an array of bigints.
+ * A witness is just an array of strings.
  */
 export type WitnessType = bigint[];
 

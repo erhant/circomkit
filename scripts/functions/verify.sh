@@ -1,9 +1,9 @@
 ## Verify a witness & proof
 verify() {
   echo -e "\n${TITLE_COLOR}=== Verifying proof ===${RESET}"
-  CIRCUIT=$1
-  INPUT=$2
-  CIRCUIT_DIR=./build/${CIRCUIT}
+  local CIRCUIT=$1
+  local INPUT=$2
+  local CIRCUIT_DIR=./build/${CIRCUIT}
 
   snarkjs groth16 verify \
     $CIRCUIT_DIR/verification_key.json \

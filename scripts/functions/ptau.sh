@@ -1,18 +1,15 @@
 ## Commence a circuit-specific phase-2 powers-of-tau ceremony
 ptau() {
-  echo -e "\n${TITLE_COLOR}=== Phase-2 PTAU (bn128) & Generating VKEY ===${RESET}"
+  echo -e "\n${TITLE_COLOR}=== Phase-2 Powers of Tau ===${RESET}"
   echo -e "${LOG_COLOR}this may take a while...${RESET}"
-
-  # arguments
-  CIRCUIT=$1                                    # circuit name
-  NUM_CONTRIBS=$2                               # number of contributions
-  ## TODO: take ptau from argument too
-
-  # set variables
-  CIRCUIT_DIR=./build/$CIRCUIT                  # circuit directory
-  P1_PTAU=./ptau/powersOfTau28_hez_final_12.ptau # input directory of ptaus
-  P2_PTAU=$CIRCUIT_DIR/pot12_final.ptau          # phase-2 ptau
-  CUR=000                                       # zkey id, initially 0
+  local CIRCUIT=$1                                    # circuit name
+  local NUM_CONTRIBS=$2                               # number of contributions
+  local P1_PTAU=$3                                    # path to phase-1 ptau
+  local CIRCUIT_DIR=./build/$CIRCUIT                  # circuit directory
+  local P2_PTAU=$CIRCUIT_DIR/phase2_final.ptau         # phase-2 ptau
+  local CUR=000                                       # zkey id, initially 0
+  local PROVER_KEY=$CIRCUIT_DIR/prover_key.zkey
+  local VERIFICATION_KEY=$CIRCUIT_DIR/verification_key.json
 
   # start phase-2 ceremony (circuit specific)
   snarkjs powersoftau prepare phase2 $P1_PTAU $P2_PTAU -v
@@ -43,10 +40,8 @@ ptau() {
   # rename key
   mv $CIRCUIT_DIR/${CIRCUIT}_${CUR}.zkey $CIRCUIT_DIR/prover_key.zkey
 
-  # export keys
-  PROVER_KEY=$CIRCUIT_DIR/prover_key.zkey
-  VERIFICATION_KEY=${CIRCUIT_DIR}/verification_key.json
+  # export
   snarkjs zkey export verificationkey $PROVER_KEY $VERIFICATION_KEY
 
-  echo -e "${LOG_COLOR}Generated\n\tProver key: $PROVER_KEY\n\tVerification key: $VERIFICATION_KEY${RESET}"
+  echo -e "${LOG_COLOR}Generated keys\n\tProver key: $PROVER_KEY\n\tVerification key: $VERIFICATION_KEY${RESET}"
 }

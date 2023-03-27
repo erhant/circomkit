@@ -1,10 +1,10 @@
 ## Generate a proof
 prove() {
   echo -e "\n${TITLE_COLOR}=== Generating proof ===${RESET}" 
-  CIRCUIT=$1
-  INPUT=$2 
-  CIRCUIT_DIR=./build/$CIRCUIT
-  OUTPUT_DIR=$CIRCUIT_DIR/$INPUT
+  local CIRCUIT=$1
+  local INPUT=$2 
+  local CIRCUIT_DIR=./build/$CIRCUIT
+  local OUTPUT_DIR=$CIRCUIT_DIR/$INPUT
 
   snarkjs groth16 prove \
     $CIRCUIT_DIR/prover_key.zkey \

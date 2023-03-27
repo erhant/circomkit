@@ -42,7 +42,7 @@ export class Circuit {
    * @param publicSignals public signals for the circuit
    * @returns `true` if proof verifies, `false` otherwise
    */
-  async verify(proof: object, publicSignals: CircuitSignals): Promise<boolean> {
+  async verify(proof: object, publicSignals: bigint[]): Promise<boolean> {
     return await snarkjs.groth16.verify(this.verificationKey, publicSignals, proof);
   }
 }
