@@ -13,6 +13,7 @@ export type WasmTester = {
 
   /**
    * Cleanup directory, should probably be called upon test completion
+   * @deprecated this is buggy right now
    */
   release(): Promise<void>;
 

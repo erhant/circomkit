@@ -48,10 +48,10 @@ Write your circuits under `circuits` folder; the circuit code itself should be t
 
 ```js
 multiplier3: {
-  file: 'multiplier',
-  template: 'Multiplier',
-  publicInputs: [],
-  templateInputs: [3],
+  template: 'Multiplier', // template to instantiate the main component
+  file: 'multiplier', // file to include for the template
+  publicInputs: [], // array of public inputs
+  templateInputs: [3], // template parameters, order is important
 }
 ```
 
@@ -69,7 +69,7 @@ There are some environment variables that the CLI can make use of, they are writ
 
 ## Testing
 
-To run tests:
+To run Mocha tests do the following:
 
 ```bash
 # run all tests

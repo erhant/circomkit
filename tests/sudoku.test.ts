@@ -1,4 +1,4 @@
-import {compileCircuit} from '../utils';
+import {createWasmTester} from '../utils/wasmTester';
 import type {CircuitSignals, FullProof} from '../types/circuit';
 import type {WasmTester} from '../types/wasmTester';
 import {assert, expect} from 'chai';
@@ -13,14 +13,12 @@ describe(CIRCUIT_NAME, () => {
     let circuit: WasmTester;
 
     before(async () => {
-      circuit = await compileCircuit('./circuits/main/' + CIRCUIT_NAME + '.circom');
-      await circuit.loadConstraints();
-      console.log('#constraints:', circuit.constraints!.length);
+      circuit = await createWasmTester('./circuits/main/' + CIRCUIT_NAME + '.circom', true);
     });
 
     it('should compute correctly', async () => {
       // compute witness
-      const witness = await circuit.calculateWitness(inputfoo, true);
+      const witness = await circuit.calculateWitness(INPUT, true);
 
       // witness should have valid constraints
       await circuit.checkConstraints(witness);
