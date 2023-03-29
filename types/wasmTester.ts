@@ -7,9 +7,14 @@ import {WitnessType, CircuitSignals} from './circuit';
 export type WasmTester = {
   /**
    * Assert that constraints are valid.
-   * @param witness
+   * @param witness witness
    */
   checkConstraints: (witness: WitnessType) => Promise<void>;
+
+  /**
+   * Cleanup directory, should probably be called upon test completion
+   */
+  release(): Promise<void>;
 
   /**
    * Assert the output of a given witness.
@@ -32,7 +37,28 @@ export type WasmTester = {
 
   /**
    * List of constraints, must call `loadConstraints` before
-   * accessing this key.
+   * accessing this key
    */
   constraints: any[] | undefined;
+
+  /**
+   * Loads the symbols in a dictionary at `this.symbols`
+   * Symbols are stored under the .sym file
+   * Each line has 4 comma-separated values:
+   * 0: label index
+   * 1: variable index
+   * 2: component index
+   */
+  loadSymbols(): Promise<void>;
+
+  /**
+   * A dictionary of symbols
+   */
+  symbols: object;
+
+  /**
+   * @deprecated this is buggy right now
+   * @param witness witness
+   */
+  getDecoratedOutput(witness: WitnessType): Promise<string>;
 };

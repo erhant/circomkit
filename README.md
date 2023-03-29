@@ -10,21 +10,23 @@ The repository follows an _opinionated file structure_ shown below, abstracting 
 
 ```sh
 circom-ts-starter
-├── circuits  # where you write templates
-│   ├── main  # where you instantiate components
+├── circuit.config.cjs # configs for circuit main components
+├── .cli.env # environment variables for cli
+├── circuits # where you write templates
+│   ├── main # where you instantiate components
 │   │   │── foo-main.circom
 │   │   └── ...
 │   │── foo.circom
 │   └── ...
-├── inputs    # where you write JSON inputs per circuit
+├── inputs # where you write JSON inputs per circuit
 │   ├── foo
 │   │   ├── input-name.json
 │   │   └── ...
 │   └── ...
-├── ptau      # universal phase-1 setups
+├── ptau # universal phase-1 setups
 │   ├── powersOfTau28_hez_final_12.ptau
 │   └── ...
-└── build     # artifacts, .gitignore'd
+└── build # artifacts, .gitignore'd
     │── foo-main
     │   │── foo-main_js # artifacts of compilation
     │   │   │── generate_witness.js
@@ -42,14 +44,22 @@ circom-ts-starter
     └── ...
 ```
 
-Write your circuits under `circuits` folder. The circuit code itself should be templates only. You should only create the main component under `circuits/main` folder.
+Write your circuits under `circuits` folder; the circuit code itself should be templates only. The main component itself is created automatically via a [script](./scripts/instantiate.js) which uses a simple EJS [template](./circuits/main/_template.circom) to create the main component. The target circuits are defined under the [circuit configs](./circuit.config.cjs) file, such as:
+
+```js
+multiplier3: {
+  file: 'multiplier',
+  template: 'Multiplier',
+  publicInputs: [],
+  templateInputs: [3],
+}
+```
 
 Use the [CLI](./scripts/cli.sh), or its wrapper scripts in [package.json](./package.json) to do stuff with your circuits.
 
 ```bash
 yarn compile -c circuit-name
 yarn clean   -c circuit-name
-yarn type    -c circuit-name
 yarn ptau    -c circuit-name -n num-contribs -p phase1-ptau-path
 yarn prove   -c circuit-name -i input-name
 yarn verify  -c circuit-name -i input-name

@@ -27,6 +27,5 @@ template Multiplier(N){
     comp[i+1].in1 <== comp[i].out;
     comp[i+1].in2 <== in[i+2];
   }
-
   out <== comp[N-2].out; 
 }

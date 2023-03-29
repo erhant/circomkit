@@ -1,5 +1,4 @@
 import {compileCircuit} from '../utils';
-import {Circuit} from '../utils/circuit';
 import type {CircuitSignals, FullProof} from '../types/circuit';
 import type {WasmTester} from '../types/wasmTester';
 import {assert, expect} from 'chai';
@@ -10,7 +9,7 @@ const CIRCUIT_NAME = 'sudoku9';
 describe(CIRCUIT_NAME, () => {
   const INPUT: CircuitSignals = inputfoo;
 
-  describe('functionality', () => {
+  describe('witness computation', () => {
     let circuit: WasmTester;
 
     before(async () => {

@@ -6,7 +6,7 @@ import {CircuitSignals, FullProof} from '../types/circuit';
  * A more extensive Circuit class, able to generate proofs & verify them.
  * Assumes that prover key and verifier key have been computed.
  */
-export class Circuit {
+export class ProofTester {
   private readonly wasmPath: string;
   private readonly proverKeyPath: string;
   private readonly verificationKey: object;

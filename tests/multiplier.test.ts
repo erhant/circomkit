@@ -1,5 +1,5 @@
 import {compileCircuit} from '../utils';
-import {Circuit} from '../utils/circuit';
+import {ProofTester} from '../utils/proofTester';
 import type {CircuitSignals, FullProof} from '../types/circuit';
 import type {WasmTester} from '../types/wasmTester';
 import {assert, expect} from 'chai';
@@ -10,7 +10,7 @@ const CIRCUIT_NAME = 'multiplier3';
 describe(CIRCUIT_NAME, () => {
   const INPUT: CircuitSignals = input80;
 
-  describe('functionality', () => {
+  describe('witness computation', () => {
     let circuit: WasmTester;
 
     before(async () => {
@@ -57,10 +57,10 @@ describe(CIRCUIT_NAME, () => {
     });
   });
 
-  describe('validation', () => {
+  describe('proof verification', () => {
     let fullProof: FullProof;
 
-    const circuit = new Circuit(CIRCUIT_NAME);
+    const circuit = new ProofTester(CIRCUIT_NAME);
 
     before(async () => {
       fullProof = await circuit.prove(INPUT);

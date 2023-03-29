@@ -78,9 +78,6 @@ case $FUNC in
   verify) 
     verify $CIRCUIT $INPUT
     ;;
-  keygen) 
-    compile $CIRCUIT && ptau $CIRCUIT $NUM_CONTRIBS
-    ;;
   *) 
     echo "Usage:"
     echo "  -f <function>"

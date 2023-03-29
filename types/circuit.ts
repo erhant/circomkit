@@ -5,7 +5,8 @@
 export type CircuitSignals = {[signalName: string]: any};
 
 /**
- * A witness is just an array of strings.
+ * A witness is an array of bigints, corresponding to the values of each wire in
+ * the evaluation of the circuit.
  */
 export type WitnessType = bigint[];
 
