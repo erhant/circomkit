@@ -13,7 +13,7 @@ describe(CIRCUIT_NAME, () => {
     let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
     before(async () => {
-      circuit = await createWasmTester('./circuits/main/' + CIRCUIT_NAME + '.circom', true);
+      circuit = await createWasmTester(CIRCUIT_NAME);
     });
 
     it('should compute correctly', async () => {
@@ -55,7 +55,6 @@ describe(CIRCUIT_NAME, () => {
 
   describe('proof verification', () => {
     let fullProof: FullProof;
-
     const circuit = new ProofTester(CIRCUIT_NAME);
 
     before(async () => {

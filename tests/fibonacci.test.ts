@@ -1,12 +1,20 @@
 import {createWasmTester} from '../utils/wasmTester';
-import type {CircuitSignals, FullProof} from '../types/circuit';
-import {assert, expect} from 'chai';
-// read inputs from file
-import inputfoo from '../inputs/sudoku9/foo.json';
+import type {CircuitSignals} from '../types/circuit';
 
-const CIRCUIT_NAME = 'sudoku9';
+function fibonacci(init: [number, number], n: number): number {
+  let [a, b] = init;
+  for (let i = 2; i <= n; i++) {
+    b = a + b;
+    a = b - a;
+  }
+  return b;
+}
+
+const CIRCUIT_NAME = 'fibonacci_11';
 describe(CIRCUIT_NAME, () => {
-  const INPUT: CircuitSignals = inputfoo;
+  const INPUT: CircuitSignals = {
+    in: [1, 1],
+  };
 
   describe('witness computation', () => {
     let circuit: Awaited<ReturnType<typeof createWasmTester>>;
@@ -21,6 +29,12 @@ describe(CIRCUIT_NAME, () => {
 
       // witness should have valid constraints
       await circuit.checkConstraints(witness);
+
+      // witness should have correct output
+      const output = {
+        out: fibonacci(INPUT.in, 11),
+      };
+      await circuit.assertOut(witness, output);
     });
   });
 });

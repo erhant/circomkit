@@ -1,5 +1,5 @@
 const ejs = require('ejs');
-const {writeFileSync, readFileSync} = require('fs');
+const {writeFileSync, readFileSync, existsSync, mkdirSync} = require('fs');
 const config = require('../circuit.config.cjs');
 
 // read circuit from config
@@ -9,9 +9,20 @@ if (!(target in config)) {
 }
 
 // generate the main component code
-let circuit = ejs.render(readFileSync('./circuits/main/_template.circom').toString(), config[target]);
+const templatePath = './circuits/ejs/template.circom';
+let circuit = ejs.render(readFileSync(templatePath).toString(), config[target]);
 
 // output to file
-const targetPath = `./circuits/main/${target}.circom`;
+const dirName = config[target].dir ? config[target].dir : 'main';
+if (typeof dirName !== 'string') {
+  throw new Error(`Bad target type.`);
+}
+
+const dir = `./circuits/${dirName}`;
+if (!existsSync(dir)) {
+  mkdirSync(dir, {recursive: true});
+}
+
+const targetPath = `${dir}/${target}.circom`;
 writeFileSync(targetPath, circuit);
 console.log(`Main component created at: ${targetPath}\n`);

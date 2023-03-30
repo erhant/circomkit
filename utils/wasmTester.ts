@@ -38,8 +38,7 @@ type WasmTester = {
   loadConstraints(): Promise<void>;
 
   /**
-   * List of constraints, must call `loadConstraints` before
-   * accessing this key
+   * List of constraints, must call `loadConstraints` before accessing this key
    */
   constraints: any[] | undefined;
 
@@ -68,11 +67,16 @@ type WasmTester = {
 /**
  * Compiles and reutrns a circuit via `circom_tester`'s `wasm_tester`.
  * @param circuit name of circuit
+ * @param dir directory to read the circuit from, defaults to `main`
  * @param showNumConstraints print number of constraints, defualts to `false`
  * @returns a `wasm_tester` object
  */
-export async function createWasmTester(path: string, showNumConstraints: boolean = false): Promise<WasmTester> {
-  const circuit = await wasm_tester(path, {
+export async function createWasmTester(
+  circuitName: string,
+  dir: string = 'main',
+  showNumConstraints: boolean = false
+): Promise<WasmTester> {
+  const circuit = await wasm_tester(`./circuits/${dir}/${circuitName}.circom`, {
     include: 'node_modules', // will link circomlib circuits
   });
 

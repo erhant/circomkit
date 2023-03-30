@@ -7,11 +7,11 @@ module.exports = {
     templateInputs: [3],
   },
   // A 9x9 sudoku board
-  sudoku9: {
+  sudoku_9x9: {
     file: 'sudoku',
     template: 'Sudoku',
     publicInputs: ['puzzle'],
-    templateInputs: [3],
+    templateInputs: [Math.sqrt(9)],
   },
   // 64-bit floating point, 11-bit exponent and 52-bit mantissa
   fp64: {
@@ -26,5 +26,20 @@ module.exports = {
     template: 'FloatAdd',
     publicInputs: [],
     templateInputs: [8, 23],
+  },
+  // 11-th Fibonacci number
+  fibonacci_11: {
+    file: 'fibonacci',
+    template: 'Fibonacci',
+    publicInputs: [],
+    templateInputs: [11],
+  },
+  // checks that a number fits to given bit count
+  checkBitLength: {
+    file: 'float_add',
+    template: 'CheckBitLength',
+    publicInputs: [],
+    templateInputs: [3],
+    dir: 'util',
   },
 };

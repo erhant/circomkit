@@ -7,7 +7,7 @@ template Fibonacci(n) {
   signal output out;
 
   // compute the sequence
-  signal f[n+1];
+  signal fib[n+1];
   fib[0] <== in[0];
   fib[1] <== in[1];
   for (var i = 2; i <= n; i++) {

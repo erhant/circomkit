@@ -5,7 +5,8 @@
     "main": "Controller",
     "inputs": "Json",
     "ptau": "Secure",
-    "zkey": "Functions"
+    "zkey": "Functions",
+    "ejs": "JavaScript"
   },
   // https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/images/fileIcons.png
   "material-icon-theme.files.associations": {

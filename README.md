@@ -1,6 +1,6 @@
 # Circom Starter
 
-> A template repository to write arithmetic circuits.
+> An opinionated Circom circuit development environment.
 
 ## Usage
 
@@ -13,32 +13,32 @@ circom-ts-starter
 ├── circuit.config.cjs # configs for circuit main components
 ├── .cli.env # environment variables for cli
 ├── circuits # where you write templates
-│   ├── main # where you instantiate components
-│   │   │── foo-main.circom
+│   ├── main # auto-generated main components
+│   │   │── sudoku_9x9.circom # e.g. a 9x9 sudoku board
 │   │   └── ...
-│   │── foo.circom
+│   │── sudoku.circom # a generic sudoku template
 │   └── ...
 ├── inputs # where you write JSON inputs per circuit
-│   ├── foo
-│   │   ├── input-name.json
+│   ├── sudoku_9x9 # each main template has its own folder
+│   │   ├── input-1.json # e.g. a solution & its puzzle
 │   │   └── ...
 │   └── ...
 ├── ptau # universal phase-1 setups
 │   ├── powersOfTau28_hez_final_12.ptau
 │   └── ...
-└── build # artifacts, .gitignore'd
-    │── foo-main
-    │   │── foo-main_js # artifacts of compilation
+└── build # build artifacts, these are .gitignore'd
+    │── sudoku_9x9 # each main template has its own folder
+    │   │── sudoku_9x9_js # artifacts of compilation
     │   │   │── generate_witness.js
     │   │   │── witness_calculator.js
-    │   │   └── foo-main.wasm
+    │   │   └── sudoku_9x9.wasm
     │   │── input-name # artifacts of witness & proof generation
     │   │   │── proof.json # proof object
     │   │   │── public.json # public signals
     │   │   └── witness.wtns
     │   │── ... # folders for other inputs
-    │   │── foo-main.r1cs
-    │   │── foo-main.sym
+    │   │── sudoku_9x9.r1cs
+    │   │── sudoku_9x9.sym
     │   │── prover_key.zkey
     │   └── verification_key.json
     └── ...
@@ -58,11 +58,14 @@ multiplier3: {
 Use the [CLI](./scripts/cli.sh), or its wrapper scripts in [package.json](./package.json) to do stuff with your circuits.
 
 ```bash
-yarn compile -c circuit-name
-yarn clean   -c circuit-name
-yarn ptau    -c circuit-name -n num-contribs -p phase1-ptau-path
-yarn prove   -c circuit-name -i input-name
-yarn verify  -c circuit-name -i input-name
+# first argument is ALWAYS the circuit name
+yarn compile circuit-name
+yarn clean   circuit-name
+yarn ptau    circuit-name -n num-contribs -p phase1-ptau-path
+yarn prove   circuit-name -i input-name
+yarn verify  circuit-name -i input-name
+yarn test    circuit-name
+yarn test:all
 ```
 
 There are some environment variables that the CLI can make use of, they are written under [.cli.env](./.cli.env) file.
