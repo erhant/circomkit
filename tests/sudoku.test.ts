@@ -1,6 +1,5 @@
 import {createWasmTester} from '../utils/wasmTester';
 import type {CircuitSignals, FullProof} from '../types/circuit';
-import type {WasmTester} from '../types/wasmTester';
 import {assert, expect} from 'chai';
 // read inputs from file
 import inputfoo from '../inputs/sudoku9/foo.json';
@@ -10,7 +9,7 @@ describe(CIRCUIT_NAME, () => {
   const INPUT: CircuitSignals = inputfoo;
 
   describe('witness computation', () => {
-    let circuit: WasmTester;
+    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
     before(async () => {
       circuit = await createWasmTester('./circuits/main/' + CIRCUIT_NAME + '.circom', true);

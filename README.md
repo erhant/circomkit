@@ -82,3 +82,7 @@ Within each test, there are two sub-tests:
 
 - **Witness Computation** will test whether witness computations are matching the expectations & the constraints hold.
 - **Proof Validation** will test whether proof generation & verification works correctly. This requires the **WASM file**, **prover key**, and **verification key** to be calculated beforehand.
+
+## Styling
+
+The code uses Google TypeScript Style guide. It also has some folder & file icon overrides for several Material UI icons to make things look better.

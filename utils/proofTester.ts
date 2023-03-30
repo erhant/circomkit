@@ -11,6 +11,10 @@ export class ProofTester {
   private readonly proverKeyPath: string;
   private readonly verificationKey: object;
 
+  /**
+   * Sets the paths & loads the verification key
+   * @param circuit a proof tester
+   */
   constructor(circuit: string) {
     // find paths (computed w.r.t circuit name)
     this.wasmPath = `./build/${circuit}/${circuit}_js/${circuit}.wasm`;
