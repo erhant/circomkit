@@ -1,13 +1,18 @@
 import {createWasmTester} from '../utils/wasmTester';
 import type {CircuitSignals} from '../types/circuit';
 
+// simple fibonacci with 2 variables
 function fibonacci(init: [number, number], n: number): number {
+  if (n < 0) {
+    throw new Error('N must be positive');
+  }
+
   let [a, b] = init;
   for (let i = 2; i <= n; i++) {
     b = a + b;
     a = b - a;
   }
-  return b;
+  return n == 0 ? a : b;
 }
 
 const CIRCUIT_NAME = 'fibonacci_11';

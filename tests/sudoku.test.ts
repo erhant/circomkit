@@ -2,7 +2,7 @@ import {createWasmTester} from '../utils/wasmTester';
 import type {CircuitSignals, FullProof} from '../types/circuit';
 import {assert, expect} from 'chai';
 // read inputs from file
-import inputfoo from '../inputs/sudoku9/foo.json';
+import inputfoo from '../inputs/sudoku_9x9/example.json';
 
 const CIRCUIT_NAME = 'sudoku9';
 describe(CIRCUIT_NAME, () => {

@@ -1,15 +1,15 @@
-# Circom Starter
+# Circomkit
 
 > An opinionated Circom circuit development environment.
 
 ## Usage
 
-Clone the repository or create a new one with this as the template! You need [Circom](https://docs.circom.io/getting-started/installation/) to compile circuits. Other than that, just `yarn` or `npm install` to get started.
+Clone the repository or create a new one with this as the template! You need [Circom](https://docs.circom.io/getting-started/installation/) to compile circuits. Other than that, just `yarn` or `npm install` to get started. It will also install [Circomlib](https://github.com/iden3/circomlib/tree/master/circuits) which has many utility circuits.
 
 The repository follows an _opinionated file structure_ shown below, abstracting away the pathing and orientation behind the scenes. Shell scripts handle most of the work, and they are exposed through a [CLI](./scripts/main.sh).
 
 ```sh
-circom-ts-starter
+circomkit
 ├── circuit.config.cjs # configs for circuit main components
 ├── .cli.env # environment variables for cli
 ├── circuits # where you write templates
@@ -20,7 +20,7 @@ circom-ts-starter
 │   └── ...
 ├── inputs # where you write JSON inputs per circuit
 │   ├── sudoku_9x9 # each main template has its own folder
-│   │   ├── input-1.json # e.g. a solution & its puzzle
+│   │   ├── example-input.json # e.g. a solution & its puzzle
 │   │   └── ...
 │   └── ...
 ├── ptau # universal phase-1 setups
@@ -32,7 +32,7 @@ circom-ts-starter
     │   │   │── generate_witness.js
     │   │   │── witness_calculator.js
     │   │   └── sudoku_9x9.wasm
-    │   │── input-name # artifacts of witness & proof generation
+    │   │── example-input # artifacts of witness & proof generation
     │   │   │── proof.json # proof object
     │   │   │── public.json # public signals
     │   │   └── witness.wtns
@@ -44,14 +44,14 @@ circom-ts-starter
     └── ...
 ```
 
-Write your circuits under `circuits` folder; the circuit code itself should be templates only. The main component itself is created automatically via a [script](./scripts/instantiate.js) which uses a simple EJS [template](./circuits/main/_template.circom) to create the main component. The target circuits are defined under the [circuit configs](./circuit.config.cjs) file, such as:
+Write your circuits under `circuits` folder; the circuit code itself should be templates only. The main component itself is created automatically via a [script](./scripts/instantiate.js) which uses a simple EJS [template](./circuits/ejs/_template.circom) to create the main component. The target circuits are defined under the [circuit configs](./circuit.config.cjs) file, such as:
 
 ```js
 multiplier3: {
   template: 'Multiplier', // template to instantiate the main component
   file: 'multiplier', // file to include for the template
   publicInputs: [], // array of public inputs
-  templateInputs: [3], // template parameters, order is important
+  templateParams: [3], // template parameters, order is important
 }
 ```
 
@@ -88,4 +88,4 @@ Within each test, there are two sub-tests:
 
 ## Styling
 
-The code uses Google TypeScript Style guide. It also has some folder & file icon overrides for several Material UI icons to make things look better.
+The code uses Google TypeScript Style guide. It also has some folder & file icon overrides for several Material UI icons to make things look better in VSCode.

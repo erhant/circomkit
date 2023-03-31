@@ -1,5 +1,7 @@
 pragma circom 2.0.0;
 
+// include "circomlib/circuits/" TODO TODO
+
 // Assert that two elements are not equal.
 // Done via the check if in0 - in1 is non-zero.
 template NonEqual() {
