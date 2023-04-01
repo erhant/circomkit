@@ -17,6 +17,7 @@
   "author": "erhant",
   "devDependencies": {
     "@types/chai": "^4.3.4",
+    "@types/chai-as-promised": "^7.1.5",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.11.18",
     "chai": "^4.3.7",

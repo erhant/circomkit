@@ -17,7 +17,6 @@ describe(CIRCUIT_NAME, () => {
     });
 
     it('should compute correctly', async () => {
-      // compute witness
       const witness = await circuit.calculateWitness(INPUT, true);
 
       // witness should have valid constraints
@@ -31,25 +30,17 @@ describe(CIRCUIT_NAME, () => {
     });
 
     it('should NOT compute with wrong number of inputs', async () => {
-      try {
-        await circuit.calculateWitness(
-          {
-            in: INPUT.in.slice(1), // fewer inputs
-          },
-          true
-        );
-        assert.fail('expected to fail on fewer inputs');
-      } catch (err) {}
+      const fewInputs = INPUT.in.slice(1);
+      await circuit.calculateWitness({in: fewInputs}, true).then(
+        () => assert.fail('expected to fail on fewer inputs'),
+        err => expect(err.message).to.eq('Not enough values for input signal in\n')
+      );
 
-      try {
-        await circuit.calculateWitness(
-          {
-            in: [2n, ...INPUT.in], // more inputs
-          },
-          true
-        );
-        assert.fail('expected to fail on too many inputs');
-      } catch (err) {}
+      const manyInputs = [2n, ...INPUT.in];
+      await circuit.calculateWitness({in: manyInputs}, true).then(
+        () => assert.fail('expected to fail on too many inputs'),
+        err => expect(err.message).to.eq('Too many values for input signal in\n')
+      );
     });
   });
 

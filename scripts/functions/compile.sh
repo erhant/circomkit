@@ -12,7 +12,8 @@ compile() {
   mkdir -p $CIRCOM_OUT
 
   # compile with circom
-  circom $CIRCOM_IN -o $CIRCOM_OUT --r1cs --wasm --sym
+  echo "circom $CIRCOM_IN -o $CIRCOM_OUT $CLIENV_COMPILER_ARGS"
+  circom $CIRCOM_IN -o $CIRCOM_OUT $CLIENV_COMPILER_ARGS
 
   echo -e "${CLIENV_COLOR_LOG}Built artifacts under $CIRCOM_OUT${CLIENV_COLOR_RESET}"
 }

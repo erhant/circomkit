@@ -1,150 +1,34 @@
 pragma circom 2.0.0;
 
-// code from ZKP MOOC 2023 lab
+// this code is taken from ZKP MOOC 2023 lab, and then modified
 
-/////////////////////////////////////////////////////////////////////////////////////
-/////////////////////// Templates from the circomlib ////////////////////////////////
-////////////////// Copy-pasted here for easy reference //////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////
+include "circomlib/circuits/comparators.sol";
+include "circomlib/circuits/switcher.sol";
+include "circomlib/circuits/gates.sol";
+include "circomlib/circuits/bitify.sol";
 
-/*
- * Outputs `a` AND `b`
- */
-template AND() {
-  signal input a;
-  signal input b;
-  signal output out;
-
-  out <== a*b;
-}
+include "./math/bits.sol";
 
 /*
- * Outputs `a` OR `b`
+ * Basically `out = cond ? ifTrue : ifFalse`
  */
-template OR() {
-  signal input a;
-  signal input b;
-  signal output out;
-
-  out <== a + b - a*b;
-}
-
-/*
- * `out` = `cond` ? `L` : `R`
- */
-template IfThenElse() {
+template IfElse() {
   signal input cond;
-  signal input L;
-  signal input R;
+  signal input ifTrue;
+  signal input ifFalse;
   signal output out;
 
-  out <== cond * (L - R) + R;
+  // cond * T - cond * F + F
+  // 0    * T - 0    * F + F = 0 - 0 + F = F
+  // 1    * T - 1    * F + F = T - F + F = T
+  out <== cond * (ifTrue - ifFalse) + ifFalse;
 }
-
-/*
- * (`outL`, `outR`) = `sel` ? (`R`, `L`) : (`L`, `R`)
- */
-template Switcher() {
-  signal input sel;
-  signal input L;
-  signal input R;
-  signal output outL;
-  signal output outR;
-
-  signal aux;
-
-  aux <== (R-L)*sel;
-  outL <==  aux + L;
-  outR <== -aux + R;
-}
-
-/*
- * Decomposes `in` into `b` bits, given by `bits`.
- * Least significant bit in `bits[0]`.
- * Enforces that `in` is at most `b` bits long.
- */
-template Num2Bits(b) {
-  signal input in;
-  signal output bits[b];
-
-  for (var i = 0; i < b; i++) {
-    bits[i] <-- (in >> i) & 1;
-    bits[i] * (1 - bits[i]) === 0;
-  }
-  var sum_of_bits = 0;
-  for (var i = 0; i < b; i++) {
-    sum_of_bits += (2 ** i) * bits[i];
-  }
-  sum_of_bits === in;
-}
-
-/*
- * Reconstructs `out` from `b` bits, given by `bits`.
- * Least significant bit in `bits[0]`.
- */
-template Bits2Num(b) {
-  signal input bits[b];
-  signal output out;
-  var lc = 0;
-
-  for (var i = 0; i < b; i++) {
-    lc += (bits[i] * (1 << i));
-  }
-  out <== lc;
-}
-
-/*
- * Checks if `in` is zero and returns the output in `out`.
- */
-template IsZero() {
-  signal input in;
-  signal output out;
-
-  signal inv;
-
-  inv <-- in!=0 ? 1/in : 0;
-
-  out <== -in*inv +1;
-  in*out === 0;
-}
-
-/*
- * Checks if `in[0]` == `in[1]` and returns the output in `out`.
- */
-template IsEqual() {
-  signal input in[2];
-  signal output out;
-
-  component isz = IsZero();
-
-  in[1] - in[0] ==> isz.in;
-
-  isz.out ==> out;
-}
-
-/*
- * Checks if `in[0]` < `in[1]` and returns the output in `out`.
- */
-template LessThan(n) {
-  assert(n <= 252);
-  signal input in[2];
-  signal output out;
-
-  component n2b = Num2Bits(n+1);
-  n2b.in <== in[0] + (1<<n) - in[1];
-  out <== 1-n2b.bits[n];
-}
-
-/////////////////////////////////////////////////////////////////////////////////////
-///////////////////////// Templates for this lab ////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////
 
 /*
  * Outputs `out` = 1 if `in` is at most `b` bits long, and 0 otherwise.
- * ✅ this is in line with what I have done!
  */
 template CheckBitLength(b) {
-  assert(b < 254); // ⚠️ added this
+  assert(b < 254);
   signal input in;
   signal output out;
 
@@ -192,11 +76,11 @@ template CheckWellFormedness(k, p) {
   check_m_bits.in <== m - (1 << p);
 
   // choose the right checks based on `is_e_zero`
-  component if_else = IfThenElse();
+  component if_else = IfElse();
   if_else.cond <== is_e_zero.out;
-  if_else.L <== is_m_zero.out;
+  if_else.ifTrue <== is_m_zero.out;
   //// check_m_bits.out * check_e_bits.out is equivalent to check_m_bits.out AND check_e_bits.out
-  if_else.R <== check_m_bits.out * check_e_bits.out;
+  if_else.ifFalse <== check_m_bits.out * check_e_bits.out;
 
   // assert that those checks passed
   if_else.out === 1;
@@ -206,7 +90,7 @@ template CheckWellFormedness(k, p) {
  * Right-shifts `x` by `shift` bits to output `y`, where `shift` is a public circuit parameter.
  */
 template RightShift(b, shift) {
-  assert(shift < b); // ⚠️ number is b bits long, and shift must be less than that
+  assert(shift < b);
   signal input x;
   signal output y;
   
@@ -261,13 +145,13 @@ template RoundAndCheck(k, p, P) {
   // select right output based on no_overflow
   component if_else[2];
   for (var i = 0; i < 2; i++) {
-    if_else[i] = IfThenElse();
+    if_else[i] = IfElse();
     if_else[i].cond <== no_overflow;
   }
-  if_else[0].L <== e_out_1;
-  if_else[0].R <== e_out_2;
-  if_else[1].L <== m_out_1;
-  if_else[1].R <== m_out_2;
+  if_else[0].ifTrue <== e_out_1;
+  if_else[0].ifFalse <== e_out_2;
+  if_else[1].ifTrue <== m_out_1;
+  if_else[1].ifFalse <== m_out_2;
   e_out <== if_else[0].out;
   m_out <== if_else[1].out;
 }
@@ -289,6 +173,7 @@ template Num2BitsWithSkipChecks(b) {
   // is always true if skip_checks is 1
   (sum_of_bits - in) * (1 - skip_checks) === 0;
 }
+
 template LessThanWithSkipChecks(n) {
   assert(n <= 252);
   signal input in[2];
@@ -300,15 +185,6 @@ template LessThanWithSkipChecks(n) {
   n2b.skip_checks <== skip_checks;
 
   out <== 1-n2b.bits[n];
-}
-// a rough log2 function
-function log2(a) {
-  var n = 1, r = 1;
-  while (n < a) {
-    r++;
-    n *= 2;
-  }
-  return r;
 }
 
 /*
@@ -324,7 +200,7 @@ template LeftShift(shift_bound) {
   signal output y;
 
   // find number of bits in shift_bound
-  var n = log2(shift_bound);
+  var n = numOfBits(shift_bound);
 
   // convert "shift" to bits
   component shift_bits = Num2BitsWithSkipChecks(n);
@@ -343,18 +219,18 @@ template LeftShift(shift_bound) {
   var pow2_shift = 1;
   component muxes[n];
   for (var i = 0; i < n; i++) {
-    muxes[i] = IfThenElse();
+    muxes[i] = IfElse();
     muxes[i].cond <== shift_bits.bits[i];
-    muxes[i].L <== pow2_shift * (2 ** (2 ** i));
-    muxes[i].R <== pow2_shift;
+    muxes[i].ifTrue <== pow2_shift * (2 ** (2 ** i));
+    muxes[i].ifFalse <== pow2_shift;
     pow2_shift = muxes[i].out;
   }
 
   // if skip checks, set pow2_shift to 0
-  component if_else = IfThenElse();
+  component if_else = IfElse();
   if_else.cond <== skip_checks;
-  if_else.L <== 0;
-  if_else.R <== pow2_shift;
+  if_else.ifTrue <== 0;
+  if_else.ifFalse <== pow2_shift;
   pow2_shift = if_else.out; // not <== because it's a variable
 
   // do the shift
@@ -522,10 +398,10 @@ template FloatAdd(k, p) {
   // return
   component if_else[2];
   for (var i = 0; i < 2; i++) {
-    if_else[i] = IfThenElse();
+    if_else[i] = IfElse();
     if_else[i].cond <== is_case_1;
-    if_else[i].L <== case_1_output[i];
-    if_else[i].R <== case_2_output[i];
+    if_else[i].ifTrue <== case_1_output[i];
+    if_else[i].ifFalse <== case_2_output[i];
   }
   e_out <== if_else[0].out;
   m_out <== if_else[1].out;
