@@ -2,12 +2,12 @@ pragma circom 2.0.0;
 
 // this code is taken from ZKP MOOC 2023 lab, and then modified
 
-include "circomlib/circuits/comparators.sol";
-include "circomlib/circuits/switcher.sol";
-include "circomlib/circuits/gates.sol";
-include "circomlib/circuits/bitify.sol";
+include "circomlib/circuits/comparators.circom";
+include "circomlib/circuits/switcher.circom";
+include "circomlib/circuits/gates.circom";
+include "circomlib/circuits/bitify.circom";
 
-include "./math/bits.sol";
+include "functions/bits.circom";
 
 /*
  * Basically `out = cond ? ifTrue : ifFalse`

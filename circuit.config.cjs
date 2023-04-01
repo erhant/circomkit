@@ -38,7 +38,7 @@ const config = {
     templateParams: [11],
   },
   // checks that a number fits to given bit count
-  checkBitLength: {
+  cbl_3: {
     file: 'float_add',
     template: 'CheckBitLength',
     publicInputs: [],

@@ -17,11 +17,16 @@ source ./scripts/functions/compile.sh
 
 # get arguments
 NUM_CONTRIBS=1 # default value
-while getopts "f:c:n:i:p:" opt; do
+COMPILE_DIR="main" # default dir
+while getopts "f:c:n:i:p:d:" opt; do
   case $opt in
     # function to call
     f) 
       FUNC="$OPTARG"
+      ;;
+    # director for compilation (default: main)
+    d) 
+      COMPILE_DIR="$OPTARG"
       ;;
     # circuit name
     c) 
@@ -61,7 +66,7 @@ case $FUNC in
     clean $CIRCUIT
     ;;
   compile) 
-    compile $CIRCUIT
+    compile $CIRCUIT $COMPILE_DIR
     ;;
   type) 
     type $CIRCUIT
@@ -89,6 +94,7 @@ case $FUNC in
     echo "    prove    Prove an input"
     echo "    verify   Verify a proof & public signals"
     echo "  -c <circuit-name>"
+    echo "  -d <directory-name>"
     echo "  -n <num-contributions> (default: 1)"
     echo "  -i <input-name>"
     echo "  -p <phase1-ptau-path>"

@@ -2,11 +2,13 @@
 compile() {
   echo -e "\n${CLIENV_COLOR_TITLE}=== Compiling the circuit ===${CLIENV_COLOR_RESET}"
   local CIRCUIT=$1
+  local DIR=$2
+  local CIRCOM_IN=./circuits/$DIR/$CIRCUIT.circom
+  local CIRCOM_OUT=./build/$CIRCUIT
 
   # generate the circuit main component
-  node ./scripts/instantiate.js $CIRCUIT
-  local CIRCOM_IN=./circuits/main/$CIRCUIT.circom
-  local CIRCOM_OUT=./build/$CIRCUIT
+  mkdir -p ./circuits/$DIR
+  node ./scripts/instantiate.js $CIRCUIT $DIR
   
   # create build dir if not exists already
   mkdir -p $CIRCOM_OUT

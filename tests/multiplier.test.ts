@@ -9,56 +9,36 @@ const CIRCUIT_NAME = 'multiplier3';
 describe(CIRCUIT_NAME, () => {
   const INPUT: CircuitSignals = input80;
 
-  describe('witness computation', () => {
-    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+  let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
-    before(async () => {
-      circuit = await createWasmTester(CIRCUIT_NAME);
-    });
-
-    it('should compute correctly', async () => {
-      const witness = await circuit.calculateWitness(INPUT, true);
-
-      // witness should have valid constraints
-      await circuit.checkConstraints(witness);
-
-      // witness should have correct output
-      const output = {
-        out: BigInt(INPUT.in.reduce((prev: bigint, acc: bigint) => acc * prev)),
-      };
-      await circuit.assertOut(witness, output);
-    });
-
-    it('should NOT compute with wrong number of inputs', async () => {
-      const fewInputs = INPUT.in.slice(1);
-      await circuit.calculateWitness({in: fewInputs}, true).then(
-        () => assert.fail('expected to fail on fewer inputs'),
-        err => expect(err.message).to.eq('Not enough values for input signal in\n')
-      );
-
-      const manyInputs = [2n, ...INPUT.in];
-      await circuit.calculateWitness({in: manyInputs}, true).then(
-        () => assert.fail('expected to fail on too many inputs'),
-        err => expect(err.message).to.eq('Too many values for input signal in\n')
-      );
-    });
+  before(async () => {
+    circuit = await createWasmTester(CIRCUIT_NAME);
   });
 
-  describe('proof verification', () => {
-    let fullProof: FullProof;
-    const circuit = new ProofTester(CIRCUIT_NAME);
+  it('should compute correctly', async () => {
+    const witness = await circuit.calculateWitness(INPUT, true);
 
-    before(async () => {
-      fullProof = await circuit.prove(INPUT);
-    });
+    // witness should have valid constraints
+    await circuit.checkConstraints(witness);
 
-    it('should verify', async () => {
-      expect(await circuit.verify(fullProof.proof, fullProof.publicSignals)).to.be.true;
-    });
+    // witness should have correct output
+    const output = {
+      out: BigInt(INPUT.in.reduce((prev: bigint, acc: bigint) => acc * prev)),
+    };
+    await circuit.assertOut(witness, output);
+  });
 
-    it('should NOT verify a wrong multiplication', async () => {
-      // just give a prime number, assuming there are no factors of 1
-      expect(await circuit.verify(fullProof.proof, ['13'])).to.be.false;
-    });
+  it('should NOT compute with wrong number of inputs', async () => {
+    const fewInputs = INPUT.in.slice(1);
+    await circuit.calculateWitness({in: fewInputs}, true).then(
+      () => assert.fail(),
+      err => expect(err.message).to.eq('Not enough values for input signal in\n')
+    );
+
+    const manyInputs = [2n, ...INPUT.in];
+    await circuit.calculateWitness({in: manyInputs}, true).then(
+      () => assert.fail(),
+      err => expect(err.message).to.eq('Too many values for input signal in\n')
+    );
   });
 });

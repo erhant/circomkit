@@ -1,17 +1,37 @@
 pragma circom 2.0.0;
 
 include "circomlib/circuits/bitify.circom";
-include "./functions/bits.circom";
+include "functions/bits.circom";
+
+// Ensures that number is representable by b-bits
+template CheckBitLength(b) {
+  assert(b < 254);
+  signal input in;
+
+  // compute b-bit representation of the number  
+  signal bits[b];
+  var sum_of_bits = 0;
+  for (var i = 0; i < b; i++) {
+    bits[i] <-- (in >> i) & 1;
+    bits[i] * (1 - bits[i]) === 0;
+    sum_of_bits += (2 ** i) * bits[i];
+  }
+
+  // check if sum is equal to number itself
+  in === sum_of_bits;
+}
 
 // Assert that two elements are not equal
 template NonEqual() {
   signal input in[2];
+  signal output out;
   signal inv;
 
   // we check if (in[0] - in[1] != 0)
   // because 1/0 results in 0, so the constraint won't hold
   inv <-- 1 / (in[1] - in[0]);
-  inv * (in[1] - in[0]) === 1;
+  0 * inv === 0; // silence error
+  out <== inv * (in[1] - in[0]);
 }
 
 // Assert that all given values are unique
@@ -22,6 +42,7 @@ template Distinct(n) {
     for(var j = 0; j < i; j++){
       nonEqual[i][j] = NonEqual();
       nonEqual[i][j].in <== [in[i], in[j]];
+      nonEqual[i][j].out === 1;
     }
   }
 }
@@ -31,8 +52,8 @@ template InRange(MIN, MAX) {
   signal input in;
   
   var b = numOfBits(MAX);
-  component lowerBound = Num2Bits(b);
-  component upperBound = Num2Bits(b);
+  component lowerBound = CheckBitLength(b);
+  component upperBound = CheckBitLength(b);
   lowerBound.in <== in - MIN; // e.g. 1 - 1 = 0 (for 0 <= in)
   upperBound.in <== in + (2 ** b) - MAX - 1; // e.g. 9 + 6 = 15 (for in <= 15)
 }
