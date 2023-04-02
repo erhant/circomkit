@@ -1,6 +1,6 @@
 pragma circom 2.0.0;
 
-// this code is taken from ZKP MOOC 2023 lab, and then modified
+// circuits adapted from https://github.com/rdi-berkeley/zkp-mooc-lab
 
 include "circomlib/circuits/comparators.circom";
 include "circomlib/circuits/switcher.circom";

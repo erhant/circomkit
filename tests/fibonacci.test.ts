@@ -13,13 +13,8 @@ describe('fibonacci_11', () => {
   });
 
   it('should compute correctly', async () => {
-    // compute witness
     const witness = await circuit.calculateWitness(INPUT, true);
-
-    // witness should have valid constraints
     await circuit.checkConstraints(witness);
-
-    // witness should have correct output
     const output = {
       out: fibonacci(INPUT.in, 11),
     };

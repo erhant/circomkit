@@ -84,7 +84,10 @@ export async function createWasmTester(circuitName: string, dir: string = 'main'
  * @param expected expected number of constraints
  */
 export async function printConstraintCount(circuit: WasmTester, expected?: number) {
-  await circuit.loadConstraints();
+  // load constraints
+  if (!circuit.constraints) {
+    await circuit.loadConstraints();
+  }
   const numConstraints = circuit.constraints!.length;
   let expectionMessage = '';
   if (expected !== undefined) {
