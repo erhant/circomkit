@@ -2,6 +2,13 @@
 
 > An opinionated Circom circuit development environment.
 
+You can develop & test Circom circuits with ease using this repository. We have several example circuits to help guide you:
+
+- **Multiplier**: Proves that you know the factors of a number.
+- **Floating Point Addition**: A floating-point addition circuit, as written in [Berkeley ZKP MOOC 2023- Lab 1](https://github.com/rdi-berkeley/zkp-mooc-lab).
+- **Fibonacci**: Calculate N'th Fibonacci number, has both recursive & iterative implementations.
+- **Sudoku**: Prove that you know the solution to a sudoku puzzle where the board size is a perfect square.
+
 ## Usage
 
 Clone the repository or create a new one with this as the template! You need [Circom](https://docs.circom.io/getting-started/installation/) to compile circuits. Other than that, just `yarn` or `npm install` to get started. It will also install [Circomlib](https://github.com/iden3/circomlib/tree/master/circuits) which has many utility circuits.

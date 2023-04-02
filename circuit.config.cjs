@@ -1,9 +1,9 @@
 /**
- * @type {import("./circuit.config").Config}
+ * @type {import("./types/circuit").Config}
  */
 const config = {
   // multiplication of 3 numbers
-  multiplier3: {
+  multiplier_3: {
     file: 'multiplier',
     template: 'Multiplier',
     publicInputs: [],
@@ -15,6 +15,13 @@ const config = {
     template: 'Sudoku',
     publicInputs: ['puzzle'],
     templateParams: [Math.sqrt(9)],
+  },
+  // A 4x4 sudoku board
+  sudoku_4x4: {
+    file: 'sudoku',
+    template: 'Sudoku',
+    publicInputs: ['puzzle'],
+    templateParams: [Math.sqrt(4)],
   },
   // 64-bit floating point, 11-bit exponent and 52-bit mantissa
   fp64: {

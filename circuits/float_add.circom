@@ -101,12 +101,12 @@ template RightShift(b, shift) {
   // do the shifting
   signal y_bits[b-shift];
   for (var i = 0; i < b-shift; i++) {
-    y_bits[i] <== x_bits.bits[shift+i];
+    y_bits[i] <== x_bits.out[shift+i];
   } 
 
   // convert shifted bits to number
   component y_num = Bits2Num(b-shift);
-  y_num.bits <== y_bits;
+  y_num.in <== y_bits;
   y <== y_num.out;
 }
 
@@ -159,15 +159,15 @@ template RoundAndCheck(k, p, P) {
 template Num2BitsWithSkipChecks(b) {
   signal input in;
   signal input skip_checks;
-  signal output bits[b];
+  signal output out[b];
 
   for (var i = 0; i < b; i++) {
-    bits[i] <-- (in >> i) & 1;
-    bits[i] * (1 - bits[i]) === 0;
+    out[i] <-- (in >> i) & 1;
+    out[i] * (1 - out[i]) === 0;
   }
   var sum_of_bits = 0;
   for (var i = 0; i < b; i++) {
-    sum_of_bits += (2 ** i) * bits[i];
+    sum_of_bits += (2 ** i) * out[i];
   }
 
   // is always true if skip_checks is 1
@@ -182,9 +182,8 @@ template LessThanWithSkipChecks(n) {
 
   component n2b = Num2BitsWithSkipChecks(n+1);
   n2b.in <== in[0] + (1<<n) - in[1];
-  n2b.skip_checks <== skip_checks;
-
-  out <== 1-n2b.bits[n];
+  n2b.skip_checks <== skip_checks; 
+  out <== 1-n2b.out[n];
 }
 
 /*
@@ -220,7 +219,7 @@ template LeftShift(shift_bound) {
   component muxes[n];
   for (var i = 0; i < n; i++) {
     muxes[i] = IfElse();
-    muxes[i].cond <== shift_bits.bits[i];
+    muxes[i].cond <== shift_bits.out[i];
     muxes[i].ifTrue <== pow2_shift * (2 ** (2 ** i));
     muxes[i].ifFalse <== pow2_shift;
     pow2_shift = muxes[i].out;

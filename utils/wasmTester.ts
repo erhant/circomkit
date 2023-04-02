@@ -28,7 +28,7 @@ type WasmTester = {
   /**
    * Compute witness given the input signals.
    * @param input all signals, private and public.
-   * @param sanityCheck ?
+   * @param sanityCheck check if input signals are sanitized
    */
   calculateWitness: (input: CircuitSignals, sanityCheck: boolean) => Promise<WitnessType>;
 
@@ -71,19 +71,32 @@ type WasmTester = {
  * @param showNumConstraints print number of constraints, defualts to `false`
  * @returns a `wasm_tester` object
  */
-export async function createWasmTester(
-  circuitName: string,
-  dir: string = 'main',
-  showNumConstraints: boolean = false
-): Promise<WasmTester> {
-  const circuit = await wasm_tester(`./circuits/${dir}/${circuitName}.circom`, {
+export async function createWasmTester(circuitName: string, dir: string = 'main'): Promise<WasmTester> {
+  return wasm_tester(`./circuits/${dir}/${circuitName}.circom`, {
     include: 'node_modules', // will link circomlib circuits
   });
+}
 
-  if (showNumConstraints) {
-    await circuit.loadConstraints();
-    console.log('    number of constraints:', circuit.constraints!.length);
+/**
+ * Prints the number of constraints of the circuit.
+ * If expected count is provided, will also include that in the log.
+ * @param circuit WasmTester circuit
+ * @param expected expected number of constraints
+ */
+export async function printConstraintCount(circuit: WasmTester, expected?: number) {
+  await circuit.loadConstraints();
+  const numConstraints = circuit.constraints!.length;
+  let expectionMessage = '';
+  if (expected !== undefined) {
+    let alertType = '';
+    if (numConstraints < expected) {
+      alertType = '🔴';
+    } else if (numConstraints > expected) {
+      alertType = '🟡';
+    } else {
+      alertType = '🟢';
+    }
+    expectionMessage = ` (${alertType} expected ${expected})`;
   }
-
-  return circuit;
+  console.log(`#constraints: ${numConstraints}` + expectionMessage);
 }

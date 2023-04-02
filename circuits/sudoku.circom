@@ -3,7 +3,19 @@ pragma circom 2.0.0;
 include "circomlib/circuits/bitify.circom";
 include "functions/bits.circom";
 
-// Ensures that number is representable by b-bits
+// Assert that two elements are not equal
+template NonEqual() {
+  signal input in[2];
+  signal output out;
+  signal inv;
+
+  // we check if (in[0] - in[1] != 0)
+  // because 1/0 results in 0, so the constraint won't hold
+  inv <-- 1 / (in[1] - in[0]);
+  inv * (in[1] - in[0]) === 1;
+}
+
+// Assert that number is representable by b-bits
 template CheckBitLength(b) {
   assert(b < 254);
   signal input in;
@@ -21,17 +33,16 @@ template CheckBitLength(b) {
   in === sum_of_bits;
 }
 
-// Assert that two elements are not equal
-template NonEqual() {
-  signal input in[2];
-  signal output out;
-  signal inv;
-
-  // we check if (in[0] - in[1] != 0)
-  // because 1/0 results in 0, so the constraint won't hold
-  inv <-- 1 / (in[1] - in[0]);
-  0 * inv === 0; // silence error
-  out <== inv * (in[1] - in[0]);
+// Checks that `in` is in range [MIN, MAX]
+template InRange(MIN, MAX) {
+  assert(MIN < MAX);
+  signal input in;
+  
+  var b = numOfBits(MAX);
+  component lowerBound = CheckBitLength(b);
+  component upperBound = CheckBitLength(b);
+  lowerBound.in <== in - MIN; // e.g. 1 - 1 = 0 (for 0 <= in)
+  upperBound.in <== in + (2 ** b) - MAX - 1; // e.g. 9 + (15 - 9) = 15 (for in <= 15)
 }
 
 // Assert that all given values are unique
@@ -42,20 +53,8 @@ template Distinct(n) {
     for(var j = 0; j < i; j++){
       nonEqual[i][j] = NonEqual();
       nonEqual[i][j].in <== [in[i], in[j]];
-      nonEqual[i][j].out === 1;
     }
   }
-}
-
-// Checks that `in` is in range [MIN, MAX]
-template InRange(MIN, MAX) {
-  signal input in;
-  
-  var b = numOfBits(MAX);
-  component lowerBound = CheckBitLength(b);
-  component upperBound = CheckBitLength(b);
-  lowerBound.in <== in - MIN; // e.g. 1 - 1 = 0 (for 0 <= in)
-  upperBound.in <== in + (2 ** b) - MAX - 1; // e.g. 9 + 6 = 15 (for in <= 15)
 }
 
 template Sudoku(n_sqrt) {
@@ -96,27 +95,30 @@ template Sudoku(n_sqrt) {
       if (col_i == 0) {
         distinctCols[row_i] = Distinct(n);
       }
-      distinctCols[row_i].in[col_i] <== solution[col_i][row_i];
+      distinctCols[row_i].in[col_i] <== solution[row_i][col_i];
     }
   }
 
   // ensure that all values in squares are distinct
   component distinctSquares[n];
+  var s_i = 0;
   for (var sr_i = 0; sr_i < n_sqrt; sr_i++) {
     for (var sc_i = 0; sc_i < n_sqrt; sc_i++) {
       // square index
-      var idx = sr_i * n_sqrt + sc_i;
-      distinctSquares[idx] = Distinct(n);
+      distinctSquares[s_i] = Distinct(n);
+      
       // (r, c) now marks the start of this square
       var r = sr_i * n_sqrt;
       var c = sc_i * n_sqrt;
       var i = 0;
       for (var row_i = r; row_i < r + n_sqrt; row_i++) {
         for (var col_i = c; col_i < c + n_sqrt; col_i++) {
-          distinctSquares[idx].in[i] <== solution[row_i][col_i];
+          distinctSquares[s_i].in[i] <== solution[row_i][col_i];
           i++;
         }
       }
+
+      s_i++;
     }
   }
 

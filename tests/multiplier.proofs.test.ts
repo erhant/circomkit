@@ -4,12 +4,11 @@ import {assert, expect} from 'chai';
 // read inputs from file
 import input80 from '../inputs/multiplier3/80.json';
 
-const CIRCUIT_NAME = 'multiplier3';
-describe(CIRCUIT_NAME + ' (proofs)', () => {
+describe('multiplier3 (proofs)', () => {
   const INPUT: CircuitSignals = input80;
 
   let fullProof: FullProof;
-  const circuit = new ProofTester(CIRCUIT_NAME);
+  const circuit = new ProofTester('multiplier3');
 
   before(async () => {
     fullProof = await circuit.prove(INPUT);
