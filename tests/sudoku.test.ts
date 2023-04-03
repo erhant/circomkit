@@ -1,5 +1,4 @@
 import {createWasmTester} from '../utils/wasmTester';
-import {assert, expect} from 'chai';
 
 const INPUTS = {
   sudoku_9x9: {
@@ -46,7 +45,6 @@ const INPUTS = {
   describe(circuitName, () => {
     // @ts-ignore
     const INPUT = INPUTS[circuitName];
-
     let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
     before(async () => {
@@ -54,58 +52,37 @@ const INPUTS = {
     });
 
     it('should compute correctly', async () => {
-      const witness = await circuit.calculateWitness(INPUT, true);
-      await circuit.checkConstraints(witness);
+      await circuit.expectCorrectAssert(INPUT);
     });
 
     it('should NOT accept non-distinct rows', async () => {
       const badInput = JSON.parse(JSON.stringify(INPUT));
-
       badInput.solution[0][0] = badInput.solution[0][1];
-      await circuit.calculateWitness(badInput, true).then(
-        () => assert.fail(),
-        err => expect(err.message.slice(0, 21)).to.eq('Error: Assert Failed.')
-      );
+      await circuit.expectFailedAssert(badInput);
     });
 
     it('should NOT accept non-distinct columns', async () => {
       const badInput = JSON.parse(JSON.stringify(INPUT));
-
       badInput.solution[0][0] = badInput.solution[1][0];
-      await circuit.calculateWitness(badInput, true).then(
-        () => assert.fail(),
-        err => expect(err.message.slice(0, 21)).to.eq('Error: Assert Failed.')
-      );
+      await circuit.expectFailedAssert(badInput);
     });
 
     it('should NOT accept non-distinct square', async () => {
-      const badInput: typeof INPUT = JSON.parse(JSON.stringify(INPUT));
-
+      const badInput = JSON.parse(JSON.stringify(INPUT));
       badInput.solution[0][0] = badInput.solution[1][1];
-      await circuit.calculateWitness(badInput, true).then(
-        () => assert.fail(),
-        err => expect(err.message.slice(0, 21)).to.eq('Error: Assert Failed.')
-      );
+      await circuit.expectFailedAssert(badInput);
     });
 
     it('should NOT accept empty value in solution', async () => {
       const badInput = JSON.parse(JSON.stringify(INPUT));
-
       badInput.solution[0][0] = 0;
-      await circuit.calculateWitness(badInput, true).then(
-        () => assert.fail(),
-        err => expect(err.message.slice(0, 21)).to.eq('Error: Assert Failed.')
-      );
+      await circuit.expectFailedAssert(badInput);
     });
 
     it('should NOT accept out-of-range values', async () => {
       const badInput = JSON.parse(JSON.stringify(INPUT));
-
       badInput.solution[0][0] = 99999;
-      await circuit.calculateWitness(badInput, true).then(
-        () => assert.fail(),
-        err => expect(err.message.slice(0, 21)).to.eq('Error: Assert Failed.')
-      );
+      await circuit.expectFailedAssert(badInput);
     });
   })
 );

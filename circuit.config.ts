@@ -1,7 +1,8 @@
+import {Config} from './types/circuit';
 /**
- * @type {import("./types/circuit").Config}
+ * A configuration object for circuit `main` components.
  */
-const config = {
+const config: Config = {
   // multiplication of 3 numbers
   multiplier_3: {
     file: 'multiplier',
@@ -53,4 +54,4 @@ const config = {
   },
 };
 
-module.exports = config;
+export default config as Readonly<typeof config>;

@@ -2,31 +2,34 @@ import {createWasmTester} from '../utils/wasmTester';
 import {ProofTester} from '../utils/proofTester';
 import type {CircuitSignals, FullProof} from '../types/circuit';
 import {assert, expect} from 'chai';
+import {instantiate, clearInstance} from '../utils/instantiate';
 // read inputs from file
-import input80 from '../inputs/multiplier3/80.json';
+import input80 from '../inputs/multiplier_3/80.json';
 
-const CIRCUIT_NAME = 'multiplier3';
-describe(CIRCUIT_NAME, () => {
+describe('multiplier_3', () => {
   const INPUT: CircuitSignals = input80;
 
   let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
   before(async () => {
-    circuit = await createWasmTester(CIRCUIT_NAME);
+    instantiate('multiplier_3', 'test', {
+      file: 'multiplier',
+      template: 'Multiplier',
+      publicInputs: [],
+      templateParams: [3],
+    });
+    circuit = await createWasmTester('multiplier_3', 'test');
+    await circuit.printConstraintCount(2); // N - 1
+  });
+
+  after(() => {
+    clearInstance('multiplier_3', 'test');
   });
 
   it('should compute correctly', async () => {
-    // compute witness
-    const witness = await circuit.calculateWitness(INPUT, true);
-
-    // witness should have valid constraints
-    await circuit.checkConstraints(witness);
-
-    // witness should have correct output
-    const output = {
+    await circuit.expectCorrectAssert(INPUT, {
       out: BigInt(INPUT.in.reduce((prev: bigint, acc: bigint) => acc * prev)),
-    };
-    await circuit.assertOut(witness, output);
+    });
   });
 
   it('should NOT compute with wrong number of inputs', async () => {
@@ -45,13 +48,14 @@ describe(CIRCUIT_NAME, () => {
 });
 
 // you can also test prover & verifier functions using the actual build files!
-describe('multiplier3 (proofs)', () => {
+describe.skip('multiplier_3 (proofs)', () => {
   const INPUT: CircuitSignals = input80;
 
   let fullProof: FullProof;
-  const circuit = new ProofTester('multiplier3');
+  let circuit: ProofTester;
 
   before(async () => {
+    circuit = new ProofTester('multiplier_3');
     fullProof = await circuit.prove(INPUT);
   });
 

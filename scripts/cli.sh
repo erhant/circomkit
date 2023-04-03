@@ -14,6 +14,7 @@ source ./scripts/functions/prove.sh
 source ./scripts/functions/verify.sh
 source ./scripts/functions/witness.sh
 source ./scripts/functions/compile.sh
+source ./scripts/functions/instantiate.sh
 
 # get arguments
 NUM_CONTRIBS=1 # default value
@@ -68,6 +69,9 @@ case $FUNC in
   compile) 
     compile $CIRCUIT $COMPILE_DIR
     ;;
+  instantiate) 
+    instantiate $CIRCUIT $COMPILE_DIR
+    ;;
   type) 
     type $CIRCUIT
     ;;
@@ -86,13 +90,14 @@ case $FUNC in
   *) 
     echo "Usage:"
     echo "  -f <function>"
-    echo "    clean    Cleans the build artifacts"
-    echo "    compile  Compile the circuit"
-    echo "    type     Generate types for TypeScript"
-    echo "    ptau     Phase-2 setup for the circuit"
-    echo "    witness  Generate witness from an input"
-    echo "    prove    Prove an input"
-    echo "    verify   Verify a proof & public signals"
+    echo "    clean        Cleans the build artifacts"
+    echo "    compile      Compile the circuit"
+    echo "    instantiate  Instantiate the main component"
+    echo "    type         Generate types for TypeScript"
+    echo "    ptau         Phase-2 setup for the circuit"
+    echo "    witness      Generate witness from an input"
+    echo "    prove        Prove an input"
+    echo "    verify       Verify a proof & public signals"
     echo "  -c <circuit-name>"
     echo "  -d <directory-name>"
     echo "  -n <num-contributions> (default: 1)"

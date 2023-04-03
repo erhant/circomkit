@@ -7,6 +7,7 @@
     "test:all": "npx mocha",
     "test": "npx mocha --grep",
     "type": "./scripts/cli.sh -f type -c",
+    "instantiate": "./scripts/cli.sh -f instantiate -c",
     "compile": "./scripts/cli.sh -f compile -c",
     "clean": "./scripts/cli.sh -f clean -c",
     "ptau": "./scripts/cli.sh -f ptau -c",
@@ -17,6 +18,7 @@
   "author": "erhant",
   "devDependencies": {
     "@types/chai": "^4.3.4",
+    "@types/ejs": "^3.1.2",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.11.18",
     "chai": "^4.3.7",

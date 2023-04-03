@@ -2,12 +2,10 @@
 
 > An opinionated Circom circuit development environment.
 
-You can develop & test Circom circuits with ease using this repository. We have several example circuits to help guide you:
+You can develop & test Circom circuits with ease using this repository.
 
-- **Multiplier**: Proves that you know the factors of a number.
-- **Floating Point Addition**: A floating-point addition circuit, as written in [Berkeley ZKP MOOC 2023- Lab 1](https://github.com/rdi-berkeley/zkp-mooc-lab).
-- **Fibonacci**: Calculate N'th Fibonacci number, has both recursive & iterative implementations.
-- **Sudoku**: Prove that you know the solution to a sudoku puzzle where the board size is a perfect square.
+- [x] CLI wrapper for Cirom and SnarkJS
+- [x] Generic & type-safe circuit tester
 
 ## Usage
 
@@ -66,11 +64,11 @@ Use the [CLI](./scripts/cli.sh), or its wrapper scripts in [package.json](./pack
 
 ```bash
 # first argument is ALWAYS the circuit name
-yarn compile circuit-name
-yarn clean   circuit-name
-yarn ptau    circuit-name -n num-contribs -p phase1-ptau-path
+yarn compile circuit-name [-d directory-name (default: main)]
+yarn ptau    circuit-name -p phase1-ptau-path [-n num-contribs (default: 1)]
 yarn prove   circuit-name -i input-name
 yarn verify  circuit-name -i input-name
+yarn clean   circuit-name
 yarn test    circuit-name
 yarn test:all
 ```
@@ -92,6 +90,15 @@ Within each test, there are two sub-tests:
 
 - **Witness Computation** will test whether witness computations are matching the expectations & the constraints hold.
 - **Proof Validation** will test whether proof generation & verification works correctly. This requires the **WASM file**, **prover key**, and **verification key** to be calculated beforehand.
+
+## Examples
+
+We have several example circuits to help guide you:
+
+- **Multiplier**: Prove that you know the factors of a number.
+- **Floating Point Addition**: A floating-point addition circuit, as written in [Berkeley ZKP MOOC 2023 - Lab 1](https://github.com/rdi-berkeley/zkp-mooc-lab).
+- **Fibonacci**: Calculate N'th Fibonacci number, has both recursive & iterative implementations.
+- **Sudoku**: Prove that you know the solution to a sudoku puzzle where the board size is a perfect square.
 
 ## Styling
 

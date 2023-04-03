@@ -5,10 +5,6 @@ compile() {
   local DIR=$2
   local CIRCOM_IN=./circuits/$DIR/$CIRCUIT.circom
   local CIRCOM_OUT=./build/$CIRCUIT
-
-  # generate the circuit main component
-  mkdir -p ./circuits/$DIR
-  node ./scripts/instantiate.js $CIRCUIT $DIR
   
   # create build dir if not exists already
   mkdir -p $CIRCOM_OUT
