@@ -25,7 +25,7 @@ export function instantiate(name: string, directory: string, circuitConfig?: Cir
   console.log(`Main component created at: ${targetPath}\n`);
 }
 
-export function clearInstance(name: string, directory: string) {
+export function clearTestInstance(name: string, directory: string) {
   // TODO: remove the file
 }
 

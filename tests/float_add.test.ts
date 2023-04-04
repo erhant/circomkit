@@ -1,3 +1,4 @@
+import {instantiate} from '../utils/instantiate';
 import {createWasmTester} from '../utils/wasmTester';
 
 // tests adapted from https://github.com/rdi-berkeley/zkp-mooc-lab
@@ -5,7 +6,13 @@ describe('fp32', () => {
   let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
   before(async () => {
-    circuit = await createWasmTester('fp32');
+    instantiate('fp32', 'test', {
+      file: 'float_add',
+      template: 'FloatAdd',
+      publicInputs: [],
+      templateParams: [8, 23],
+    });
+    circuit = await createWasmTester('fp32', 'test');
     await circuit.printConstraintCount(401);
   });
 
@@ -102,7 +109,13 @@ describe('fp64', () => {
   let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
   before(async () => {
-    circuit = await createWasmTester('fp64');
+    instantiate('fp64', 'test', {
+      file: 'float_add',
+      template: 'FloatAdd',
+      publicInputs: [],
+      templateParams: [11, 52],
+    });
+    circuit = await createWasmTester('fp64', 'test');
     await circuit.printConstraintCount(819);
   });
 

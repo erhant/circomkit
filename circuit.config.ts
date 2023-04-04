@@ -45,13 +45,6 @@ const config: Config = {
     publicInputs: [],
     templateParams: [11],
   },
-  // checks that a number fits to given bit count
-  cbl_3: {
-    file: 'float_add',
-    template: 'CheckBitLength',
-    publicInputs: [],
-    templateParams: [3],
-  },
 };
 
 export default config as Readonly<typeof config>;

@@ -2,29 +2,33 @@ import {createWasmTester} from '../utils/wasmTester';
 import {ProofTester} from '../utils/proofTester';
 import type {CircuitSignals, FullProof} from '../types/circuit';
 import {assert, expect} from 'chai';
-import {instantiate, clearInstance} from '../utils/instantiate';
+import {instantiate} from '../utils/instantiate';
 // read inputs from file
 import input80 from '../inputs/multiplier_3/80.json';
 
-describe('multiplier_3', () => {
-  const INPUT: CircuitSignals = input80;
+const N = 3;
+const circuitName = 'multiplier_' + N;
+describe(circuitName, () => {
+  const INPUT: CircuitSignals = {
+    in: [1, 2, 3], // TODO: N random ints
+  };
 
   let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
   before(async () => {
-    instantiate('multiplier_3', 'test', {
+    instantiate(circuitName, 'test', {
       file: 'multiplier',
       template: 'Multiplier',
       publicInputs: [],
-      templateParams: [3],
+      templateParams: [N],
     });
-    circuit = await createWasmTester('multiplier_3', 'test');
-    await circuit.printConstraintCount(2); // N - 1
+    circuit = await createWasmTester(circuitName, 'test');
+    await circuit.printConstraintCount(N); // N - 1
   });
 
-  after(() => {
-    clearInstance('multiplier_3', 'test');
-  });
+  // after(() => {
+  //   clearInstance(circuitName, 'test');
+  // });
 
   it('should compute correctly', async () => {
     await circuit.expectCorrectAssert(INPUT, {

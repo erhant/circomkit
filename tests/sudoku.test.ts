@@ -1,3 +1,4 @@
+import {instantiate} from '../utils/instantiate';
 import {createWasmTester} from '../utils/wasmTester';
 
 const INPUTS = {
@@ -41,13 +42,20 @@ const INPUTS = {
   },
 };
 
-['sudoku_9x9', 'sudoku_4x4'].map(circuitName =>
-  describe(circuitName, () => {
+[9, 4].map(N =>
+  describe(`sudoku_${N}x${N}`, () => {
+    const circuitName = `sudoku_${N}x${N}`;
     // @ts-ignore
     const INPUT = INPUTS[circuitName];
     let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
     before(async () => {
+      instantiate(circuitName, 'test', {
+        file: 'sudoku',
+        template: 'Sudoku',
+        publicInputs: ['puzzle'],
+        templateParams: [Math.sqrt(N)],
+      });
       circuit = await createWasmTester(circuitName);
     });
 

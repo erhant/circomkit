@@ -1,10 +1,19 @@
+import {instantiate} from '../utils/instantiate';
 import {createWasmTester} from '../utils/wasmTester';
 
-describe('fibonacci_11', () => {
+const N = 19;
+const circuitName = 'fibonacci_' + N;
+describe(circuitName, () => {
   let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
   before(async () => {
-    circuit = await createWasmTester('fibonacci_11');
+    instantiate(circuitName, 'test', {
+      file: 'fibonacci',
+      template: 'Fibonacci',
+      publicInputs: [],
+      templateParams: [N],
+    });
+    circuit = await createWasmTester(circuitName, 'test');
     await circuit.printConstraintCount();
   });
 
@@ -14,7 +23,7 @@ describe('fibonacci_11', () => {
         in: [1, 1],
       },
       {
-        out: fibonacci([1, 1], 11),
+        out: fibonacci([1, 1], N),
       }
     );
   });
