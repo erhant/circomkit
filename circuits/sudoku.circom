@@ -1,7 +1,6 @@
 pragma circom 2.0.0;
 
 include "circomlib/circuits/bitify.circom";
-include "functions/bits.circom";
 
 // Assert that two elements are not equal
 template NonEqual() {

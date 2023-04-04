@@ -1,5 +1,5 @@
 import ejs from 'ejs';
-import {writeFileSync, readFileSync} from 'fs';
+import {writeFileSync, readFileSync, existsSync, mkdirSync} from 'fs';
 import config from '../circuit.config';
 import {CircuitConfig} from '../types/circuit';
 
@@ -16,11 +16,19 @@ export function instantiate(name: string, directory: string, circuitConfig?: Cir
 
   // generate the main component code
   const ejsPath = './circuits/ejs/template.circom';
-  let circuit = ejs.render(readFileSync(ejsPath).toString(), circuitConfig);
+  let circuit = ejs.render(readFileSync(ejsPath).toString(), {
+    ...circuitConfig,
+    file: circuitConfig.file, // TODO: add ../'s based on dir
+  });
 
   // output to file
-  const targetDir = directory || 'main';
-  const targetPath = `./circuits/${targetDir}/${name}.circom`;
+  const targetDir = `./circuits/${directory || 'main'}`;
+  if (!existsSync(targetDir)) {
+    mkdirSync(targetDir, {
+      recursive: true,
+    });
+  }
+  const targetPath = `${targetDir}/${name}.circom`;
   writeFileSync(targetPath, circuit);
   console.log(`Main component created at: ${targetPath}\n`);
 }

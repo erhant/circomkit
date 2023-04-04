@@ -2,7 +2,7 @@ import {instantiate} from '../utils/instantiate';
 import {createWasmTester} from '../utils/wasmTester';
 
 // tests adapted from https://github.com/rdi-berkeley/zkp-mooc-lab
-describe('fp32', () => {
+describe('float_add 32-bit', () => {
   let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
   before(async () => {
@@ -105,7 +105,7 @@ describe('fp32', () => {
   });
 });
 
-describe('fp64', () => {
+describe('float_add 64-bit', () => {
   let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
   before(async () => {
@@ -192,4 +192,43 @@ describe('fp64', () => {
       m: ['0', '16777216'],
     });
   });
+});
+
+describe('float_add utilities', () => {
+  describe('check bit length', () => {
+    const b = 23; // bit count
+    const circuitName = 'cbl_' + b;
+    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+
+    before(async () => {
+      instantiate(circuitName, 'float_add/test', {
+        file: 'float_add',
+        template: 'CheckBitLength',
+        publicInputs: [],
+        templateParams: [b],
+      });
+      circuit = await createWasmTester(circuitName, 'test/float_add');
+      await circuit.printConstraintCount(b + 2);
+    });
+
+    it('bitlength of `in` <= `b`', async () => {
+      await circuit.expectCorrectAssert(
+        {
+          in: '4903265',
+        },
+        {out: '1'}
+      );
+    });
+
+    it('bitlength of `in` > `b`', async () => {
+      await circuit.expectCorrectAssert(
+        {
+          in: '13291873',
+        },
+        {out: '0'}
+      );
+    });
+  });
+
+  describe('right shift', () => {});
 });

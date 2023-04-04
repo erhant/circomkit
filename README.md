@@ -81,24 +81,27 @@ To run Mocha tests do the following:
 
 ```bash
 # run all tests
-yarn test
+yarn test:all
 # run a specific test
-yarn --grep "circuit name"
+yarn test "circuit name"
 ```
 
-Within each test, there are two sub-tests:
+### Witness Computation
 
-- **Witness Computation** will test whether witness computations are matching the expectations & the constraints hold.
-- **Proof Validation** will test whether proof generation & verification works correctly. This requires the **WASM file**, **prover key**, and **verification key** to be calculated beforehand.
+TODO
+
+### Proof Verification
+
+TODO
 
 ## Examples
 
 We have several example circuits to help guide you:
 
-- **Multiplier**: Prove that you know the factors of a number.
-- **Floating Point Addition**: A floating-point addition circuit, as written in [Berkeley ZKP MOOC 2023 - Lab 1](https://github.com/rdi-berkeley/zkp-mooc-lab).
-- **Fibonacci**: Calculate N'th Fibonacci number, has both recursive & iterative implementations.
-- **Sudoku**: Prove that you know the solution to a sudoku puzzle where the board size is a perfect square.
+- **Multiplier**: A circuit to prove that you know the factors of a number.
+- **Floating Point Addition**: A circuit to compute the sum of two floating-point numbers, as written in [Berkeley ZKP MOOC 2023 - Lab 1](https://github.com/rdi-berkeley/zkp-mooc-lab).
+- **Fibonacci**: A circuit to compute Fibonacci numbers.
+- **Sudoku**: A circuit to prove that you know the solution to a Sudoku puzzle.
 
 ## Styling
 

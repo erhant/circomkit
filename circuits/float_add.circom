@@ -7,7 +7,17 @@ include "circomlib/circuits/switcher.circom";
 include "circomlib/circuits/gates.circom";
 include "circomlib/circuits/bitify.circom";
 
-include "functions/bits.circom";
+/*
+ * Finds Math.floor(log2(n))
+ */
+function log2(n) {
+  var tmp = 1, ans = 1;
+  while (tmp < n) {
+    ans++;
+    tmp *= 2;
+  }
+  return ans;
+}
 
 /*
  * Basically `out = cond ? ifTrue : ifFalse`
@@ -199,7 +209,7 @@ template LeftShift(shift_bound) {
   signal output y;
 
   // find number of bits in shift_bound
-  var n = numOfBits(shift_bound);
+  var n = log2(shift_bound) + 1;
 
   // convert "shift" to bits
   component shift_bits = Num2BitsWithSkipChecks(n);
