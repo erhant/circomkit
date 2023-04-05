@@ -16,9 +16,13 @@ export function instantiate(name: string, directory: string, circuitConfig?: Cir
 
   // generate the main component code
   const ejsPath = './circuits/ejs/template.circom';
+  // add "../" to the filename in include, one for each "/" in directory name
+  // if none, the prefix becomes empty string
+  const filePrefix = '../'.repeat((directory.match(/\//g) || []).length);
+
   let circuit = ejs.render(readFileSync(ejsPath).toString(), {
     ...circuitConfig,
-    file: circuitConfig.file, // TODO: add ../'s based on dir
+    file: filePrefix + circuitConfig.file, // TODO: add ../'s based on dir
   });
 
   // output to file
@@ -30,7 +34,7 @@ export function instantiate(name: string, directory: string, circuitConfig?: Cir
   }
   const targetPath = `${targetDir}/${name}.circom`;
   writeFileSync(targetPath, circuit);
-  console.log(`Main component created at: ${targetPath}\n`);
+  // console.log(`Main component created at: ${targetPath}\n`);
 }
 
 export function clearTestInstance(name: string, directory: string) {

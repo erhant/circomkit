@@ -104,14 +104,19 @@ class WasmTester {
       await this.loadConstraints();
     }
     const numConstraints = this.constraints!.length;
+
+    // if expecting a specific number, check if you match that
     let expectionMessage = '';
     if (expected !== undefined) {
       let alertType = '';
       if (numConstraints < expected) {
+        // need more
         alertType = '🔴';
       } else if (numConstraints > expected) {
+        // too many
         alertType = '🟡';
       } else {
+        // on point
         alertType = '🟢';
       }
       expectionMessage = ` (${alertType} expected ${expected})`;
@@ -145,11 +150,10 @@ class WasmTester {
 }
 
 /**
- * Compiles and reutrns a circuit via `circom_tester`'s `wasm_tester`.
+ * Compiles and reutrns a circuit tester class instance.
  * @param circuit name of circuit
  * @param dir directory to read the circuit from, defaults to `main`
- * @param showNumConstraints print number of constraints, defualts to `false`
- * @returns a `wasm_tester` object
+ * @returns a `WasmTester` instance
  */
 export async function createWasmTester(circuitName: string, dir: string = 'main'): Promise<WasmTester> {
   const circomWasmTester: CircomWasmTester = await wasm_tester(`./circuits/${dir}/${circuitName}.circom`, {
