@@ -23,7 +23,7 @@ export class ProofTester {
 
     // ensure that paths exist
     const missing = [this.wasmPath, this.proverKeyPath, verificationKeyPath].filter(p => !fs.existsSync(p));
-    if (missing.length != 0) {
+    if (missing.length !== 0) {
       throw new Error('Missing files for' + circuit + '\n' + missing);
     }
 

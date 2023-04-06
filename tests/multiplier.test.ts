@@ -7,8 +7,8 @@ import {instantiate} from '../utils/instantiate';
 import input80 from '../inputs/multiplier_3/80.json';
 
 const N = 3;
-const circuitName = 'multiplier_' + N;
-describe(circuitName, () => {
+
+describe('multiplier', () => {
   const INPUT: CircuitSignals = {
     in: [1, 2, 3], // TODO: N random ints
   };
@@ -16,6 +16,7 @@ describe(circuitName, () => {
   let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
   before(async () => {
+    const circuitName = 'multiplier_' + N;
     instantiate(circuitName, 'test', {
       file: 'multiplier',
       template: 'Multiplier',
@@ -52,7 +53,7 @@ describe(circuitName, () => {
 });
 
 // you can also test prover & verifier functions using the actual build files!
-describe.skip('multiplier_3 (proofs)', () => {
+describe.skip('multiplier (proofs)', () => {
   const INPUT: CircuitSignals = input80;
 
   let fullProof: FullProof;

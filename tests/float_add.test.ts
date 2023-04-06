@@ -2,6 +2,17 @@ import {instantiate} from '../utils/instantiate';
 import {createWasmTester} from '../utils/wasmTester';
 
 // tests adapted from https://github.com/rdi-berkeley/zkp-mooc-lab
+
+const expectedConstraints = {
+  fp32: 401,
+  fp64: 819,
+  checkBitLength: (bits: number) => bits + 2,
+  leftShift: (shiftBound: number) => shiftBound + 2,
+  right: (bits: number) => bits + 2,
+  normalize: (P: number) => 3 * P + 1 + 1, // MSNZB + 1
+  msnzb: (bits: number) => 3 * bits + 1,
+};
+
 describe('float_add 32-bit', () => {
   const k = 8;
   const p = 23;
@@ -85,14 +96,14 @@ describe('float_add 32-bit', () => {
     });
   });
 
-  it('should fail - mantissa >= 2^{p+1}', async () => {
+  it('should fail - mantissa >= 2^(p+1)', async () => {
     await circuit.expectFailedAssert({
       e: ['0', '43'],
       m: ['0', '16777216'],
     });
   });
 
-  it('should fail - mantissa < 2^{p}', async () => {
+  it('should fail - mantissa < 2^p', async () => {
     await circuit.expectFailedAssert({
       e: ['0', '43'],
       m: ['0', '6777216'],
@@ -190,7 +201,7 @@ describe('float_add 64-bit', () => {
     });
   });
 
-  it('should fail - mantissa < 2^{p}', async () => {
+  it('should fail - mantissa < 2^p', async () => {
     await circuit.expectFailedAssert({
       e: ['0', '43'],
       m: ['0', '16777216'],
@@ -201,10 +212,10 @@ describe('float_add 64-bit', () => {
 describe('float_add utilities', () => {
   describe('check bit length', () => {
     const b = 23; // bit count
-    const circuitName = 'cbl_' + b;
     let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
     before(async () => {
+      const circuitName = 'cbl_' + b;
       instantiate(circuitName, 'test/float_add', {
         file: 'float_add',
         template: 'CheckBitLength',
@@ -212,10 +223,10 @@ describe('float_add utilities', () => {
         templateParams: [b],
       });
       circuit = await createWasmTester(circuitName, 'test/float_add');
-      await circuit.printConstraintCount(b + 2);
+      await circuit.printConstraintCount(expectedConstraints.checkBitLength(b));
     });
 
-    it('bitlength of `in` <= `b`', async () => {
+    it('should give 1 for in <= b', async () => {
       await circuit.expectCorrectAssert(
         {
           in: '4903265',
@@ -224,7 +235,7 @@ describe('float_add utilities', () => {
       );
     });
 
-    it('bitlength of `in` > `b`', async () => {
+    it('should give 0 for in > b', async () => {
       await circuit.expectCorrectAssert(
         {
           in: '13291873',
@@ -236,10 +247,10 @@ describe('float_add utilities', () => {
 
   describe('left shift', () => {
     const shift_bound = 25;
-    const circuitName = 'shl_' + shift_bound;
     let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
     before(async () => {
+      const circuitName = 'shl_' + shift_bound;
       instantiate(circuitName, 'test/float_add', {
         file: 'float_add',
         template: 'LeftShift',
@@ -247,7 +258,7 @@ describe('float_add utilities', () => {
         templateParams: [shift_bound],
       });
       circuit = await createWasmTester(circuitName, 'test/float_add');
-      await circuit.printConstraintCount(shift_bound + 2);
+      await circuit.printConstraintCount(expectedConstraints.leftShift(shift_bound));
     });
 
     it("should pass test 1 - don't skip checks", async () => {
@@ -280,7 +291,7 @@ describe('float_add utilities', () => {
       });
     });
 
-    it('should pass when `skip_checks` = 1 and `shift` is >= shift_bound', async () => {
+    it('should pass when skip_checks = 1 and shift is >= shift_bound', async () => {
       await circuit.expectCorrectAssert({
         x: '65',
         shift: '25',
@@ -292,10 +303,10 @@ describe('float_add utilities', () => {
   describe('right shift', () => {
     const b = 49;
     const shift = 24;
-    const circuitName = 'shr_' + b;
     let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
     before(async () => {
+      const circuitName = 'shr_' + b;
       instantiate(circuitName, 'test/float_add', {
         file: 'float_add',
         template: 'RightShift',
@@ -307,15 +318,6 @@ describe('float_add utilities', () => {
     });
 
     it('should pass - small bitwidth', async () => {
-      instantiate(circuitName, 'test/float_add', {
-        file: 'float_add',
-        template: 'RightShift',
-        publicInputs: [],
-        templateParams: [b, shift],
-      });
-      circuit = await createWasmTester(circuitName, 'test/float_add');
-      await circuit.printConstraintCount(b);
-
       await circuit.expectCorrectAssert(
         {
           x: '82263136010365',
@@ -332,30 +334,22 @@ describe('float_add utilities', () => {
   });
 
   describe('normalize', () => {
-    // var circ_file = path.join(__dirname, 'circuits', 'normalize.circom');
-    // var circ_file_msnzb = path.join(__dirname, 'circuits', 'msnzb.circom');
-    // var circ, num_constraints;
     const k = 8;
     const p = 23;
     const P = 47;
     let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
-    // before(async () => {
-    //   circ = await wasm_tester(circ_file);
-    //   await circ.loadConstraints();
-    //   num_constraints = circ.constraints.length;
-
-    //   console.log('Normalize #Constraints:', num_constraints, 'Expected:', 3 * (P + 1));
-
-    //   circ_msnzb = await wasm_tester(circ_file_msnzb);
-    //   await circ_msnzb.loadConstraints();
-    //   num_constraints_msnzb = circ_msnzb.constraints.length;
-    //   if (num_constraints < num_constraints_msnzb + 1) {
-    //     console.log(
-    //       'WARNING: the #constraints is less than (#constraints for MSNZB + 1). It is likely that you are not constraining the witnesses appropriately.'
-    //     );
-    //   }
-    // });
+    before(async () => {
+      const circuitName = 'normalize_' + k + p + P;
+      instantiate(circuitName, 'test/float_add', {
+        file: 'float_add',
+        template: 'Normalize',
+        publicInputs: [],
+        templateParams: [k, p, P],
+      });
+      circuit = await createWasmTester(circuitName, 'test/float_add');
+      await circuit.printConstraintCount(expectedConstraints.normalize(P));
+    });
 
     it("should pass - don't skip checks", async () => {
       await circuit.expectCorrectAssert(
@@ -379,7 +373,7 @@ describe('float_add utilities', () => {
       );
     });
 
-    it("should fail when `m` = 0 - don't skip checks", async () => {
+    it("should fail when m = 0 - don't skip checks", async () => {
       await circuit.expectFailedAssert({
         e: '100',
         m: '0',
@@ -387,7 +381,7 @@ describe('float_add utilities', () => {
       });
     });
 
-    it('should pass when `skip_checks` = 1 and `m` is 0', async () => {
+    it('should pass when skip_checks = 1 and m is 0', async () => {
       await circuit.expectCorrectAssert({
         e: '100',
         m: '0',
@@ -400,19 +394,17 @@ describe('float_add utilities', () => {
     const b = 48;
     let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
-    // before(async () => {
-    //   circ = await wasm_tester(circ_file);
-    //   await circ.loadConstraints();
-    //   num_constraints = circ.constraints.length;
-    //   var b = 48;
-    //   var expected_constraints = 3 * b - 1;
-    //   console.log('MSNZB #Constraints:', num_constraints, 'Expected:', expected_constraints);
-    //   if (num_constraints < expected_constraints) {
-    //     console.log(
-    //       'WARNING: number of constraints is less than 3b-1. It is likely that you are not constraining the witnesses appropriately.'
-    //     );
-    //   }
-    // });
+    before(async () => {
+      const circuitName = 'msnzb_' + b;
+      instantiate(circuitName, 'test/float_add', {
+        file: 'float_add',
+        template: 'MSNZB',
+        publicInputs: [],
+        templateParams: [b],
+      });
+      circuit = await createWasmTester(circuitName, 'test/float_add');
+      await circuit.printConstraintCount(expectedConstraints.msnzb(b));
+    });
 
     it("should pass test 1 - don't skip checks", async () => {
       await circuit.expectCorrectAssert(
@@ -422,7 +414,7 @@ describe('float_add utilities', () => {
         },
         {
           // prettier-ignore
-          one_hot: ["1", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0"],
+          one_hot: ['1', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0'],
         }
       );
     });
@@ -435,19 +427,19 @@ describe('float_add utilities', () => {
         },
         {
           // prettier-ignore
-          one_hot: ["0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "0", "1"],
+          one_hot: ['0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '0', '1'],
         }
       );
     });
 
-    it("should fail when `in` = 0 - don't skip checks", async () => {
+    it("should fail when in = 0 - don't skip checks", async () => {
       await circuit.expectFailedAssert({
         in: '0',
         skip_checks: '0',
       });
     });
 
-    it('should pass when `skip_checks` = 1 and `in` is 0', async () => {
+    it('should pass when skip_checks = 1 and in is 0', async () => {
       await circuit.expectCorrectAssert({
         in: '0',
         skip_checks: '1',

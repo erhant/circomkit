@@ -1,10 +1,11 @@
 import {Config} from './types/circuit';
+
 /**
  * A configuration object for circuit `main` components.
  */
 const config: Config = {
   // multiplication of 3 numbers
-  multiplier_3: {
+  mert: {
     file: 'multiplier',
     template: 'Multiplier',
     publicInputs: [],

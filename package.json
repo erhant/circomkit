@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "A Circom development environment",
   "license": "MIT",
+  "engines": {
+    "node": ">=10.4.0"
+  },
   "scripts": {
     "test:all": "npx mocha",
     "test": "npx mocha --grep",
@@ -13,7 +16,9 @@
     "ptau": "./scripts/cli.sh -f ptau -c",
     "prove": "./scripts/cli.sh -f prove -c",
     "verify": "./scripts/cli.sh -f verify -c",
-    "_help": "./scripts/cli.sh -f help"
+    "_help": "./scripts/cli.sh -f help",
+    "format": "npx prettier --check ./**/*.ts",
+    "lint": "npx gts lint"
   },
   "author": "erhant",
   "devDependencies": {

@@ -7,22 +7,23 @@ import {CircuitConfig} from '../types/circuit';
  * Programmatically generate the `main` component
  */
 export function instantiate(name: string, directory: string, circuitConfig?: CircuitConfig) {
-  if (circuitConfig == undefined) {
+  if (circuitConfig === undefined) {
     if (!(name in config)) {
       throw new Error(`Target ${name} not found in circuit.config.cjs`);
     }
     circuitConfig = config[name];
   }
 
-  // generate the main component code
+  // generate the main component code using the tempalte
   const ejsPath = './circuits/ejs/template.circom';
+
   // add "../" to the filename in include, one for each "/" in directory name
   // if none, the prefix becomes empty string
   const filePrefix = '../'.repeat((directory.match(/\//g) || []).length);
 
-  let circuit = ejs.render(readFileSync(ejsPath).toString(), {
+  const circuit = ejs.render(readFileSync(ejsPath).toString(), {
     ...circuitConfig,
-    file: filePrefix + circuitConfig.file, // TODO: add ../'s based on dir
+    file: filePrefix + circuitConfig.file,
   });
 
   // output to file
@@ -37,9 +38,9 @@ export function instantiate(name: string, directory: string, circuitConfig?: Cir
   // console.log(`Main component created at: ${targetPath}\n`);
 }
 
-export function clearTestInstance(name: string, directory: string) {
-  // TODO: remove the file
-}
+// export function clearTestInstance(name: string, directory: string) {
+//   // TODO: remove the file
+// }
 
 if (require.main === module) {
   const name = process.argv[2];

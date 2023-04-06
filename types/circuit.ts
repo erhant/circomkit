@@ -41,12 +41,6 @@ export type CircuitConfig = {
    * An array of template parameters
    */
   templateParams: (number | bigint)[];
-
-  /**
-   * Directory to output under `circuits`, defaults to `main`
-   * @depracated work in progress, use `main` for now (leave empty)
-   */
-  dir?: string;
 };
 
 /**

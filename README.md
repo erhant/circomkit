@@ -1,11 +1,33 @@
-# Circomkit
+<p align="center">
+  <h1 align="center">
+    Circomkit
+  </h1>
+  <p align="center">An opinionated Circom circuit development & testing environment..</p>
+</p>
 
-> An opinionated Circom circuit development environment.
-
-You can develop & test Circom circuits with ease using this repository.
-
-- [x] CLI wrapper for Cirom and SnarkJS
-- [x] Generic & type-safe circuit tester
+<p align="center">
+    <a href="https://opensource.org/licenses/MIT" target="_blank">
+        <img src="https://img.shields.io/badge/license-MIT-yellow.svg">
+    </a>
+    <a href="./.github/workflows/tests.yml" target="_blank">
+        <img alt="Test Workflow" src="https://github.com/erhant/circomkit/actions/workflows/tests.yml/badge.svg?branch=main">
+    </a>
+    <a href="./.github/workflows/styling.yml" target="_blank">
+        <img alt="Style Workflow" src="https://github.com/erhant/circomkit/actions/workflows/styling.yml/badge.svg?branch=main">
+    </a>
+    <a href="https://mochajs.org/" target="_blank">
+        <img alt="Test Suite: Mocha" src="https://img.shields.io/badge/tester-mocha-8D6748?logo=Mocha">
+    </a>
+    <a href="https://eslint.org/" target="_blank">
+        <img alt="Linter: ESLint" src="https://img.shields.io/badge/linter-eslint-8080f2?logo=eslint">
+    </a>
+    <a href="https://prettier.io/" target="_blank">
+        <img alt="Formatter: Prettier" src="https://img.shields.io/badge/formatter-prettier-f8bc45?logo=prettier">
+    </a>
+    <a href="https://github.com/google/gts" target="_blank">
+        <img alt="GTS" src="https://img.shields.io/badge/code%20style-google-4285F4.svg">
+    </a>
+</p>
 
 ## Usage
 
@@ -49,14 +71,18 @@ circomkit
     └── ...
 ```
 
-Write your circuits under `circuits` folder; the circuit code itself should be templates only. The main component itself is created automatically via a [script](./scripts/instantiate.js) which uses a simple EJS [template](./circuits/ejs/_template.circom) to create the main component. The target circuits are defined under the [circuit configs](./circuit.config.cjs) file, such as:
+Write your circuits under the `circuits` folder; the circuit code itself should be templates only. The main component itself is created automatically via a [script](./scripts/instantiate.js) which uses a simple EJS [template](./circuits/ejs/_template.circom) to create the main component. The target circuits are defined under the [circuit configs](./circuit.config.cjs) file, such as:
 
 ```js
-multiplier3: {
-  template: 'Multiplier', // template to instantiate the main component
-  file: 'multiplier', // file to include for the template
-  publicInputs: [], // array of public inputs
-  templateParams: [3], // template parameters, order is important
+multiplier_3: {
+  // template to instantiate the main component
+  template: 'Multiplier',
+  // file to include for the template
+  file: 'multiplier',
+  // array of public inputs
+  publicInputs: [],
+  // template parameters, order is important
+  templateParams: [3],
 }
 ```
 

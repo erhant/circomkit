@@ -1,15 +1,44 @@
 import {instantiate} from '../utils/instantiate';
 import {createWasmTester} from '../utils/wasmTester';
 
-const N = 19;
-const circuitName = 'fibonacci_' + N;
-describe(circuitName, () => {
+describe('fibonacci', () => {
+  const N = 19;
   let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
   before(async () => {
+    const circuitName = 'fibonacci_' + N;
     instantiate(circuitName, 'test', {
       file: 'fibonacci',
       template: 'Fibonacci',
+      publicInputs: [],
+      templateParams: [N],
+    });
+    circuit = await createWasmTester(circuitName, 'test');
+    await circuit.printConstraintCount();
+  });
+
+  it('should compute correctly', async () => {
+    await circuit.expectCorrectAssert(
+      {
+        in: [1, 1],
+      },
+      {
+        out: fibonacci([1, 1], N),
+      }
+    );
+  });
+});
+
+// skipping because this takes a bit longer
+describe.skip('fibonacci recursive', () => {
+  const N = 19;
+  let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+
+  before(async () => {
+    const circuitName = 'fibonacci_recursive_' + N;
+    instantiate(circuitName, 'test', {
+      file: 'fibonacci',
+      template: 'FibonacciRecursive',
       publicInputs: [],
       templateParams: [N],
     });
@@ -40,5 +69,5 @@ function fibonacci(init: [number, number], n: number): number {
     b = a + b;
     a = b - a;
   }
-  return n == 0 ? a : b;
+  return n === 0 ? a : b;
 }

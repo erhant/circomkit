@@ -1,5 +1,8 @@
-build/
-dist/
-node_modules/
-ptau/
-circuits/
+build
+node_modules
+ptau
+circuits
+inputs
+scripts
+.vscode
+.github

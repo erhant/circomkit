@@ -100,7 +100,7 @@ class WasmTester {
    */
   async printConstraintCount(expected?: number) {
     // load constraints
-    if (this.constraints == undefined) {
+    if (this.constraints === undefined) {
       await this.loadConstraints();
     }
     const numConstraints = this.constraints!.length;
@@ -155,7 +155,7 @@ class WasmTester {
  * @param dir directory to read the circuit from, defaults to `main`
  * @returns a `WasmTester` instance
  */
-export async function createWasmTester(circuitName: string, dir: string = 'main'): Promise<WasmTester> {
+export async function createWasmTester(circuitName: string, dir = 'main'): Promise<WasmTester> {
   const circomWasmTester: CircomWasmTester = await wasm_tester(`./circuits/${dir}/${circuitName}.circom`, {
     include: 'node_modules', // will link circomlib circuits
   });
