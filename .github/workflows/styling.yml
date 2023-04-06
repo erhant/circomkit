@@ -25,6 +25,3 @@ jobs:
 
       - name: Lint code
         run: yarn lint
-
-      - name: Compile TS code
-        run: yarn build

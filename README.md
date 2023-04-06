@@ -9,9 +9,6 @@
     <a href="https://opensource.org/licenses/MIT" target="_blank">
         <img src="https://img.shields.io/badge/license-MIT-yellow.svg">
     </a>
-    <a href="./.github/workflows/tests.yml" target="_blank">
-        <img alt="Test Workflow" src="https://github.com/erhant/circomkit/actions/workflows/tests.yml/badge.svg?branch=main">
-    </a>
     <a href="./.github/workflows/styling.yml" target="_blank">
         <img alt="Style Workflow" src="https://github.com/erhant/circomkit/actions/workflows/styling.yml/badge.svg?branch=main">
     </a>
@@ -25,7 +22,7 @@
         <img alt="Formatter: Prettier" src="https://img.shields.io/badge/formatter-prettier-f8bc45?logo=prettier">
     </a>
     <a href="https://github.com/google/gts" target="_blank">
-        <img alt="GTS" src="https://img.shields.io/badge/code%20style-google-4285F4.svg">
+        <img alt="GTS" src="https://img.shields.io/badge/code%20style-google-4285F4?logo=google">
     </a>
 </p>
 
