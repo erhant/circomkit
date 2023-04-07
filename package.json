@@ -14,6 +14,7 @@
     "compile": "./scripts/cli.sh -f compile -c",
     "clean": "./scripts/cli.sh -f clean -c",
     "ptau": "./scripts/cli.sh -f ptau -c",
+    "keygen": "./scripts/cli.sh -f keygen -c",
     "prove": "./scripts/cli.sh -f prove -c",
     "verify": "./scripts/cli.sh -f verify -c",
     "_help": "./scripts/cli.sh -f help",

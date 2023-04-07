@@ -5,7 +5,7 @@ import {Config} from './types/circuit';
  */
 const config: Config = {
   // multiplication of 3 numbers
-  mert: {
+  multiplier_3: {
     file: 'multiplier',
     template: 'Multiplier',
     publicInputs: [],

@@ -5,8 +5,12 @@ import {CircuitConfig} from '../types/circuit';
 
 /**
  * Programmatically generate the `main` component
+ * @param name name of the circuit to be generated
+ * @param directory name of the directory under circuits to be created. Can be given sub-folders like `test/myCircuit/foobar`.
+ * @param circuitConfig circuit configurations, if `undefined` then `circuit.config.ts` will be used.
  */
 export function instantiate(name: string, directory: string, circuitConfig?: CircuitConfig) {
+  // get config from circuit.config.ts if none are given
   if (circuitConfig === undefined) {
     if (!(name in config)) {
       throw new Error(`Target ${name} not found in circuit.config.cjs`);
@@ -37,10 +41,6 @@ export function instantiate(name: string, directory: string, circuitConfig?: Cir
   writeFileSync(targetPath, circuit);
   // console.log(`Main component created at: ${targetPath}\n`);
 }
-
-// export function clearTestInstance(name: string, directory: string) {
-//   // TODO: remove the file
-// }
 
 if (require.main === module) {
   const name = process.argv[2];

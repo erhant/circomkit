@@ -181,7 +181,7 @@ describe('sudoku utilities', () => {
       circuit = await createWasmTester(circuitName, 'test/sudoku');
     });
 
-    it('in range', async () => {
+    it('should pass for in range', async () => {
       await circuit.expectCorrectAssert({
         in: MAX,
       });
@@ -193,13 +193,13 @@ describe('sudoku utilities', () => {
       });
     });
 
-    it('out of range (upper bound)', async () => {
+    it('should FAIL for out of range (upper bound)', async () => {
       await circuit.expectFailedAssert({
         in: MAX + 1,
       });
     });
 
-    it('out of range (lower bound)', async () => {
+    it('should FAIL for out of range (lower bound)', async () => {
       if (MIN > 0) {
         await circuit.expectFailedAssert({
           in: MIN - 1,

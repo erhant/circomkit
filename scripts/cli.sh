@@ -78,6 +78,9 @@ case $FUNC in
   ptau) 
     ptau $CIRCUIT $NUM_CONTRIBS $P1_PTAU
     ;;
+  keygen) 
+    compile $CIRCUIT $COMPILE_DIR && ptau $CIRCUIT $NUM_CONTRIBS $P1_PTAU
+    ;;
   prove) 
     witness $CIRCUIT $INPUT && prove $CIRCUIT $INPUT
     ;;
@@ -98,6 +101,7 @@ case $FUNC in
     echo "    witness      Generate witness from an input"
     echo "    prove        Prove an input"
     echo "    verify       Verify a proof & public signals"
+    echo "    keygen       Shorthand for compile & ptau"
     echo "  -c <circuit-name>"
     echo "  -d <directory-name>"
     echo "  -n <num-contributions> (default: 1)"

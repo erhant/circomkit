@@ -1,6 +1,7 @@
 import fs from 'fs';
 const snarkjs = require('snarkjs');
-import {CircuitSignals, FullProof} from '../types/circuit';
+import {expect} from 'chai';
+import type {CircuitSignals, FullProof} from '../types/circuit';
 
 /**
  * A more extensive Circuit class, able to generate proofs & verify them.
@@ -48,5 +49,23 @@ export class ProofTester {
    */
   async verify(proof: object, publicSignals: string[]): Promise<boolean> {
     return await snarkjs.groth16.verify(this.verificationKey, publicSignals, proof);
+  }
+
+  /**
+   * Verification should pass for this proof and public signals.
+   * @param proof proof object, given from `prove`
+   * @param publicSignals public signals for the circuit
+   */
+  async expectVerificationPass(proof: object, publicSignals: string[]): Promise<void> {
+    expect(await this.verify(proof, publicSignals)).to.be.true;
+  }
+
+  /**
+   * Verification should fail for this proof and public signals.
+   * @param proof proof object, given from `prove`
+   * @param publicSignals public signals for the circuit
+   */
+  async expectVerificationFail(proof: object, publicSignals: string[]): Promise<void> {
+    expect(await this.verify(proof, publicSignals)).to.be.false;
   }
 }

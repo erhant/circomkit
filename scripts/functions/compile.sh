@@ -1,6 +1,6 @@
 ## Compile the circuit, outputting R1CS and JS files
 compile() {
-  echo -e "\n${CLIENV_COLOR_TITLE}=== Compiling the circuit ===${CLIENV_COLOR_RESET}"
+  echo -e "\n${CIRCOMKIT_COLOR_TITLE}=== Compiling the circuit ===${CIRCOMKIT_COLOR_RESET}"
   local CIRCUIT=$1
   local DIR=$2
   local CIRCOM_IN=./circuits/$DIR/$CIRCUIT.circom
@@ -10,8 +10,8 @@ compile() {
   mkdir -p $CIRCOM_OUT
 
   # compile with circom
-  echo "circom $CIRCOM_IN -o $CIRCOM_OUT $CLIENV_COMPILER_ARGS"
-  circom $CIRCOM_IN -o $CIRCOM_OUT $CLIENV_COMPILER_ARGS
+  echo "circom $CIRCOM_IN -o $CIRCOM_OUT $CIRCOMKIT_COMPILER_ARGS"
+  circom $CIRCOM_IN -o $CIRCOM_OUT $CIRCOMKIT_COMPILER_ARGS
 
-  echo -e "${CLIENV_COLOR_LOG}Built artifacts under $CIRCOM_OUT${CLIENV_COLOR_RESET}"
+  echo -e "${CIRCOMKIT_COLOR_LOG}Built artifacts under $CIRCOM_OUT${CIRCOMKIT_COLOR_RESET}"
 }

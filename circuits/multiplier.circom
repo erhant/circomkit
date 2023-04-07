@@ -8,6 +8,7 @@ template MultiplicationGate() {
 
 // Multiplication of N numbers
 template Multiplier(N) {
+  assert(N > 1);
   signal input in[N];
   signal output out;
   component comp[N-1];
