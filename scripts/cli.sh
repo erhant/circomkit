@@ -67,7 +67,7 @@ case $FUNC in
     clean $CIRCUIT
     ;;
   compile) 
-    compile $CIRCUIT $COMPILE_DIR
+    instantiate $CIRCUIT $COMPILE_DIR && compile $CIRCUIT $COMPILE_DIR
     ;;
   instantiate) 
     instantiate $CIRCUIT $COMPILE_DIR
@@ -103,8 +103,8 @@ case $FUNC in
     echo "    verify       Verify a proof & public signals"
     echo "    keygen       Shorthand for compile & ptau"
     echo "  -c <circuit-name>"
-    echo "  -d <directory-name>"
-    echo "  -n <num-contributions> (default: 1)"
+    echo "  -d <directory-name> (default: $COMPILE_DIR)"
+    echo "  -n <num-contributions> (default: $NUM_CONTRIBS)"
     echo "  -i <input-name>"
     echo "  -p <phase1-ptau-path>"
     ;;

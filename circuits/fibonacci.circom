@@ -4,7 +4,7 @@ pragma circom 2.0.0;
 template Fibonacci(n) {
   assert(n >= 2);
   signal input in[2];
-  signal output out;
+  signal output out[3];
 
   signal fib[n+1];
   fib[0] <== in[0];
@@ -13,7 +13,7 @@ template Fibonacci(n) {
     fib[i] <== fib[i-2] + fib[i-1];
   }
 
-  out <== fib[n];
+  out <== [fib[n], fib[n], fib[n]];
 }
 
 // Fibonacci with custom starting numbers, recursive & inefficient

@@ -15,9 +15,10 @@
     "clean": "./scripts/cli.sh -f clean -c",
     "ptau": "./scripts/cli.sh -f ptau -c",
     "keygen": "./scripts/cli.sh -f keygen -c",
+    "witness": "./scripts/cli.sh -f witness -c",
     "prove": "./scripts/cli.sh -f prove -c",
     "verify": "./scripts/cli.sh -f verify -c",
-    "_help": "./scripts/cli.sh -f help",
+    "usage": "./scripts/cli.sh -f help",
     "format": "npx prettier --check ./**/*.ts",
     "lint": "npx gts lint"
   },

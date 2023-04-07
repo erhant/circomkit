@@ -23,6 +23,12 @@
     </a>
 </p>
 
+- [x] **Generic Circuit Creation**: Using circuit configs, you can programmatically create the `main` component for a circuit.
+- [x] **Template Testing**: You can test every template in a circuit, with minimal code-repetition.
+- [x] **Simple CLI**: A very easy to use CLI is provided as a wrapper around SnarkJS commands, and they are all provided as `package.json` scripts!
+- [ ] **Multiple Proof-Systems**: Soon, only Groth16 for now!
+- [ ] **Type Generation**: Generate input & output types for a given circuit, perhaps in future.
+
 ## Usage
 
 Clone the repository or create a new one with this as the template! You need [Circom](https://docs.circom.io/getting-started/installation/) to compile circuits. Other than that, just `yarn` or `npm install` to get started. It will also install [Circomlib](https://github.com/iden3/circomlib/tree/master/circuits) which has many utility circuits.
@@ -34,10 +40,10 @@ Write your circuits under the `circuits` folder; the circuit code itself should 
 ```js
 // circuit name is the key
 multiplier_3: {
-  // template to instantiate the main component
-  template: 'Multiplier',
   // file to include for the template
   file: 'multiplier',
+  // template to instantiate the main component
+  template: 'Multiplier',
   // array of public inputs
   publicInputs: [],
   // template parameters, order is important
@@ -45,10 +51,10 @@ multiplier_3: {
 }
 ```
 
-Use the [CLI](./scripts/cli.sh), or its wrapper scripts in [package.json](./package.json) to do stuff with your circuits.
+Use the [CLI](./scripts/cli.sh), or its wrapper scripts in [package.json](./package.json) to do stuff with your circuits. There are also some environment variables that the CLI can make use of, they are written under [.cli.env](./.cli.env) file.
 
 ```bash
-# Compile the circuit
+# Compile the circuit (generates the main component too)
 yarn compile circuit-name [-d directory-name (default: main)]
 
 # Phase-2 Circuit-specific setup
@@ -56,12 +62,6 @@ yarn ptau circuit-name -p phase1-ptau-path [-n num-contribs (default: 1)]
 
 # Shorthand for `compile` and then `ptau`
 yarn keygen circuit-name -p phase1-ptau-path [-n num-contribs (default: 1)]
-
-# Generate a proof for a JSON input
-yarn prove circuit-name -i input-name
-
-# Verify a proof for some JSON input
-yarn verify circuit-name -i input-name
 
 # Clean circuit artifacts
 yarn clean circuit-name
@@ -73,16 +73,35 @@ yarn test circuit-name
 yarn test:all
 ```
 
-There are some environment variables that the CLI can make use of, they are written under [.cli.env](./.cli.env) file.
+If you just want to generate the `main` component but not compile it, you can also call:
 
-### Examples
+```bash
+yarn instantiate circuit-name [-d directory-name (default: main)]
+```
+
+### Working with Input Signals
+
+Some actions such as generating a witness, generating a proof and verifying a proof require JSON inputs to provide the signal values. For that, we specifically create our input files under the `inputs` folder, and under the target circuit name there. For example, an input named `foobar` for some circuit named `circ` would be at `inputs/circ/foobar.json`.
+
+```bash
+# Generate a witness for some input
+yarn witness circuit-name -i input-name
+
+# Generate a proof for some input
+yarn prove circuit-name -i input-name
+
+# Verify a proof for some input (public signals only)
+yarn verify circuit-name -i input-name
+```
+
+### Example Circuits
 
 We have several example circuits to help guide you:
 
 - **Multiplier**: A circuit to prove that you know the factors of a number.
-- **Floating Point Addition**: A circuit to compute the sum of two floating-point numbers, adapted from [Berkeley ZKP MOOC 2023 - Lab 1](https://github.com/rdi-berkeley/zkp-mooc-lab).
 - **Fibonacci**: A circuit to compute Fibonacci numbers.
 - **Sudoku**: A circuit to prove that you know the solution to a Sudoku puzzle.
+- **Floating-Point Addition**: A circuit to compute the sum of two floating-point numbers, adapted from [Berkeley ZKP MOOC 2023 - Lab 1](https://github.com/rdi-berkeley/zkp-mooc-lab).
 
 ## Testing
 
@@ -263,4 +282,15 @@ circomkit
     │   │── prover_key.zkey
     │   └── verification_key.json
     └── ...
+```
+
+## Styling
+
+We use [Google TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html) for the TypeScript codes.
+
+```bash
+# check the formatting
+yarn format
+# lint everything
+yarn lint
 ```

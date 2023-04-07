@@ -18,7 +18,7 @@ export function instantiate(name: string, directory: string, circuitConfig?: Cir
     circuitConfig = config[name];
   }
 
-  // generate the main component code using the tempalte
+  // generate the main component code using the template
   const ejsPath = './circuits/ejs/template.circom';
 
   // add "../" to the filename in include, one for each "/" in directory name
