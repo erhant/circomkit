@@ -722,9 +722,9 @@ available-typed-arrays@^1.0.5:
   integrity sha512-DMD0KiN46eipeziST1LPP/STfDU0sufISXmjSgvVsoU2tqxctQeASejWcfNtxYKqETM1UxQ8sp2OrSBWpHY6sw==
 
 b4a@^1.0.1:
-  version "1.6.1"
-  resolved "https://registry.yarnpkg.com/b4a/-/b4a-1.6.1.tgz#9effac93a469a868d024e16fd77162c653544cbd"
-  integrity sha512-AsKjNhz72yxteo/0EtQEiwkMUgk/tGmycXlbG4g3Ard2/ULtNLUykGOkeK0egmN27h0xMAhb76jYccW+XTBExA==
+  version "1.6.3"
+  resolved "https://registry.yarnpkg.com/b4a/-/b4a-1.6.3.tgz#cce6e8a2f0d0774e5fe8062086827e979970266d"
+  integrity sha512-aX6/FqpWQve8VN9kyTExy7GlmwNShvxcCWWD5QVR3ZbRlyBGtCrG5Autu95xxSPH4CRs+5PSV4d7PRnWpmqFlA==
 
 balanced-match@^1.0.0:
   version "1.0.2"
@@ -1081,14 +1081,7 @@ doctrine@^3.0.0:
   dependencies:
     esutils "^2.0.2"
 
-ejs@^3.1.6:
-  version "3.1.8"
-  resolved "https://registry.yarnpkg.com/ejs/-/ejs-3.1.8.tgz#758d32910c78047585c7ef1f92f9ee041c1c190b"
-  integrity sha512-/sXZeMlhS0ArkfX2Aw780gJzXSMPnKjtspYZv+f3NiKLlubezAHDU5+9xz6gd3/NhG3txQCo6xlglmTS+oTGEQ==
-  dependencies:
-    jake "^10.8.5"
-
-ejs@^3.1.9:
+ejs@^3.1.6, ejs@^3.1.9:
   version "3.1.9"
   resolved "https://registry.yarnpkg.com/ejs/-/ejs-3.1.9.tgz#03c9e8777fe12686a9effcef22303ca3d8eeb361"
   integrity sha512-rC+QVNMJWv+MtPgkt0y+0rVEIdbtxVADApW9JXrUVlzHetgcyczP/E7DJmWJ4fJCZF2cPcBk0laWO9ZHMG3DmQ==

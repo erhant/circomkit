@@ -1,7 +1,6 @@
 ## Commence a circuit-specific phase-2 powers-of-tau ceremony
 ptau() {
   echo -e "\n${CIRCOMKIT_COLOR_TITLE}=== Phase-2 Powers of Tau ===${CIRCOMKIT_COLOR_RESET}"
-  echo -e "${CIRCOMKIT_COLOR_LOG}this may take a while...${CIRCOMKIT_COLOR_RESET}"
   local CIRCUIT=$1                                    # circuit name
   local NUM_CONTRIBS=$2                               # number of contributions
   local P1_PTAU=$3                                    # path to phase-1 ptau
@@ -11,13 +10,14 @@ ptau() {
   local PROVER_KEY=$CIRCUIT_DIR/prover_key.zkey
   local VERIFICATION_KEY=$CIRCUIT_DIR/verification_key.json
 
-  # check if groth16 is used, as there is no need for phase-2 for plonk
-  # TODO
-
   # check if P1_PTAU exists
-  # TODO
+  if [ ! -f "$P1_PTAU" ]; then
+    echo -e "${CIRCOMKIT_COLOR_ERR}${P1_PTAU} does not exist.${CIRCOMKIT_COLOR_RESET}"
+    exit 1
+  fi
 
   # start phase-2 ceremony (circuit specific)
+  echo -e "${CIRCOMKIT_COLOR_LOG}this may take a while...${CIRCOMKIT_COLOR_RESET}"
   snarkjs powersoftau prepare phase2 $P1_PTAU $P2_PTAU -v
 
   # generate a zkey that contains proving and verification keys, along with phase-2 contributions

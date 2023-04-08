@@ -2,15 +2,15 @@
   <h1 align="center">
     Circomkit
   </h1>
-  <p align="center">An opinionated Circom circuit development & testing environment.</p>
+  <p align="center">A simple-to-use Circom & SnarkJS circuit development & testing environment.</p>
 </p>
 
 <p align="center">
     <a href="https://opensource.org/licenses/MIT" target="_blank">
         <img src="https://img.shields.io/badge/license-MIT-yellow.svg">
     </a>
-    <a href="./.github/workflows/styling.yml" target="_blank">
-        <img alt="Style Workflow" src="https://github.com/erhant/circomkit/actions/workflows/styling.yml/badge.svg?branch=main">
+    <a href="./.github/workflows/styles.yml" target="_blank">
+        <img alt="Workflow: Styles" src="https://github.com/erhant/circomkit/actions/workflows/styles.yml/badge.svg?branch=main">
     </a>
     <a href="https://mochajs.org/" target="_blank">
         <img alt="Test Suite: Mocha" src="https://img.shields.io/badge/tester-mocha-8D6748?logo=Mocha">
@@ -21,13 +21,21 @@
     <a href="https://prettier.io/" target="_blank">
         <img alt="Formatter: Prettier" src="https://img.shields.io/badge/formatter-prettier-f8bc45?logo=prettier">
     </a>
+    <a href="https://github.com/iden3/snarkjs" target="_blank">
+        <img alt="GitHub: SnarkJS" src="https://img.shields.io/badge/github-snarkjs-lightgray?logo=github">
+    </a>
+    <a href="https://github.com/iden3/circom" target="_blank">
+        <img alt="GitHub: Circom" src="https://img.shields.io/badge/github-circom-lightgray?logo=github">
+    </a>
 </p>
 
-- [x] **Generic Circuit Creation**: Using circuit configs, you can programmatically create the `main` component for a circuit.
-- [x] **Template Testing**: You can test every template in a circuit, with minimal code-repetition.
+- [x] **Programmable Circuits**: Using circuit configs, you can programmatically create the `main` component for a circuit.
+- [x] **Witness Testing**: You can test computations & assertions for every template in a circuit, with minimal code-repetition.
+- [x] **Proof Testing**: With prover & verification keys and the WASM circuit, you can test proof generation & verification.
 - [x] **Simple CLI**: A very easy to use CLI is provided as a wrapper around SnarkJS commands, and they are all provided as `package.json` scripts!
 - [ ] **Multiple Proof-Systems**: Soon, only Groth16 for now!
 - [ ] **Type Generation**: Generate input & output types for a given circuit, perhaps in future.
+- [ ] **Multiple Back-ends**: We only use WASM right now, but we would like to compile prover libraries for other backends.
 
 ## Usage
 
@@ -99,7 +107,7 @@ yarn verify circuit-name -i input-name
 We have several example circuits to help guide you:
 
 - **Multiplier**: A circuit to prove that you know the factors of a number.
-- **Fibonacci**: A circuit to compute Fibonacci numbers.
+- **Fibonacci**: A circuit to compute Fibonacci numbers, a recursive implementation is given too.
 - **Sudoku**: A circuit to prove that you know the solution to a Sudoku puzzle.
 - **Floating-Point Addition**: A circuit to compute the sum of two floating-point numbers, adapted from [Berkeley ZKP MOOC 2023 - Lab 1](https://github.com/rdi-berkeley/zkp-mooc-lab).
 
@@ -210,7 +218,7 @@ describe('multiplier utilities', () => {
 
 ### Proof Verification
 
-If you have created the prover key, verification key & the circuit WASM file, you can also test proving & verification keys.
+If you have created the prover key, verification key & the circuit WASM file, you can also test proof generation & verification.
 
 ```ts
 describe('multiplier (proofs)', () => {
@@ -239,10 +247,10 @@ describe('multiplier (proofs)', () => {
 });
 ```
 
-Notice the two utility functions provided here:
+The two utility functions provided here are:
 
-- `circuit.expectVerificationPass(proof, publicSignals)` makes sure that the given proof is **accepted** by the verifier for the given public signals.
-- `circuit.expectVerificationFail(proof, publicSignals)` makes sure that the given proof is **rejected** by the verifier for the given public signals.
+- `circuit.expectVerificationPass(proof, publicSignals)` that makes sure that the given proof is **accepted** by the verifier for the given public signals.
+- `circuit.expectVerificationFail(proof, publicSignals)` that makes sure that the given proof is **rejected** by the verifier for the given public signals.
 
 ## File Structure
 
