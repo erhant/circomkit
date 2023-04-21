@@ -2,6 +2,7 @@
   "name": "circomkit",
   "version": "0.0.1",
   "description": "A Circom development environment",
+  "author": "erhant",
   "license": "MIT",
   "engines": {
     "node": ">=10.4.0"
@@ -24,7 +25,6 @@
     "format": "npx prettier --check ./**/*.ts",
     "lint": "npx gts lint"
   },
-  "author": "erhant",
   "devDependencies": {
     "@types/chai": "^4.3.4",
     "@types/ejs": "^3.1.2",

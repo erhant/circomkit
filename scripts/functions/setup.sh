@@ -1,4 +1,4 @@
-## Commence a circuit-specific phase-2 powers-of-tau ceremony
+## Commence a circuit-specific setup
 setup() {
   echo -e "\n${CIRCOMKIT_COLOR_TITLE}=== Circuit Setup ($CIRCOMKIT_PROOF_SYSTEM) ===${CIRCOMKIT_COLOR_RESET}"
   local CIRCUIT=$1                                    # circuit name
@@ -10,7 +10,7 @@ setup() {
 
   # check if P1_PTAU exists
   if [ ! -f "$P1_PTAU" ]; then
-    echo -e "${CIRCOMKIT_COLOR_ERR}${P1_PTAU} does not exist.${CIRCOMKIT_COLOR_RESET}"
+    echo -e "PTAU file ${CIRCOMKIT_COLOR_ERR}${P1_PTAU} does not exist.${CIRCOMKIT_COLOR_RESET}"
     exit 1
   fi
 
