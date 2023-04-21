@@ -6,7 +6,7 @@ prove() {
   local CIRCUIT_DIR=./build/$CIRCUIT
   local OUTPUT_DIR=$CIRCUIT_DIR/$INPUT
 
-  snarkjs groth16 prove \
+  snarkjs $CIRCOMKIT_PROOF_SYSTEM prove \
     $CIRCUIT_DIR/prover_key.zkey \
     $OUTPUT_DIR/witness.wtns \
     $OUTPUT_DIR/proof.json \

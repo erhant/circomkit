@@ -50,3 +50,8 @@ export type CircuitConfig = {
 export type Config = {
   [circuitName: string]: CircuitConfig;
 };
+
+/**
+ * Proof system to be used
+ */
+export type ProofSystem = 'groth16' | 'plonk' | 'fflonk';

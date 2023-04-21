@@ -44,9 +44,9 @@ const INPUTS: {[N in BoardSizes]: any} = {
   },
 };
 
-[9, 4].map(N =>
+([9, 4] as BoardSizes[]).map(N =>
   describe(`sudoku (${N} by ${N})`, () => {
-    const INPUT = INPUTS[N as BoardSizes];
+    const INPUT = INPUTS[N];
     let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
     before(async () => {

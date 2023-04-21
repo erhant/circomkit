@@ -1,13 +1,14 @@
 import fs from 'fs';
 const snarkjs = require('snarkjs');
 import {expect} from 'chai';
-import type {CircuitSignals, FullProof} from '../types/circuit';
+import type {CircuitSignals, FullProof, ProofSystem} from '../types/circuit';
 
 /**
  * A more extensive Circuit class, able to generate proofs & verify them.
  * Assumes that prover key and verifier key have been computed.
  */
 export class ProofTester {
+  public readonly proofSystem: ProofSystem;
   private readonly wasmPath: string;
   private readonly proverKeyPath: string;
   private readonly verificationKey: object;
@@ -15,8 +16,9 @@ export class ProofTester {
   /**
    * Sets the paths & loads the verification key
    * @param circuit a proof tester
+   * @param proofSystem proof system to use, defaults to `groth16`
    */
-  constructor(circuit: string) {
+  constructor(circuit: string, proofSystem: ProofSystem = 'groth16') {
     // find paths (computed w.r.t circuit name)
     this.wasmPath = `./build/${circuit}/${circuit}_js/${circuit}.wasm`;
     this.proverKeyPath = `./build/${circuit}/prover_key.zkey`;
@@ -30,15 +32,19 @@ export class ProofTester {
 
     // load verification key
     this.verificationKey = JSON.parse(fs.readFileSync(verificationKeyPath).toString());
+
+    // set proof system
+    this.proofSystem = proofSystem;
   }
 
   /**
    * Generate a proof for the witness computed from the given input signals.
+   * Calls `fullProve` behind the scenes.
    * @param input input signals for the circuit
    * @returns a proof and public signals
    */
   async prove(input: CircuitSignals): Promise<FullProof> {
-    return await snarkjs.groth16.fullProve(input, this.wasmPath, this.proverKeyPath);
+    return await snarkjs[this.proofSystem].fullProve(input, this.wasmPath, this.proverKeyPath);
   }
 
   /**
@@ -48,7 +54,7 @@ export class ProofTester {
    * @returns `true` if proof verifies, `false` otherwise
    */
   async verify(proof: object, publicSignals: string[]): Promise<boolean> {
-    return await snarkjs.groth16.verify(this.verificationKey, publicSignals, proof);
+    return await snarkjs[this.proofSystem].verify(this.verificationKey, publicSignals, proof);
   }
 
   /**

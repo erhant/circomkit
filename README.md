@@ -33,9 +33,10 @@
 - [x] **Witness Testing**: You can test computations & assertions for every template in a circuit, with minimal code-repetition.
 - [x] **Proof Testing**: With prover & verification keys and the WASM circuit, you can test proof generation & verification.
 - [x] **Simple CLI**: A very easy to use CLI is provided as a wrapper around SnarkJS commands, and they are all provided as `package.json` scripts!
-- [ ] **Multiple Proof-Systems**: Soon, only Groth16 for now!
-- [ ] **Type Generation**: Generate input & output types for a given circuit, perhaps in future.
-- [ ] **Multiple Back-ends**: We only use WASM right now, but we would like to compile prover libraries for other backends.
+- [x] **Multiple Proof-Systems**: Just change the configured proof-system at [`.cli.env`](./.cli.env) and you are good to go.
+- [x] **Solidity Exports**: Export a verifier contract in Solidity, or export a calldata for your proofs & public signals.
+- [ ] **Multiple Backends**: We only use WASM & SnarkJS right now, but we would like to export prover libraries for other backends such as mobile.
+- [ ] **Type Generation**: Generate input & output signal type declarations for a given circuit, [work in progress](./scripts/functions/type.sh).
 
 ## Usage
 
@@ -65,25 +66,19 @@ Use the [CLI](./scripts/cli.sh), or its wrapper scripts in [package.json](./pack
 # Compile the circuit (generates the main component too)
 yarn compile circuit-name [-d directory-name (default: main)]
 
-# Phase-2 Circuit-specific setup
-yarn ptau circuit-name -p phase1-ptau-path [-n num-contribs (default: 1)]
+# Circuit setup
+yarn setup circuit-name -p phase1-ptau-path [-n num-contribs (default: 1)]
 
-# Shorthand for `compile` and then `ptau`
+# Shorthand for `compile` and then `setup`
 yarn keygen circuit-name -p phase1-ptau-path [-n num-contribs (default: 1)]
+
+# Create a Solidity verifier contract
+yarn contract circuit-name
 
 # Clean circuit artifacts
 yarn clean circuit-name
 
-# Run the test for a circuit
-yarn test circuit-name
-
-# Run all tests
-yarn test:all
-```
-
-If you just want to generate the `main` component but not compile it, you can also call:
-
-```bash
+# Generate the `main` component without compiling it afterwards
 yarn instantiate circuit-name [-d directory-name (default: main)]
 ```
 
@@ -100,7 +95,24 @@ yarn prove circuit-name -i input-name
 
 # Verify a proof for some input (public signals only)
 yarn verify circuit-name -i input-name
+
+# Export calldata to call your Solidity verifier contract
+yarn contract circuit-name -i input-name
 ```
+
+## Testing
+
+To run tests do the following:
+
+```bash
+# test a specific circuit
+yarn test "circuit name"
+
+# test all circuits
+yarn test:all
+```
+
+You can test both witness calculations and proof generation & verification. We describe both in their respective sections, going over an example of "Multiplication" circuit.
 
 ### Example Circuits
 
@@ -110,19 +122,6 @@ We have several example circuits to help guide you:
 - **Fibonacci**: A circuit to compute Fibonacci numbers, a recursive implementation is given too.
 - **Sudoku**: A circuit to prove that you know the solution to a Sudoku puzzle.
 - **Floating-Point Addition**: A circuit to compute the sum of two floating-point numbers, adapted from [Berkeley ZKP MOOC 2023 - Lab 1](https://github.com/rdi-berkeley/zkp-mooc-lab).
-
-## Testing
-
-To run tests do the following:
-
-```bash
-# test all circuits
-yarn test:all
-# test a specific circuit
-yarn test "circuit name"
-```
-
-You can test both witness calculations and proof generation & verification. We describe both in their respective sections, going over an example of "Multiplication" circuit.
 
 ### Witness Calculation
 

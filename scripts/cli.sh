@@ -8,8 +8,10 @@ source ./.cli.env
 
 # import functions
 source ./scripts/functions/type.sh
-source ./scripts/functions/ptau.sh
+source ./scripts/functions/setup.sh
 source ./scripts/functions/clean.sh
+source ./scripts/functions/contract.sh
+source ./scripts/functions/calldata.sh
 source ./scripts/functions/prove.sh
 source ./scripts/functions/verify.sh
 source ./scripts/functions/witness.sh
@@ -66,6 +68,12 @@ case $FUNC in
   clean) 
     clean $CIRCUIT
     ;;
+  contract) 
+    contract $CIRCUIT
+    ;;
+  calldata) 
+    calldata $CIRCUIT $INPUT
+    ;;
   compile) 
     instantiate $CIRCUIT $COMPILE_DIR && compile $CIRCUIT $COMPILE_DIR
     ;;
@@ -75,11 +83,11 @@ case $FUNC in
   type) 
     type $CIRCUIT
     ;;
-  ptau) 
-    ptau $CIRCUIT $NUM_CONTRIBS $P1_PTAU
+  setup) 
+    setup $CIRCUIT $P1_PTAU $NUM_CONTRIBS
     ;;
   keygen) 
-    compile $CIRCUIT $COMPILE_DIR && ptau $CIRCUIT $NUM_CONTRIBS $P1_PTAU
+    compile $CIRCUIT $COMPILE_DIR && setup $CIRCUIT $P1_PTAU $NUM_CONTRIBS
     ;;
   prove) 
     witness $CIRCUIT $INPUT && prove $CIRCUIT $INPUT
@@ -94,14 +102,16 @@ case $FUNC in
     echo "Usage:"
     echo "  -f <function>"
     echo "    clean        Cleans the build artifacts"
+    echo "    contract     Export Solidity verifier"
+    echo "    calldata     Export Solidity calldata for verification"
     echo "    compile      Compile the circuit"
     echo "    instantiate  Instantiate the main component"
     echo "    type         Generate types for TypeScript"
-    echo "    ptau         Phase-2 setup for the circuit"
+    echo "    setup         Phase-2 setup for the circuit"
     echo "    witness      Generate witness from an input"
     echo "    prove        Prove an input"
     echo "    verify       Verify a proof & public signals"
-    echo "    keygen       Shorthand for compile & ptau"
+    echo "    keygen       Shorthand for compile & setup"
     echo "  -c <circuit-name>"
     echo "  -d <directory-name> (default: $COMPILE_DIR)"
     echo "  -n <num-contributions> (default: $NUM_CONTRIBS)"
