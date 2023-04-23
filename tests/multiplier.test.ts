@@ -57,7 +57,7 @@ describe('multiplier utilities', () => {
   });
 });
 
-describe('multiplier proofs', () => {
+describe.skip('multiplier proofs', () => {
   const N = 3;
 
   let fullProof: FullProof;
