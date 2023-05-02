@@ -6,7 +6,7 @@ import {assert, expect} from 'chai';
 /**
  A utility class to test your circuits. Use `expectFailedAssert` and `expectCorrectAssert` to test out evaluations
  */
-class WasmTester<IN extends string[] = [], OUT extends string[] = []> {
+export class WasmTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
   /**
    * The underlying `circom_tester` object
    */

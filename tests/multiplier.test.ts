@@ -1,11 +1,11 @@
-import {createWasmTester} from '../utils/wasmTester';
+import {WasmTester, createWasmTester} from '../utils/wasmTester';
 import {ProofTester} from '../utils/proofTester';
 import type {FullProof} from '../types/circuit';
 import {instantiate} from '../utils/instantiate';
 
 describe('multiplier', () => {
   const N = 3;
-  let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+  let circuit: WasmTester<['in'], ['out']>;
 
   before(async () => {
     const circuitName = 'multiplier_' + N;
@@ -15,7 +15,7 @@ describe('multiplier', () => {
       publicInputs: [],
       templateParams: [N],
     });
-    circuit = await createWasmTester<['in'], ['out']>(circuitName, 'test');
+    circuit = await createWasmTester(circuitName, 'test');
     await circuit.printConstraintCount(N - 1);
   });
 
@@ -33,7 +33,7 @@ describe('multiplier', () => {
 
 describe('multiplier utilities', () => {
   describe('multiplication gate', () => {
-    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+    let circuit: WasmTester<['in'], ['out']>;
 
     before(async () => {
       const circuitName = 'mulgate';
@@ -61,7 +61,7 @@ describe('multiplier proofs', () => {
   const N = 3;
 
   let fullProof: FullProof;
-  let circuit: ProofTester;
+  let circuit: ProofTester<['in']>;
   before(async () => {
     const circuitName = 'multiplier_' + N;
     circuit = new ProofTester(circuitName);

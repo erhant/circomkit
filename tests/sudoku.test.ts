@@ -1,5 +1,5 @@
 import {instantiate} from '../utils/instantiate';
-import {createWasmTester} from '../utils/wasmTester';
+import {WasmTester, createWasmTester} from '../utils/wasmTester';
 
 type BoardSizes = 4 | 9;
 
@@ -47,7 +47,7 @@ const INPUTS: {[N in BoardSizes]: any} = {
 ([9, 4] as BoardSizes[]).map(N =>
   describe(`sudoku (${N} by ${N})`, () => {
     const INPUT = INPUTS[N];
-    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+    let circuit: WasmTester<['solution', 'puzzle'], []>;
 
     before(async () => {
       const circuitName = `sudoku_${N}x${N}`;
@@ -100,7 +100,7 @@ describe('sudoku utilities', () => {
   describe('assert bit length', () => {
     const b = 3; // bit count
 
-    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+    let circuit: WasmTester<['in'], []>;
 
     before(async () => {
       const circuitName = 'abl_' + b;
@@ -132,7 +132,7 @@ describe('sudoku utilities', () => {
   describe('distinct', () => {
     const n = 3;
 
-    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+    let circuit: WasmTester<['in'], []>;
 
     before(async () => {
       const circuitName = 'distinct_' + n;
@@ -168,7 +168,7 @@ describe('sudoku utilities', () => {
   describe('in range', () => {
     const MIN = 1;
     const MAX = 9;
-    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+    let circuit: WasmTester<['in'], []>;
 
     before(async () => {
       const circuitName = 'inRange_' + MIN + '_' + MAX;

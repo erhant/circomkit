@@ -32,6 +32,7 @@
 - [x] **Programmable Circuits**: Using circuit configs, you can programmatically create the `main` component for a circuit.
 - [x] **Witness Testing**: You can test computations & assertions for every template in a circuit, with minimal code-repetition.
 - [x] **Proof Testing**: With prover & verification keys and the WASM circuit, you can test proof generation & verification.
+- [x] **Type-safe**: Witness & proof testers, as well as CircuitSignals are type-safe.
 - [x] **Simple CLI**: A very easy to use CLI is provided as a wrapper around SnarkJS commands, and they are all provided as `package.json` scripts!
 - [x] **Easily Configurable**: Just change the configured proof-system & elliptic curve at [`.cli.env`](./.cli.env) and you are good to go.
 - [x] **Solidity Exports**: Export a verifier contract in Solidity, or export a calldata for your proofs & public signals.
@@ -99,7 +100,7 @@ yarn verify circuit-name -i input-name
 yarn debug circuit-name -i input-name
 
 # Export calldata to call your Solidity verifier contract
-yarn contract circuit-name -i input-name
+yarn calldata circuit-name -i input-name
 ```
 
 ## Testing

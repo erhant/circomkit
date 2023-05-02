@@ -7,7 +7,7 @@ type SignalValue = IntegerValue | SignalValue[];
  * By default, signal names are not typed, but you can pass an array of signal names
  * to make them type-safe, e.g. `CircuitSignals<['sig1', 'sig2']>`
  */
-export type CircuitSignals<T extends string[] = []> = T extends []
+export type CircuitSignals<T extends readonly string[] = []> = T extends []
   ? {[signal: string]: SignalValue}
   : {[signal in T[number]]: SignalValue};
 

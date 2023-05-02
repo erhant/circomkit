@@ -1,5 +1,5 @@
 import {instantiate} from '../utils/instantiate';
-import {createWasmTester} from '../utils/wasmTester';
+import {WasmTester, createWasmTester} from '../utils/wasmTester';
 
 // tests adapted from https://github.com/rdi-berkeley/zkp-mooc-lab
 
@@ -16,7 +16,7 @@ const expectedConstraints = {
 describe('float_add 32-bit', () => {
   const k = 8;
   const p = 23;
-  let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+  let circuit: WasmTester<['e', 'm'], ['e_out', 'm_out']>;
 
   before(async () => {
     instantiate('fp32', 'test', {
@@ -121,7 +121,7 @@ describe('float_add 32-bit', () => {
 describe('float_add 64-bit', () => {
   const k = 11;
   const p = 52;
-  let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+  let circuit: WasmTester<['e', 'm'], ['e_out', 'm_out']>;
 
   before(async () => {
     instantiate('fp64', 'test', {
@@ -212,7 +212,7 @@ describe('float_add 64-bit', () => {
 describe('float_add utilities', () => {
   describe('check bit length', () => {
     const b = 23; // bit count
-    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+    let circuit: WasmTester<['in'], ['out']>;
 
     before(async () => {
       const circuitName = 'cbl_' + b;
@@ -247,7 +247,7 @@ describe('float_add utilities', () => {
 
   describe('left shift', () => {
     const shift_bound = 25;
-    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+    let circuit: WasmTester<['x', 'shift', 'skip_checks'], ['y']>;
 
     before(async () => {
       const circuitName = 'shl_' + shift_bound;
@@ -303,7 +303,7 @@ describe('float_add utilities', () => {
   describe('right shift', () => {
     const b = 49;
     const shift = 24;
-    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+    let circuit: WasmTester<['x'], ['y']>;
 
     before(async () => {
       const circuitName = 'shr_' + b;
@@ -337,7 +337,7 @@ describe('float_add utilities', () => {
     const k = 8;
     const p = 23;
     const P = 47;
-    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+    let circuit: WasmTester<['e', 'm', 'skip_checks'], ['e_out', 'm_out']>;
 
     before(async () => {
       const circuitName = 'normalize_' + k + p + P;
@@ -392,7 +392,7 @@ describe('float_add utilities', () => {
 
   describe('msnzb', () => {
     const b = 48;
-    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+    let circuit: WasmTester<['in', 'skip_checks'], ['one_hot']>;
 
     before(async () => {
       const circuitName = 'msnzb_' + b;
