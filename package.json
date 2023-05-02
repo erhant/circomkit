@@ -16,6 +16,7 @@
     "clean": "./scripts/cli.sh -f clean -c",
     "contract": "./scripts/cli.sh -f contract -c",
     "calldata": "./scripts/cli.sh -f calldata -c",
+    "debug": "./scripts/cli.sh -f debug -c",
     "ptau": "./scripts/cli.sh -f ptau -c",
     "keygen": "./scripts/cli.sh -f keygen -c",
     "witness": "./scripts/cli.sh -f witness -c",

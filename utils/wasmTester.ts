@@ -4,10 +4,9 @@ import {CircomWasmTester} from '../types/wasmTester';
 import {assert, expect} from 'chai';
 
 /**
- A utility class to test your circuits.
- - Use `expectFailedAssert` and `expectCorrectAssert` to test out evaluations
+ A utility class to test your circuits. Use `expectFailedAssert` and `expectCorrectAssert` to test out evaluations
  */
-class WasmTester {
+class WasmTester<IN extends string[] = [], OUT extends string[] = []> {
   /**
    * The underlying `circom_tester` object
    */
@@ -37,10 +36,10 @@ class WasmTester {
 
   /**
    * Assert the output of a given witness.
-   * @param actualOut expected output signals
+   * @param actualOut expected witness
    * @param expectedOut computed output signals
    */
-  assertOut(actualOut: CircuitSignals, expectedOut: CircuitSignals): Promise<void> {
+  assertOut(actualOut: WitnessType, expectedOut: CircuitSignals<OUT>): Promise<void> {
     return this.circomWasmTester.assertOut(actualOut, expectedOut);
   }
 
@@ -49,7 +48,7 @@ class WasmTester {
    * @param input all signals, private and public.
    * @param sanityCheck check if input signals are sanitized
    */
-  calculateWitness(input: CircuitSignals, sanityCheck: boolean): Promise<WitnessType> {
+  calculateWitness(input: CircuitSignals<IN>, sanityCheck: boolean): Promise<WitnessType> {
     return this.circomWasmTester.calculateWitness(input, sanityCheck);
   }
 
@@ -110,14 +109,11 @@ class WasmTester {
     if (expected !== undefined) {
       let alertType = '';
       if (numConstraints < expected) {
-        // need more
-        alertType = '🔴';
+        alertType = '🔴'; // need more
       } else if (numConstraints > expected) {
-        // too many
-        alertType = '🟡';
+        alertType = '🟡'; // too many
       } else {
-        // on point
-        alertType = '🟢';
+        alertType = '🟢'; // on point
       }
       expectionMessage = ` (${alertType} expected ${expected})`;
     }
@@ -128,7 +124,7 @@ class WasmTester {
    * Expect an input to fail an assertion in the circuit.
    * @param input bad input
    */
-  async expectFailedAssert(input: CircuitSignals) {
+  async expectFailedAssert(input: CircuitSignals<IN>) {
     await this.calculateWitness(input, true).then(
       () => assert.fail(),
       err => expect(err.message.slice(0, 21)).to.eq('Error: Assert Failed.')
@@ -140,7 +136,7 @@ class WasmTester {
    * @param input correct input
    * @param output expected output, if `undefined` it will only check constraints
    */
-  async expectCorrectAssert(input: CircuitSignals, output?: CircuitSignals) {
+  async expectCorrectAssert(input: CircuitSignals<IN>, output?: CircuitSignals<OUT>) {
     const witness = await this.calculateWitness(input, true);
     await this.checkConstraints(witness);
     if (output) {
@@ -155,9 +151,12 @@ class WasmTester {
  * @param dir directory to read the circuit from, defaults to `main`
  * @returns a `WasmTester` instance
  */
-export async function createWasmTester(circuitName: string, dir = 'main'): Promise<WasmTester> {
+export async function createWasmTester<IN extends string[] = [], OUT extends string[] = []>(
+  circuitName: string,
+  dir = 'main'
+): Promise<WasmTester<IN, OUT>> {
   const circomWasmTester: CircomWasmTester = await wasm_tester(`./circuits/${dir}/${circuitName}.circom`, {
     include: 'node_modules', // will link circomlib circuits
   });
-  return new WasmTester(circomWasmTester);
+  return new WasmTester<IN, OUT>(circomWasmTester);
 }

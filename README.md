@@ -33,9 +33,8 @@
 - [x] **Witness Testing**: You can test computations & assertions for every template in a circuit, with minimal code-repetition.
 - [x] **Proof Testing**: With prover & verification keys and the WASM circuit, you can test proof generation & verification.
 - [x] **Simple CLI**: A very easy to use CLI is provided as a wrapper around SnarkJS commands, and they are all provided as `package.json` scripts!
-- [x] **Multiple Proof-Systems**: Just change the configured proof-system at [`.cli.env`](./.cli.env) and you are good to go.
+- [x] **Easily Configurable**: Just change the configured proof-system & elliptic curve at [`.cli.env`](./.cli.env) and you are good to go.
 - [x] **Solidity Exports**: Export a verifier contract in Solidity, or export a calldata for your proofs & public signals.
-- [ ] **Multiple Backends**: We only use WASM & SnarkJS right now, but we would like to export prover libraries for other backends such as mobile.
 - [ ] **Type Generation**: Generate input & output signal type declarations for a given circuit, [work in progress](./scripts/functions/type.sh).
 
 ## Usage
@@ -95,6 +94,9 @@ yarn prove circuit-name -i input-name
 
 # Verify a proof for some input (public signals only)
 yarn verify circuit-name -i input-name
+
+# Debug a witness of some input
+yarn debug circuit-name -i input-name
 
 # Export calldata to call your Solidity verifier contract
 yarn contract circuit-name -i input-name

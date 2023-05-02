@@ -1,19 +1,20 @@
 import {instantiate} from '../utils/instantiate';
 import {createWasmTester} from '../utils/wasmTester';
 
-describe('fibonacci', () => {
+const CIRCUIT_FILE = 'fibonacci';
+describe(CIRCUIT_FILE, () => {
   const N = 19;
   let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
   before(async () => {
-    const circuitName = 'fibonacci_' + N;
+    const circuitName = `${CIRCUIT_FILE}_${N}`;
     instantiate(circuitName, 'test', {
-      file: 'fibonacci',
+      file: CIRCUIT_FILE,
       template: 'Fibonacci',
       publicInputs: [],
       templateParams: [N],
     });
-    circuit = await createWasmTester(circuitName, 'test');
+    circuit = await createWasmTester<['in'], ['out']>(circuitName, 'test');
     await circuit.printConstraintCount();
   });
 
@@ -30,14 +31,14 @@ describe('fibonacci', () => {
 });
 
 // skipping because this takes a bit longer
-describe.skip('fibonacci recursive', () => {
+describe.skip(CIRCUIT_FILE + ' recursive', () => {
   const N = 19;
   let circuit: Awaited<ReturnType<typeof createWasmTester>>;
 
   before(async () => {
-    const circuitName = 'fibonacci_recursive_' + N;
+    const circuitName = `${CIRCUIT_FILE}_${N}_recursive`;
     instantiate(circuitName, 'test', {
-      file: 'fibonacci',
+      file: CIRCUIT_FILE,
       template: 'FibonacciRecursive',
       publicInputs: [],
       templateParams: [N],

@@ -1,8 +1,15 @@
+type IntegerValue = `${number}` | number | bigint;
+type SignalValue = IntegerValue | SignalValue[];
+
 /**
- * A json object with string keys.
- * Each key represents a signal name as it appears in the circuit
+ * An object with string keys and array of numerical values.
+ * Each key represents a signal name as it appears in the circuit.
+ * By default, signal names are not typed, but you can pass an array of signal names
+ * to make them type-safe, e.g. `CircuitSignals<['sig1', 'sig2']>`
  */
-export type CircuitSignals = {[signalName: string]: any};
+export type CircuitSignals<T extends string[] = []> = T extends []
+  ? {[signal: string]: SignalValue}
+  : {[signal in T[number]]: SignalValue};
 
 /**
  * A witness is an array of bigints, corresponding to the values of each wire in
@@ -16,39 +23,6 @@ export type WitnessType = bigint[];
 export type FullProof = {
   proof: object;
   publicSignals: string[];
-};
-
-/**
- * A configuration object for circuit main components.
- */
-export type CircuitConfig = {
-  /**
-   * File to read the template from
-   */
-  file: string;
-
-  /**
-   * The template name to instantiate
-   */
-  template: string;
-
-  /**
-   * An array of public input signal names
-   */
-  publicInputs: string[];
-
-  /**
-   * An array of template parameters
-   */
-  templateParams: (number | bigint)[];
-};
-
-/**
- * Configurations for your circuits.
- * @see `circuit.config.cjs` in the project root.
- */
-export type Config = {
-  [circuitName: string]: CircuitConfig;
 };
 
 /**

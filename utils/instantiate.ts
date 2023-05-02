@@ -1,7 +1,7 @@
 import ejs from 'ejs';
 import {writeFileSync, readFileSync, existsSync, mkdirSync} from 'fs';
 import config from '../circuit.config';
-import {CircuitConfig} from '../types/circuit';
+import {CircuitConfig} from '../types/config';
 
 /**
  * Programmatically generate the `main` component
@@ -39,7 +39,6 @@ export function instantiate(name: string, directory: string, circuitConfig?: Cir
   }
   const targetPath = `${targetDir}/${name}.circom`;
   writeFileSync(targetPath, circuit);
-  // console.log(`Main component created at: ${targetPath}\n`);
 }
 
 if (require.main === module) {

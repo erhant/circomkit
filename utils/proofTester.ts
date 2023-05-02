@@ -3,15 +3,13 @@ const snarkjs = require('snarkjs');
 import {expect} from 'chai';
 import type {CircuitSignals, FullProof, ProofSystem} from '../types/circuit';
 
-// Make a const assertion
-// see https://www.typescriptlang.org/docs/handbook/release-notes/typescript-3-4.html#const-assertions
 const PROOF_SYSTEMS = ['groth16', 'plonk', 'fflonk'] as const;
 
 /**
  * A more extensive Circuit class, able to generate proofs & verify them.
  * Assumes that prover key and verifier key have been computed.
  */
-export class ProofTester {
+export class ProofTester<IN extends string[] = []> {
   public readonly protocol: (typeof PROOF_SYSTEMS)[number];
   private readonly wasmPath: string;
   private readonly proverKeyPath: string;
@@ -55,7 +53,7 @@ export class ProofTester {
    * @param input input signals for the circuit
    * @returns a proof and public signals
    */
-  async prove(input: CircuitSignals): Promise<FullProof> {
+  async prove(input: CircuitSignals<IN>): Promise<FullProof> {
     return await snarkjs[this.protocol].fullProve(input, this.wasmPath, this.proverKeyPath);
   }
 

@@ -8,7 +8,7 @@ import {WitnessType, CircuitSignals} from './circuit';
 export type CircomWasmTester = {
   checkConstraints: (witness: WitnessType) => Promise<void>;
   release: () => Promise<void>;
-  assertOut: (actualOut: CircuitSignals, expectedOut: CircuitSignals) => Promise<void>;
+  assertOut: (actualOut: WitnessType, expectedOut: CircuitSignals) => Promise<void>;
   calculateWitness: (input: CircuitSignals, sanityCheck: boolean) => Promise<WitnessType>;
   loadConstraints: () => Promise<void>;
   constraints: any[] | undefined;

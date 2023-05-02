@@ -1,4 +1,4 @@
-import {Config} from './types/circuit';
+import {Config} from './types/config';
 
 /**
  * A configuration object for circuit `main` components.

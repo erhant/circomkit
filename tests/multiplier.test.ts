@@ -15,7 +15,7 @@ describe('multiplier', () => {
       publicInputs: [],
       templateParams: [N],
     });
-    circuit = await createWasmTester(circuitName, 'test');
+    circuit = await createWasmTester<['in'], ['out']>(circuitName, 'test');
     await circuit.printConstraintCount(N - 1);
   });
 
@@ -57,7 +57,7 @@ describe('multiplier utilities', () => {
   });
 });
 
-describe.skip('multiplier proofs', () => {
+describe('multiplier proofs', () => {
   const N = 3;
 
   let fullProof: FullProof;

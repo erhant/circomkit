@@ -1,39 +1,56 @@
 #!/bin/bash
 
-cd "${0%/*}"/.. # get to project root (TODO make this an assertion that pwd is here)
+cd "${0%/*}"/.. # get to project root
 set -e # abort on error
 
 # load CLI environment variables
 source ./.cli.env
 
+# check validness of variables
+valid_proof_systems=("groth16" "plonk" "fflonk")
+if [[ ! " ${valid_proof_systems[@]} " =~ " ${CIRCOMKIT_PROOF_SYSTEM} " ]]; then
+  echo -e "${CIRCOMKIT_COLOR_ERR}Invalid proof system: $CIRCOMKIT_PROOF_SYSTEM${CIRCOMKIT_COLOR_RESET}"
+  exit 1
+fi
+valid_elliptic_curves=("bn128" "bls12381" "goldilocks")
+if [[ ! " ${valid_elliptic_curves[@]} " =~ " ${CIRCOMKIT_ELLIPTIC_CURVE} " ]]; then
+  echo -e "${CIRCOMKIT_COLOR_ERR}Invalid elliptic curve: $CIRCOMKIT_ELLIPTIC_CURVE${CIRCOMKIT_COLOR_RESET}"
+  exit 1
+fi 
+
 # import functions
 source ./scripts/functions/type.sh
 source ./scripts/functions/setup.sh
+source ./scripts/functions/compile.sh
 source ./scripts/functions/clean.sh
 source ./scripts/functions/contract.sh
 source ./scripts/functions/calldata.sh
+source ./scripts/functions/debug.sh
+source ./scripts/functions/instantiate.sh
 source ./scripts/functions/prove.sh
 source ./scripts/functions/verify.sh
 source ./scripts/functions/witness.sh
-source ./scripts/functions/compile.sh
-source ./scripts/functions/instantiate.sh
+
+# default values
+NUM_CONTRIBS=1
+COMPILE_DIR="main"
+INPUT="default"
+P1_PTAU="./ptau/powersOfTau28_hez_final_12.ptau"
 
 # get arguments
-NUM_CONTRIBS=1 # default value
-COMPILE_DIR="main" # default dir
 while getopts "f:c:n:i:p:d:" opt; do
   case $opt in
     # function to call
     f) 
       FUNC="$OPTARG"
       ;;
-    # director for compilation (default: main)
-    d) 
-      COMPILE_DIR="$OPTARG"
-      ;;
     # circuit name
     c) 
       CIRCUIT="$OPTARG"
+      ;;
+    # director for compilation (default: main)
+    d) 
+      COMPILE_DIR="$OPTARG"
       ;;
     # number of contributions
     n) 
@@ -62,7 +79,8 @@ while getopts "f:c:n:i:p:d:" opt; do
 done
 
 # parse circuit & input paths if required
-# TODO
+# TODO, maybe not needed
+# CIRCUIT=$(basename $CIRCUIT .circom)
 
 case $FUNC in
   clean) 
@@ -76,6 +94,9 @@ case $FUNC in
     ;;
   compile) 
     instantiate $CIRCUIT $COMPILE_DIR && compile $CIRCUIT $COMPILE_DIR
+    ;;
+  debug) 
+    debug $CIRCUIT $INPUT
     ;;
   instantiate) 
     instantiate $CIRCUIT $COMPILE_DIR
