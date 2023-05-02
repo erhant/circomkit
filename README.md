@@ -138,7 +138,7 @@ import {createWasmTester} from '../utils/wasmTester';
 
 describe('multiplier', () => {
   const N = 3;
-  let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+  let circuit: WasmTester<['in'], ['out']>; // type-safe circuit signal names!
 
   before(async () => {
     const circuitName = 'multiplier_' + N;
@@ -153,22 +153,22 @@ describe('multiplier', () => {
     // (2) reads the main component at ./circuits/test/<circuitName>.circom
     circuit = await createWasmTester(circuitName, 'test');
 
-    // (3) optionally checks if the constraint count meets your expectations
+    // (3) optionally checks if the constraint count meets your expected count
     await circuit.printConstraintCount(N - 1);
   });
 
   it('should compute correctly', async () => {
-    // N random numbers
-    const input = {
-      in: Array<number>(N)
-        .fill(0)
-        .map(() => Math.floor(Math.random() * 100 * N)),
-    };
-
-    // make sure the output is correct
-    await circuit.expectCorrectAssert(input, {
-      out: input.in.reduce((prev, acc) => acc * prev),
-    });
+    const randomNumbers = Array<number>(N)
+      .fill(0)
+      .map(() => Math.floor(Math.random() * 100 * N));
+    await circuit.expectCorrectAssert(
+      {
+        in: randomNumbers,
+      },
+      {
+        out: randomNumbers.reduce((prev, acc) => acc * prev),
+      }
+    );
   });
 });
 ```

@@ -20,14 +20,18 @@ describe('multiplier', () => {
   });
 
   it('should compute correctly', async () => {
-    const input = {
-      in: Array<number>(N)
-        .fill(0)
-        .map(() => Math.floor(Math.random() * 100 * N)),
-    };
-    await circuit.expectCorrectAssert(input, {
-      out: input.in.reduce((prev, acc) => acc * prev),
-    });
+    const randomNumbers = Array<number>(N)
+      .fill(0)
+      .map(() => Math.floor(Math.random() * 100 * N));
+
+    await circuit.expectCorrectAssert(
+      {
+        in: randomNumbers,
+      },
+      {
+        out: randomNumbers.reduce((prev, acc) => acc * prev),
+      }
+    );
   });
 });
 
