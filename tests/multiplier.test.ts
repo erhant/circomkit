@@ -4,26 +4,28 @@ import type {FullProof} from '../types/circuit';
 import {instantiate} from '../utils/instantiate';
 
 describe('multiplier', () => {
+  // templates parameters!
   const N = 3;
+
+  // type-safe signal names!
   let circuit: WasmTester<['in'], ['out']>;
 
   before(async () => {
-    const circuitName = 'multiplier_' + N;
-    instantiate(circuitName, 'test', {
+    const circuitName = `multiplier_${N}`;
+    instantiate(circuitName, {
       file: 'multiplier',
       template: 'Multiplier',
       publicInputs: [],
       templateParams: [N],
     });
-    circuit = await createWasmTester(circuitName, 'test');
-    await circuit.printConstraintCount(N - 1);
+    circuit = await createWasmTester(circuitName);
+
+    // constraint count checks!
+    await circuit.checkConstraintCount(N - 1);
   });
 
-  it('should compute correctly', async () => {
-    const randomNumbers = Array<number>(N)
-      .fill(0)
-      .map(() => Math.floor(Math.random() * 100 * N));
-
+  it('should multiply correctly', async () => {
+    const randomNumbers = Array.from({length: N}, () => Math.floor(Math.random() * 100 * N));
     await circuit.expectCorrectAssert(
       {
         in: randomNumbers,
@@ -41,16 +43,20 @@ describe('multiplier utilities', () => {
 
     before(async () => {
       const circuitName = 'mulgate';
-      instantiate(circuitName, 'test/multiplier', {
-        file: 'multiplier',
-        template: 'MultiplicationGate',
-        publicInputs: [],
-        templateParams: [],
-      });
+      instantiate(
+        circuitName,
+        {
+          file: 'multiplier',
+          template: 'MultiplicationGate',
+          publicInputs: [],
+          templateParams: [],
+        },
+        'test/multiplier'
+      );
       circuit = await createWasmTester(circuitName, 'test/multiplier');
     });
 
-    it('should pass for in range', async () => {
+    it('should multiply correctly', async () => {
       await circuit.expectCorrectAssert(
         {
           in: [7, 5],
@@ -63,16 +69,13 @@ describe('multiplier utilities', () => {
 
 describe('multiplier proofs', () => {
   const N = 3;
-
   let fullProof: FullProof;
   let circuit: ProofTester<['in']>;
   before(async () => {
     const circuitName = 'multiplier_' + N;
     circuit = new ProofTester(circuitName);
     fullProof = await circuit.prove({
-      in: Array<number>(N)
-        .fill(0)
-        .map(() => Math.floor(Math.random() * 100 * N)),
+      in: Array.from({length: N}, () => Math.floor(Math.random() * 100 * N)),
     });
   });
 

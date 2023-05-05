@@ -30,13 +30,12 @@
 </p>
 
 - [x] **Programmable Circuits**: Using circuit configs, you can programmatically create the `main` component for a circuit.
-- [x] **Witness Testing**: You can test computations & assertions for every template in a circuit, with minimal code-repetition.
-- [x] **Proof Testing**: With prover & verification keys and the WASM circuit, you can test proof generation & verification.
-- [x] **Type-safe**: Witness & proof testers, as well as CircuitSignals are type-safe.
 - [x] **Simple CLI**: A very easy to use CLI is provided as a wrapper around SnarkJS commands, and they are all provided as `package.json` scripts!
 - [x] **Easily Configurable**: Just change the configured proof-system & elliptic curve at [`.cli.env`](./.cli.env) and you are good to go.
+- [x] **Witness Testing**: You can test computations & assertions for every template in a circuit, with minimal code-repetition.
+- [x] **Proof Testing**: With prover & verification keys and the WASM circuit, you can test proof generation & verification.
+- [x] **Type-safe**: Witness & proof testers, as well as circuit signal inputs & outputs are type-safe.
 - [x] **Solidity Exports**: Export a verifier contract in Solidity, or export a calldata for your proofs & public signals.
-- [ ] **Type Generation**: Generate input & output signal type declarations for a given circuit, [work in progress](./scripts/functions/type.sh).
 
 ## Usage
 
@@ -137,30 +136,29 @@ import {instantiate} from '../utils/instantiate';
 import {createWasmTester} from '../utils/wasmTester';
 
 describe('multiplier', () => {
+  // templates parameters!
   const N = 3;
-  let circuit: WasmTester<['in'], ['out']>; // type-safe circuit signal names!
+
+  // type-safe signal names!
+  let circuit: WasmTester<['in'], ['out']>;
 
   before(async () => {
-    const circuitName = 'multiplier_' + N;
-    // (1) creates the main component at ./circuits/test/<circuitName>.circom
-    instantiate(circuitName, 'test', {
-      file: 'multiplier', // our file is at ./circuits/multiplier.circom
-      template: 'Multiplier', // our file has the template "Template"
-      publicInputs: [], // list of public signal input names
-      templateParams: [N], // list of template parameters in order
+    const circuitName = `multiplier_${N}`;
+    instantiate(circuitName, {
+      file: 'multiplier',
+      template: 'Multiplier',
+      publicInputs: [],
+      templateParams: [N],
     });
+    circuit = await createWasmTester(circuitName);
 
-    // (2) reads the main component at ./circuits/test/<circuitName>.circom
-    circuit = await createWasmTester(circuitName, 'test');
-
-    // (3) optionally checks if the constraint count meets your expected count
-    await circuit.printConstraintCount(N - 1);
+    // constraint count checks!
+    await circuit.checkConstraintCount(N - 1);
   });
 
   it('should compute correctly', async () => {
-    const randomNumbers = Array<number>(N)
-      .fill(0)
-      .map(() => Math.floor(Math.random() * 100 * N));
+    const randomNumbers = Array.from({length: N}, () => Math.floor(Math.random() * 100 * N));
+
     await circuit.expectCorrectAssert(
       {
         in: randomNumbers,
@@ -192,17 +190,20 @@ You will often have multiple templates in your circuit code, and you might want 
 ```ts
 describe('multiplier utilities', () => {
   describe('multiplication gate', () => {
-    let circuit: Awaited<ReturnType<typeof createWasmTester>>;
+    let circuit: WasmTester<['in'], ['out']>;
 
     before(async () => {
       const circuitName = 'mulgate';
-      // we can provide sub-folders as the target, such as test/multiplier in this case!
-      instantiate(circuitName, 'test/multiplier', {
-        file: 'multiplier',
-        template: 'MultiplicationGate',
-        publicInputs: [],
-        templateParams: [],
-      });
+      instantiate(
+        circuitName,
+        {
+          file: 'multiplier',
+          template: 'MultiplicationGate',
+          publicInputs: [],
+          templateParams: [],
+        },
+        'test/multiplier'
+      );
       circuit = await createWasmTester(circuitName, 'test/multiplier');
     });
 
@@ -223,18 +224,15 @@ describe('multiplier utilities', () => {
 If you have created the prover key, verification key & the circuit WASM file, you can also test proof generation & verification.
 
 ```ts
-describe('multiplier (proofs)', () => {
+describe('multiplier proofs', () => {
   const N = 3;
-
   let fullProof: FullProof;
-  let circuit: ProofTester;
+  let circuit: ProofTester<['in']>;
   before(async () => {
     const circuitName = 'multiplier_' + N;
     circuit = new ProofTester(circuitName);
     fullProof = await circuit.prove({
-      in: Array<number>(N)
-        .fill(0)
-        .map(() => Math.floor(Math.random() * 100 * N)),
+      in: Array.from({length: N}, () => Math.floor(Math.random() * 100 * N)),
     });
   });
 
@@ -243,7 +241,7 @@ describe('multiplier (proofs)', () => {
   });
 
   it('should NOT verify a wrong multiplication', async () => {
-    // just give a prime number as the public signal, assuming none of the inputs are 1
+    // just give a prime number as the output, assuming none of the inputs are 1
     await circuit.expectVerificationFail(fullProof.proof, ['13']);
   });
 });
@@ -266,7 +264,9 @@ circomkit
 │   ├── main # auto-generated main components
 │   │   │── sudoku_9x9.circom # e.g. a 9x9 sudoku board
 │   │   └── ...
-│   │── sudoku.circom # a generic sudoku template
+│   ├── test # auto-generated test components
+│   │   └── ...
+│   │── sudoku.circom # a generic sudoku circuit template
 │   └── ...
 ├── inputs # where you write JSON inputs per circuit
 │   ├── sudoku_9x9 # each main template has its own folder
@@ -282,10 +282,10 @@ circomkit
     │   │   │── generate_witness.js
     │   │   │── witness_calculator.js
     │   │   └── sudoku_9x9.wasm
-    │   │── example-input # artifacts of witness & proof generation
-    │   │   │── proof.json # proof object
+    │   │── example-input # artifacts of an input
+    │   │   │── proof.json # generated proof object
     │   │   │── public.json # public signals
-    │   │   └── witness.wtns
+    │   │   └── witness.wtns # witness file
     │   │── ... # folders for other inputs
     │   │── sudoku_9x9.r1cs
     │   │── sudoku_9x9.sym
@@ -303,4 +303,6 @@ We use [Google TypeScript Style Guide](https://google.github.io/styleguide/tsgui
 yarn format
 # lint everything
 yarn lint
+# do both at once
+yarn style
 ```

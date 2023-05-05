@@ -78,9 +78,10 @@ while getopts "f:c:n:i:p:d:" opt; do
   esac
 done
 
-# parse circuit & input paths if required
+# parse circuit & input paths via basename
 # TODO, maybe not needed
-# CIRCUIT=$(basename $CIRCUIT .circom)
+CIRCUIT=$(basename $CIRCUIT .circom)
+INPUT=$(basename $INPUT .json)
 
 case $FUNC in
   clean) 
@@ -128,7 +129,7 @@ case $FUNC in
     echo "    compile      Compile the circuit"
     echo "    instantiate  Instantiate the main component"
     echo "    type         Generate types for TypeScript"
-    echo "    setup         Phase-2 setup for the circuit"
+    echo "    setup        Phase-2 setup for the circuit"
     echo "    witness      Generate witness from an input"
     echo "    prove        Prove an input"
     echo "    verify       Verify a proof & public signals"

@@ -8,14 +8,14 @@ describe(CIRCUIT_FILE, () => {
 
   before(async () => {
     const circuitName = `${CIRCUIT_FILE}_${N}`;
-    instantiate(circuitName, 'test', {
+    instantiate(circuitName, {
       file: CIRCUIT_FILE,
       template: 'Fibonacci',
       publicInputs: [],
       templateParams: [N],
     });
-    circuit = await createWasmTester(circuitName, 'test');
-    await circuit.printConstraintCount();
+    circuit = await createWasmTester(circuitName);
+    await circuit.checkConstraintCount();
   });
 
   it('should compute correctly', async () => {
@@ -37,14 +37,14 @@ describe.skip(CIRCUIT_FILE + ' recursive', () => {
 
   before(async () => {
     const circuitName = `${CIRCUIT_FILE}_${N}_recursive`;
-    instantiate(circuitName, 'test', {
+    instantiate(circuitName, {
       file: CIRCUIT_FILE,
       template: 'FibonacciRecursive',
       publicInputs: [],
       templateParams: [N],
     });
-    circuit = await createWasmTester(circuitName, 'test');
-    await circuit.printConstraintCount();
+    circuit = await createWasmTester(circuitName);
+    await circuit.checkConstraintCount();
   });
 
   it('should compute correctly', async () => {

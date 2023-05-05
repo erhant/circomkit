@@ -19,14 +19,14 @@ describe('float_add 32-bit', () => {
   let circuit: WasmTester<['e', 'm'], ['e_out', 'm_out']>;
 
   before(async () => {
-    instantiate('fp32', 'test', {
+    instantiate('fp32', {
       file: 'float_add',
       template: 'FloatAdd',
       publicInputs: [],
       templateParams: [k, p],
     });
-    circuit = await createWasmTester('fp32', 'test');
-    await circuit.printConstraintCount(401);
+    circuit = await createWasmTester('fp32');
+    await circuit.checkConstraintCount(401);
   });
 
   it('case I test', async () => {
@@ -96,7 +96,7 @@ describe('float_add 32-bit', () => {
     });
   });
 
-  it('should fail - mantissa >= 2^(p+1)', async () => {
+  it('should fail - mantissa ≥ 2^(p+1)', async () => {
     await circuit.expectFailedAssert({
       e: ['0', '43'],
       m: ['0', '16777216'],
@@ -110,7 +110,7 @@ describe('float_add 32-bit', () => {
     });
   });
 
-  it('should fail - exponent >= 2^k', async () => {
+  it('should fail - exponent ≥ 2^k', async () => {
     await circuit.expectFailedAssert({
       e: ['0', '256'],
       m: ['0', '10566265'],
@@ -124,14 +124,14 @@ describe('float_add 64-bit', () => {
   let circuit: WasmTester<['e', 'm'], ['e_out', 'm_out']>;
 
   before(async () => {
-    instantiate('fp64', 'test', {
+    instantiate('fp64', {
       file: 'float_add',
       template: 'FloatAdd',
       publicInputs: [],
       templateParams: [k, p],
     });
-    circuit = await createWasmTester('fp64', 'test');
-    await circuit.printConstraintCount(819);
+    circuit = await createWasmTester('fp64');
+    await circuit.checkConstraintCount(819);
   });
 
   it('case I test', async () => {
@@ -216,14 +216,18 @@ describe('float_add utilities', () => {
 
     before(async () => {
       const circuitName = 'cbl_' + b;
-      instantiate(circuitName, 'test/float_add', {
-        file: 'float_add',
-        template: 'CheckBitLength',
-        publicInputs: [],
-        templateParams: [b],
-      });
+      instantiate(
+        circuitName,
+        {
+          file: 'float_add',
+          template: 'CheckBitLength',
+          publicInputs: [],
+          templateParams: [b],
+        },
+        'test/float_add'
+      );
       circuit = await createWasmTester(circuitName, 'test/float_add');
-      await circuit.printConstraintCount(expectedConstraints.checkBitLength(b));
+      await circuit.checkConstraintCount(expectedConstraints.checkBitLength(b));
     });
 
     it('should give 1 for in <= b', async () => {
@@ -251,14 +255,18 @@ describe('float_add utilities', () => {
 
     before(async () => {
       const circuitName = 'shl_' + shift_bound;
-      instantiate(circuitName, 'test/float_add', {
-        file: 'float_add',
-        template: 'LeftShift',
-        publicInputs: [],
-        templateParams: [shift_bound],
-      });
+      instantiate(
+        circuitName,
+        {
+          file: 'float_add',
+          template: 'LeftShift',
+          publicInputs: [],
+          templateParams: [shift_bound],
+        },
+        'test/float_add'
+      );
       circuit = await createWasmTester(circuitName, 'test/float_add');
-      await circuit.printConstraintCount(expectedConstraints.leftShift(shift_bound));
+      await circuit.checkConstraintCount(expectedConstraints.leftShift(shift_bound));
     });
 
     it("should pass test 1 - don't skip checks", async () => {
@@ -291,7 +299,7 @@ describe('float_add utilities', () => {
       });
     });
 
-    it('should pass when skip_checks = 1 and shift is >= shift_bound', async () => {
+    it('should pass when skip_checks = 1 and shift is ≥ shift_bound', async () => {
       await circuit.expectCorrectAssert({
         x: '65',
         shift: '25',
@@ -307,14 +315,18 @@ describe('float_add utilities', () => {
 
     before(async () => {
       const circuitName = 'shr_' + b;
-      instantiate(circuitName, 'test/float_add', {
-        file: 'float_add',
-        template: 'RightShift',
-        publicInputs: [],
-        templateParams: [b, shift],
-      });
+      instantiate(
+        circuitName,
+        {
+          file: 'float_add',
+          template: 'RightShift',
+          publicInputs: [],
+          templateParams: [b, shift],
+        },
+        'test/float_add'
+      );
       circuit = await createWasmTester(circuitName, 'test/float_add');
-      await circuit.printConstraintCount(b);
+      await circuit.checkConstraintCount(b);
     });
 
     it('should pass - small bitwidth', async () => {
@@ -341,14 +353,18 @@ describe('float_add utilities', () => {
 
     before(async () => {
       const circuitName = 'normalize_' + k + p + P;
-      instantiate(circuitName, 'test/float_add', {
-        file: 'float_add',
-        template: 'Normalize',
-        publicInputs: [],
-        templateParams: [k, p, P],
-      });
+      instantiate(
+        circuitName,
+        {
+          file: 'float_add',
+          template: 'Normalize',
+          publicInputs: [],
+          templateParams: [k, p, P],
+        },
+        'test/float_add'
+      );
       circuit = await createWasmTester(circuitName, 'test/float_add');
-      await circuit.printConstraintCount(expectedConstraints.normalize(P));
+      await circuit.checkConstraintCount(expectedConstraints.normalize(P));
     });
 
     it("should pass - don't skip checks", async () => {
@@ -396,14 +412,18 @@ describe('float_add utilities', () => {
 
     before(async () => {
       const circuitName = 'msnzb_' + b;
-      instantiate(circuitName, 'test/float_add', {
-        file: 'float_add',
-        template: 'MSNZB',
-        publicInputs: [],
-        templateParams: [b],
-      });
+      instantiate(
+        circuitName,
+        {
+          file: 'float_add',
+          template: 'MSNZB',
+          publicInputs: [],
+          templateParams: [b],
+        },
+        'test/float_add'
+      );
       circuit = await createWasmTester(circuitName, 'test/float_add');
-      await circuit.printConstraintCount(expectedConstraints.msnzb(b));
+      await circuit.checkConstraintCount(expectedConstraints.msnzb(b));
     });
 
     it("should pass test 1 - don't skip checks", async () => {

@@ -44,20 +44,21 @@ const INPUTS: {[N in BoardSizes]: any} = {
   },
 };
 
-([9, 4] as BoardSizes[]).map(N =>
+([4, 9] as BoardSizes[]).map(N =>
   describe(`sudoku (${N} by ${N})`, () => {
     const INPUT = INPUTS[N];
     let circuit: WasmTester<['solution', 'puzzle'], []>;
 
     before(async () => {
       const circuitName = `sudoku_${N}x${N}`;
-      instantiate(circuitName, 'test', {
+      instantiate(circuitName, {
         file: 'sudoku',
         template: 'Sudoku',
         publicInputs: ['puzzle'],
         templateParams: [Math.sqrt(N)],
       });
       circuit = await createWasmTester(circuitName);
+      await circuit.checkConstraintCount();
     });
 
     it('should compute correctly', async () => {
@@ -104,22 +105,26 @@ describe('sudoku utilities', () => {
 
     before(async () => {
       const circuitName = 'abl_' + b;
-      instantiate(circuitName, 'test/sudoku', {
-        file: 'sudoku',
-        template: 'AssertBitLength',
-        publicInputs: [],
-        templateParams: [b],
-      });
+      instantiate(
+        circuitName,
+        {
+          file: 'sudoku',
+          template: 'AssertBitLength',
+          publicInputs: [],
+          templateParams: [b],
+        },
+        'test/sudoku'
+      );
       circuit = await createWasmTester(circuitName, 'test/sudoku');
     });
 
-    it('should pass for input < 2 ** b', async () => {
+    it('should pass for input < 2^b', async () => {
       await circuit.expectCorrectAssert({
         in: 2 ** b - 1,
       });
     });
 
-    it('should fail for input >= 2 ** b ', async () => {
+    it('should fail for input ≥ 2^b ', async () => {
       await circuit.expectFailedAssert({
         in: 2 ** b,
       });
@@ -136,12 +141,16 @@ describe('sudoku utilities', () => {
 
     before(async () => {
       const circuitName = 'distinct_' + n;
-      instantiate(circuitName, 'test/sudoku', {
-        file: 'sudoku',
-        template: 'Distinct',
-        publicInputs: [],
-        templateParams: [n],
-      });
+      instantiate(
+        circuitName,
+        {
+          file: 'sudoku',
+          template: 'Distinct',
+          publicInputs: [],
+          templateParams: [n],
+        },
+        'test/sudoku'
+      );
       circuit = await createWasmTester(circuitName, 'test/sudoku');
     });
 
@@ -172,12 +181,16 @@ describe('sudoku utilities', () => {
 
     before(async () => {
       const circuitName = 'inRange_' + MIN + '_' + MAX;
-      instantiate(circuitName, 'test/sudoku', {
-        file: 'sudoku',
-        template: 'InRange',
-        publicInputs: [],
-        templateParams: [MIN, MAX],
-      });
+      instantiate(
+        circuitName,
+        {
+          file: 'sudoku',
+          template: 'InRange',
+          publicInputs: [],
+          templateParams: [MIN, MAX],
+        },
+        'test/sudoku'
+      );
       circuit = await createWasmTester(circuitName, 'test/sudoku');
     });
 

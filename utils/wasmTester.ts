@@ -97,27 +97,23 @@ export class WasmTester<IN extends readonly string[] = [], OUT extends readonly 
    * @param circuit WasmTester circuit
    * @param expected expected number of constraints
    */
-  async printConstraintCount(expected?: number) {
+  async checkConstraintCount(expected?: number) {
     // load constraints
     if (this.constraints === undefined) {
       await this.loadConstraints();
     }
     const numConstraints = this.constraints!.length;
+    console.log(`#constraints: ${numConstraints}`);
 
-    // if expecting a specific number, check if you match that
-    let expectionMessage = '';
     if (expected !== undefined) {
-      let alertType = '';
       if (numConstraints < expected) {
-        alertType = '🔴'; // need more
+        console.log(`\x1b[0;31mx expectation ${expected}\x1b[0m`);
       } else if (numConstraints > expected) {
-        alertType = '🟡'; // too many
+        console.log(`\x1b[0;33m! expectation ${expected}\x1b[0m`);
       } else {
-        alertType = '🟢'; // on point
+        console.log(`\x1b[0;32m✔\x1b[2;37m expectation ${expected}\x1b[0m`);
       }
-      expectionMessage = ` (${alertType} expected ${expected})`;
     }
-    console.log(`#constraints: ${numConstraints}` + expectionMessage);
   }
 
   /**
@@ -148,12 +144,12 @@ export class WasmTester<IN extends readonly string[] = [], OUT extends readonly 
 /**
  * Compiles and reutrns a circuit tester class instance.
  * @param circuit name of circuit
- * @param dir directory to read the circuit from, defaults to `main`
+ * @param dir directory to read the circuit from, defaults to `test`
  * @returns a `WasmTester` instance
  */
 export async function createWasmTester<IN extends string[] = [], OUT extends string[] = []>(
   circuitName: string,
-  dir = 'main'
+  dir = 'test'
 ): Promise<WasmTester<IN, OUT>> {
   const circomWasmTester: CircomWasmTester = await wasm_tester(`./circuits/${dir}/${circuitName}.circom`, {
     include: 'node_modules', // will link circomlib circuits

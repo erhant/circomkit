@@ -15,7 +15,6 @@ function log2(n) {
 // Assert that two elements are not equal
 template NonEqual() {
   signal input in[2];
-  signal output out;
   signal inv;
 
   // we check if (in[0] - in[1] != 0)

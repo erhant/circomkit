@@ -4,12 +4,12 @@ import config from '../circuit.config';
 import {CircuitConfig} from '../types/config';
 
 /**
- * Programmatically generate the `main` component
+ * Programmatically generate the `main` component of a circuit
  * @param name name of the circuit to be generated
- * @param directory name of the directory under circuits to be created. Can be given sub-folders like `test/myCircuit/foobar`.
  * @param circuitConfig circuit configurations, if `undefined` then `circuit.config.ts` will be used.
+ * @param directory name of the directory under circuits to be created. Can be given sub-folders like `test/myCircuit/foobar`. Defaults to `test`
  */
-export function instantiate(name: string, directory: string, circuitConfig?: CircuitConfig) {
+export function instantiate(name: string, circuitConfig?: CircuitConfig, directory = 'test') {
   // get config from circuit.config.ts if none are given
   if (circuitConfig === undefined) {
     if (!(name in config)) {
@@ -44,5 +44,5 @@ export function instantiate(name: string, directory: string, circuitConfig?: Cir
 if (require.main === module) {
   const name = process.argv[2];
   const directory = process.argv[3];
-  instantiate(name, directory);
+  instantiate(name, undefined, directory);
 }

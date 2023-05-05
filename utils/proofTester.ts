@@ -10,13 +10,11 @@ const PROOF_SYSTEMS = ['groth16', 'plonk', 'fflonk'] as const;
  * Assumes that prover key and verifier key have been computed.
  */
 export class ProofTester<IN extends string[] = []> {
-  public readonly protocol: (typeof PROOF_SYSTEMS)[number];
+  public readonly protocol: ProofSystem;
   private readonly wasmPath: string;
   private readonly proverKeyPath: string;
   private readonly verificationKeyPath: string;
-  private readonly verificationKey: object & {
-    protocol: ProofSystem;
-  };
+  private readonly verificationKey: any;
 
   /**
    * Sets the paths & loads the verification key. The underlying proof system is checked by looking

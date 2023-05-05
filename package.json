@@ -17,14 +17,15 @@
     "contract": "./scripts/cli.sh -f contract -c",
     "calldata": "./scripts/cli.sh -f calldata -c",
     "debug": "./scripts/cli.sh -f debug -c",
-    "ptau": "./scripts/cli.sh -f ptau -c",
+    "setup": "./scripts/cli.sh -f setup -c",
     "keygen": "./scripts/cli.sh -f keygen -c",
     "witness": "./scripts/cli.sh -f witness -c",
     "prove": "./scripts/cli.sh -f prove -c",
     "verify": "./scripts/cli.sh -f verify -c",
     "usage": "./scripts/cli.sh -f help",
     "format": "npx prettier --check ./**/*.ts",
-    "lint": "npx gts lint"
+    "lint": "npx gts lint",
+    "style": "yarn format && yarn lint"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
