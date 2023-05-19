@@ -1,4 +1,4 @@
-import {WitnessType, CircuitSignals} from './circuit';
+import {WitnessType, CircuitSignals, SymbolsType} from './circuit';
 
 /**
  * A simple type-wrapper for `circom_tester` WASM tester class.
@@ -13,6 +13,6 @@ export type CircomWasmTester = {
   loadConstraints: () => Promise<void>;
   constraints: any[] | undefined;
   loadSymbols: () => Promise<void>;
-  symbols: object | undefined;
+  symbols: SymbolsType | undefined;
   getDecoratedOutput: (witness: WitnessType) => Promise<string>;
 };

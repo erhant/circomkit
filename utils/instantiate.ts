@@ -9,7 +9,7 @@ import {CircuitConfig} from '../types/config';
  * @param circuitConfig circuit configurations, if `undefined` then `circuit.config.ts` will be used.
  * @param directory name of the directory under circuits to be created. Can be given sub-folders like `test/myCircuit/foobar`. Defaults to `test`
  */
-export function instantiate(name: string, circuitConfig?: CircuitConfig, directory = 'test') {
+export default function instantiate(name: string, circuitConfig?: CircuitConfig, directory = 'test') {
   // get config from circuit.config.ts if none are given
   if (circuitConfig === undefined) {
     if (!(name in config)) {

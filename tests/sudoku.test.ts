@@ -1,5 +1,5 @@
-import {instantiate} from '../utils/instantiate';
-import {WasmTester, createWasmTester} from '../utils/wasmTester';
+import instantiate from '../utils/instantiate';
+import WasmTester from '../utils/wasmTester';
 
 type BoardSizes = 4 | 9;
 
@@ -47,7 +47,7 @@ const INPUTS: {[N in BoardSizes]: any} = {
 ([4, 9] as BoardSizes[]).map(N =>
   describe(`sudoku (${N} by ${N})`, () => {
     const INPUT = INPUTS[N];
-    let circuit: WasmTester<['solution', 'puzzle'], []>;
+    let circuit: WasmTester<['solution', 'puzzle']>;
 
     before(async () => {
       const circuitName = `sudoku_${N}x${N}`;
@@ -57,7 +57,7 @@ const INPUTS: {[N in BoardSizes]: any} = {
         publicInputs: ['puzzle'],
         templateParams: [Math.sqrt(N)],
       });
-      circuit = await createWasmTester(circuitName);
+      circuit = await WasmTester.new(circuitName);
       await circuit.checkConstraintCount();
     });
 
@@ -115,7 +115,7 @@ describe('sudoku utilities', () => {
         },
         'test/sudoku'
       );
-      circuit = await createWasmTester(circuitName, 'test/sudoku');
+      circuit = await WasmTester.new(circuitName, 'test/sudoku');
     });
 
     it('should pass for input < 2^b', async () => {
@@ -151,7 +151,7 @@ describe('sudoku utilities', () => {
         },
         'test/sudoku'
       );
-      circuit = await createWasmTester(circuitName, 'test/sudoku');
+      circuit = await WasmTester.new(circuitName, 'test/sudoku');
     });
 
     it('should pass if all inputs are unique', async () => {
@@ -191,7 +191,7 @@ describe('sudoku utilities', () => {
         },
         'test/sudoku'
       );
-      circuit = await createWasmTester(circuitName, 'test/sudoku');
+      circuit = await WasmTester.new(circuitName, 'test/sudoku');
     });
 
     it('should pass for in range', async () => {

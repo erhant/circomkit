@@ -1,12 +1,12 @@
 const wasm_tester = require('circom_tester').wasm;
-import {WitnessType, CircuitSignals} from '../types/circuit';
+import {WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/circuit';
 import {CircomWasmTester} from '../types/wasmTester';
 import {assert, expect} from 'chai';
 
 /**
  A utility class to test your circuits. Use `expectFailedAssert` and `expectCorrectAssert` to test out evaluations
  */
-export class WasmTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
+export default class WasmTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
   /**
    * The underlying `circom_tester` object
    */
@@ -15,7 +15,7 @@ export class WasmTester<IN extends readonly string[] = [], OUT extends readonly 
   /**
    * A dictionary of symbols
    */
-  symbols: object | undefined;
+  symbols: SymbolsType | undefined;
 
   /**
    * List of constraints, must call `loadConstraints` before accessing this key
@@ -63,10 +63,13 @@ export class WasmTester<IN extends readonly string[] = [], OUT extends readonly 
   /**
    * Loads the symbols in a dictionary at `this.symbols`
    * Symbols are stored under the .sym file
+   *
    * Each line has 4 comma-separated values:
-   * 0: label index
-   * 1: variable index
-   * 2: component index
+   *
+   * 1.  symbol name
+   * 2.  label index
+   * 3.  variable index
+   * 4.  component index
    */
   async loadSymbols(): Promise<void> {
     await this.circomWasmTester.loadSymbols();
@@ -103,15 +106,15 @@ export class WasmTester<IN extends readonly string[] = [], OUT extends readonly 
       await this.loadConstraints();
     }
     const numConstraints = this.constraints!.length;
-    console.log(`#constraints: ${numConstraints}`);
+    console.log(`# constraints: ${numConstraints}`);
 
     if (expected !== undefined) {
       if (numConstraints < expected) {
-        console.log(`\x1b[0;31mx expectation ${expected}\x1b[0m`);
+        console.log(`\x1b[0;31mx expectation: ${expected}\x1b[0m`);
       } else if (numConstraints > expected) {
-        console.log(`\x1b[0;33m! expectation ${expected}\x1b[0m`);
+        console.log(`\x1b[0;33m! expectation: ${expected}\x1b[0m`);
       } else {
-        console.log(`\x1b[0;32m✔\x1b[2;37m expectation ${expected}\x1b[0m`);
+        console.log(`\x1b[0;32m✔\x1b[2;37m expectation: ${expected}\x1b[0m`);
       }
     }
   }
@@ -139,20 +142,94 @@ export class WasmTester<IN extends readonly string[] = [], OUT extends readonly 
       await this.assertOut(witness, output);
     }
   }
-}
 
-/**
- * Compiles and reutrns a circuit tester class instance.
- * @param circuit name of circuit
- * @param dir directory to read the circuit from, defaults to `test`
- * @returns a `WasmTester` instance
- */
-export async function createWasmTester<IN extends string[] = [], OUT extends string[] = []>(
-  circuitName: string,
-  dir = 'test'
-): Promise<WasmTester<IN, OUT>> {
-  const circomWasmTester: CircomWasmTester = await wasm_tester(`./circuits/${dir}/${circuitName}.circom`, {
-    include: 'node_modules', // will link circomlib circuits
-  });
-  return new WasmTester<IN, OUT>(circomWasmTester);
+  /**
+   * Computes the output.
+   *
+   * This is an **expensive operation** in the following sense:
+   *
+   * 1. the witness is calculated via `calculateWitness`
+   * 2. symbols are loaded via `loadSymbols`, which is a bit expensive in it's own sense
+   * 3. for the requested output signals, the symbols are parsed and the required symbols are retrieved
+   * 4. for each signal & it's required symbols, corresponding witness values are retrieved from witness
+   * 5. the results are aggregated in a final object, of the same type of circuit output signals
+   *
+   * @param input input signals
+   * @param outputSignals an array of signal names
+   * @returns output signals
+   */
+  async compute(input: CircuitSignals<IN>, outputSignals: OUT): Promise<Partial<CircuitSignals<typeof outputSignals>>> {
+    const witness = await this.calculateWitness(input, true);
+
+    // get symbols of main component
+    await this.loadSymbols();
+    const symbolNames = Object.keys(this.symbols!).filter(signal => !signal.includes('.', 5)); // non-main signals have an additional `.` in them after `main.symbol`
+
+    // for each out signal, process the respective symbol
+    const entries: [OUT[number], SignalValueType][] = [];
+
+    for (const outSignal of outputSignals) {
+      // get the symbol values from symbol names
+      const symbols = symbolNames.filter(s => s.startsWith(outSignal, 5));
+
+      /*
+      we can assume that a symbol with this name appears only once in `main`, and that the depth is same for
+      all occurences of this symbol, given the type system used in Circom. So, we can just count the number
+      of `[`s in any symbol of this signal to find the number of dimensions of this signal.
+      we particularly choose the last symbol in the array, as that holds the maximum index of each dimension of this array.
+      */
+      const splits = symbols.at(-1)!.split('[');
+
+      // since we chose the last symbol, we have something like `main.signal[dim1][dim2]...[dimN]` which we can parse
+      const dims = splits.slice(1).map(dim => parseInt(dim.slice(0, -1)) + 1); // +1 is needed because the final value is 0-indexed
+
+      // since signal names are consequent, we only need to know the witness index of the first symbol
+      let idx = this.symbols![symbols[0]].varIdx;
+
+      if (dims.length === 0) {
+        // easy case, just return the witness of this symbol
+        entries.push([outSignal, witness[idx]]);
+      } else {
+        /*
+        at this point, we have an array of signals like `main.signal[0..dim1][0..dim2]..[0..dimN]` and we must construct
+        the necessary multi-dimensional array out of it.
+        */
+        // eslint-disable-next-line no-inner-declarations
+        function processDepth(d: number): SignalValueType {
+          const acc: SignalValueType = [];
+          if (d === dims.length - 1) {
+            // final depth, count witnesses
+            for (let i = 0; i < dims[d]; i++) {
+              acc.push(witness[idx++]);
+            }
+          } else {
+            // not final depth, recurse to next
+            for (let i = 0; i < dims[d]; i++) {
+              acc.push(processDepth(d + 1));
+            }
+          }
+          return acc;
+        }
+        entries.push([outSignal, processDepth(0)]);
+      }
+    }
+
+    return Object.fromEntries(entries) as CircuitSignals<OUT>;
+  }
+
+  /**
+   * Compiles and reutrns a circuit tester class instance.
+   * @param circuit name of circuit
+   * @param dir directory to read the circuit from, defaults to `test`
+   * @returns a `WasmTester` instance
+   */
+  static async new<IN extends string[] = [], OUT extends string[] = []>(
+    circuitName: string,
+    dir = 'test'
+  ): Promise<WasmTester<IN, OUT>> {
+    const circomWasmTester: CircomWasmTester = await wasm_tester(`./circuits/${dir}/${circuitName}.circom`, {
+      include: 'node_modules', // will link circomlib circuits
+    });
+    return new WasmTester<IN, OUT>(circomWasmTester);
+  }
 }

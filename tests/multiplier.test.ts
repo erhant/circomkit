@@ -1,7 +1,7 @@
-import {WasmTester, createWasmTester} from '../utils/wasmTester';
-import {ProofTester} from '../utils/proofTester';
+import WasmTester from '../utils/wasmTester';
+import ProofTester from '../utils/proofTester';
 import type {FullProof} from '../types/circuit';
-import {instantiate} from '../utils/instantiate';
+import instantiate from '../utils/instantiate';
 
 describe('multiplier', () => {
   // templates parameters!
@@ -18,7 +18,7 @@ describe('multiplier', () => {
       publicInputs: [],
       templateParams: [N],
     });
-    circuit = await createWasmTester(circuitName);
+    circuit = await WasmTester.new(circuitName);
 
     // constraint count checks!
     await circuit.checkConstraintCount(N - 1);
@@ -53,7 +53,7 @@ describe('multiplier utilities', () => {
         },
         'test/multiplier'
       );
-      circuit = await createWasmTester(circuitName, 'test/multiplier');
+      circuit = await WasmTester.new(circuitName, 'test/multiplier');
     });
 
     it('should multiply correctly', async () => {
@@ -83,7 +83,7 @@ describe('multiplier proofs', () => {
     await circuit.expectVerificationPass(fullProof.proof, fullProof.publicSignals);
   });
 
-  it('should NOT verify a wrong multiplication', async () => {
+  it('should NOT verify', async () => {
     // just give a prime number as the output, assuming none of the inputs are 1
     await circuit.expectVerificationFail(fullProof.proof, ['13']);
   });
