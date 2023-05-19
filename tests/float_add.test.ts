@@ -37,6 +37,16 @@ describe('float_add 32-bit', () => {
       },
       {e_out: '43', m_out: '11672136'}
     );
+
+    console.log(
+      await circuit.compute(
+        {
+          e: ['43', '5'],
+          m: ['11672136', '10566265'],
+        },
+        ['e_out', 'm_out']
+      )
+    );
   });
 
   it('case II test 1', async () => {
@@ -230,7 +240,7 @@ describe('float_add utilities', () => {
       await circuit.checkConstraintCount(expectedConstraints.checkBitLength(b));
     });
 
-    it('should give 1 for in <= b', async () => {
+    it('should give 1 for in ≤ b', async () => {
       await circuit.expectCorrectAssert(
         {
           in: '4903265',

@@ -33,9 +33,9 @@
 - [x] **Simple CLI**: A very easy to use CLI is provided as a wrapper around SnarkJS commands, and they are all provided as `package.json` scripts!
 - [x] **Easily Configurable**: Just change the configured proof-system & elliptic curve at [`.cli.env`](./.cli.env) and you are good to go.
 - [x] **Witness Testing**: You can test computations & assertions for every template in a circuit, with minimal code-repetition.
-- [ ] **Easy Outputs**: Parsing the output from the witness is no more a headache.
 - [x] **Proof Testing**: With prover & verification keys and the WASM circuit, you can test proof generation & verification.
-- [x] **Type-safe**: Witness & proof testers, as well as circuit signal inputs & outputs are type-safe.
+- [x] **Simple Outputs**: Easily see the output signals of your circuit, without generating a proof.
+- [x] **Type-safe**: Witness & proof testers, as well as circuit signal inputs & outputs are all type-safe via generics.
 - [x] **Solidity Exports**: Export a verifier contract in Solidity, or export a calldata for your proofs & public signals.
 
 ## Usage
@@ -184,6 +184,22 @@ With the circuit object, we can do the following:
 - `circuit.expectCorrectAssert(input)` to test whether the circuit assertions pass for some given input
 - `circuit.expectFailedAssert(input)` to test whether the circuit assertions pass for some given input
 
+#### Circuit outputs
+
+What if we would just like to see what the output is, instead of comparing it to some witness? Well, that would be a trouble because we would have to parse the witness array (which is huge for some circuits) with respect to which signals the output signals correspond to. Thankfully, Circomkit has a function for that:
+
+```ts
+const outputSignals = ['foo', 'bar'];
+const output = await circuit.compute(INPUT, outputSignals);
+console.log(output);
+/* {
+  foo: [[1n, 2n], [3n, 4n]]
+  bar: 48n
+} */
+```
+
+Note that this operation requires parsing the symbols file (`.sym`) and reading the witness array, which may be costly for large circuits. Most of the time, you won't need this for testing; instead, you will likely use it to see what the circuit actually does for debugging.
+
 #### Multiple templates
 
 You will often have multiple templates in your circuit code, and you might want to test them in the same test file of your main circuit too. Well, you can!
@@ -241,7 +257,7 @@ describe('multiplier proofs', () => {
     await circuit.expectVerificationPass(fullProof.proof, fullProof.publicSignals);
   });
 
-  it('should NOT verify a wrong multiplication', async () => {
+  it('should NOT verify', async () => {
     // just give a prime number as the output, assuming none of the inputs are 1
     await circuit.expectVerificationFail(fullProof.proof, ['13']);
   });

@@ -106,15 +106,15 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
       await this.loadConstraints();
     }
     const numConstraints = this.constraints!.length;
-    console.log(`#constraints: ${numConstraints}`);
+    console.log(`# constraints: ${numConstraints}`);
 
     if (expected !== undefined) {
       if (numConstraints < expected) {
-        console.log(`\x1b[0;31mx expectation ${expected}\x1b[0m`);
+        console.log(`\x1b[0;31mx expectation: ${expected}\x1b[0m`);
       } else if (numConstraints > expected) {
-        console.log(`\x1b[0;33m! expectation ${expected}\x1b[0m`);
+        console.log(`\x1b[0;33m! expectation: ${expected}\x1b[0m`);
       } else {
-        console.log(`\x1b[0;32m✔\x1b[2;37m expectation ${expected}\x1b[0m`);
+        console.log(`\x1b[0;32m✔\x1b[2;37m expectation: ${expected}\x1b[0m`);
       }
     }
   }
@@ -144,13 +144,21 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
   }
 
   /**
+   * Computes the output.
+   *
+   * This is an **expensive operation** in the following sense:
+   *
+   * 1. the witness is calculated via `calculateWitness`
+   * 2. symbols are loaded via `loadSymbols`, which is a bit expensive in it's own sense
+   * 3. for the requested output signals, the symbols are parsed and the required symbols are retrieved
+   * 4. for each signal & it's required symbols, corresponding witness values are retrieved from witness
+   * 5. the results are aggregated in a final object, of the same type of circuit output signals
+   *
    * @param input input signals
    * @param outputSignals an array of signal names
+   * @returns output signals
    */
-  async parseOutput(
-    input: CircuitSignals<IN>,
-    ...outputSignals: OUT[number][]
-  ): Promise<Partial<CircuitSignals<typeof outputSignals>>> {
+  async compute(input: CircuitSignals<IN>, outputSignals: OUT): Promise<Partial<CircuitSignals<typeof outputSignals>>> {
     const witness = await this.calculateWitness(input, true);
 
     // get symbols of main component
@@ -159,34 +167,54 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
 
     // for each out signal, process the respective symbol
     const entries: [OUT[number], SignalValueType][] = [];
-    console.log('SYMBOL NAMES:', this.symbols);
 
     for (const outSignal of outputSignals) {
       // get the symbol values from symbol names
       const symbols = symbolNames.filter(s => s.startsWith(outSignal, 5));
-      console.log('SYMBOLS:', symbols);
 
-      // we can assume that a symbol with this name appears only once in `main`, and that the depth is same for
-      // all occurences of this symbol, given the type system used in Circom. So, we can just count the number
-      // of `[`s in the first symbol of this signal to find the number of dimensions of this signal.
+      /*
+      we can assume that a symbol with this name appears only once in `main`, and that the depth is same for
+      all occurences of this symbol, given the type system used in Circom. So, we can just count the number
+      of `[`s in any symbol of this signal to find the number of dimensions of this signal.
+      we particularly choose the last symbol in the array, as that holds the maximum index of each dimension of this array.
+      */
       const splits = symbols.at(-1)!.split('[');
-      const depth = splits.length - 1;
-      const startIdx = this.symbols![symbols[0]].varIdx;
 
-      if (depth === 0) {
+      // since we chose the last symbol, we have something like `main.signal[dim1][dim2]...[dimN]` which we can parse
+      const dims = splits.slice(1).map(dim => parseInt(dim.slice(0, -1)) + 1); // +1 is needed because the final value is 0-indexed
+
+      // since signal names are consequent, we only need to know the witness index of the first symbol
+      let idx = this.symbols![symbols[0]].varIdx;
+
+      if (dims.length === 0) {
         // easy case, just return the witness of this symbol
-        entries.push([outSignal, witness[startIdx]]);
+        entries.push([outSignal, witness[idx]]);
       } else {
-        const dims = splits.slice(1).map(dim => parseInt(dim.slice(0, -1)));
-
-        // TODO
-
-        entries.push([outSignal, 0]); // TODO
+        /*
+        at this point, we have an array of signals like `main.signal[0..dim1][0..dim2]..[0..dimN]` and we must construct
+        the necessary multi-dimensional array out of it.
+        */
+        // eslint-disable-next-line no-inner-declarations
+        function processDepth(d: number): SignalValueType {
+          const acc: SignalValueType = [];
+          if (d === dims.length - 1) {
+            // final depth, count witnesses
+            for (let i = 0; i < dims[d]; i++) {
+              acc.push(witness[idx++]);
+            }
+          } else {
+            // not final depth, recurse to next
+            for (let i = 0; i < dims[d]; i++) {
+              acc.push(processDepth(d + 1));
+            }
+          }
+          return acc;
+        }
+        entries.push([outSignal, processDepth(0)]);
       }
     }
 
-    // TODO: find better typing
-    return Object.fromEntries(entries) as CircuitSignals<typeof outputSignals>;
+    return Object.fromEntries(entries) as CircuitSignals<OUT>;
   }
 
   /**

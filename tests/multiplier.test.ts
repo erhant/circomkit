@@ -22,11 +22,6 @@ describe('multiplier', () => {
 
     // constraint count checks!
     await circuit.checkConstraintCount(N - 1);
-
-    // TODO: output test
-    // @ts-ignore
-    const output = await circuit.parseOutput({in: [2, 3, 8]}, 'in', 'out');
-    console.log('Output:', output);
   });
 
   it('should multiply correctly', async () => {
@@ -88,7 +83,7 @@ describe('multiplier proofs', () => {
     await circuit.expectVerificationPass(fullProof.proof, fullProof.publicSignals);
   });
 
-  it('should NOT verify a wrong multiplication', async () => {
+  it('should NOT verify', async () => {
     // just give a prime number as the output, assuming none of the inputs are 1
     await circuit.expectVerificationFail(fullProof.proof, ['13']);
   });
