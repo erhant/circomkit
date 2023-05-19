@@ -1,7 +1,7 @@
-import {WasmTester, createWasmTester} from '../utils/wasmTester';
-import {ProofTester} from '../utils/proofTester';
+import WasmTester from '../utils/wasmTester';
+import ProofTester from '../utils/proofTester';
 import type {FullProof} from '../types/circuit';
-import {instantiate} from '../utils/instantiate';
+import instantiate from '../utils/instantiate';
 
 describe('multiplier', () => {
   // templates parameters!
@@ -18,10 +18,15 @@ describe('multiplier', () => {
       publicInputs: [],
       templateParams: [N],
     });
-    circuit = await createWasmTester(circuitName);
+    circuit = await WasmTester.new(circuitName);
 
     // constraint count checks!
     await circuit.checkConstraintCount(N - 1);
+
+    // TODO: output test
+    // @ts-ignore
+    const output = await circuit.parseOutput({in: [2, 3, 8]}, 'in', 'out');
+    console.log('Output:', output);
   });
 
   it('should multiply correctly', async () => {
@@ -53,7 +58,7 @@ describe('multiplier utilities', () => {
         },
         'test/multiplier'
       );
-      circuit = await createWasmTester(circuitName, 'test/multiplier');
+      circuit = await WasmTester.new(circuitName, 'test/multiplier');
     });
 
     it('should multiply correctly', async () => {

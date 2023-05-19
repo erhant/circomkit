@@ -9,7 +9,7 @@ const PROOF_SYSTEMS = ['groth16', 'plonk', 'fflonk'] as const;
  * A more extensive Circuit class, able to generate proofs & verify them.
  * Assumes that prover key and verifier key have been computed.
  */
-export class ProofTester<IN extends string[] = []> {
+export default class ProofTester<IN extends string[] = []> {
   public readonly protocol: ProofSystem;
   private readonly wasmPath: string;
   private readonly proverKeyPath: string;

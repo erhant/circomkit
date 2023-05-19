@@ -1,5 +1,5 @@
-import {instantiate} from '../utils/instantiate';
-import {WasmTester, createWasmTester} from '../utils/wasmTester';
+import instantiate from '../utils/instantiate';
+import WasmTester from '../utils/wasmTester';
 
 // tests adapted from https://github.com/rdi-berkeley/zkp-mooc-lab
 
@@ -25,7 +25,7 @@ describe('float_add 32-bit', () => {
       publicInputs: [],
       templateParams: [k, p],
     });
-    circuit = await createWasmTester('fp32');
+    circuit = await WasmTester.new('fp32');
     await circuit.checkConstraintCount(401);
   });
 
@@ -130,7 +130,7 @@ describe('float_add 64-bit', () => {
       publicInputs: [],
       templateParams: [k, p],
     });
-    circuit = await createWasmTester('fp64');
+    circuit = await WasmTester.new('fp64');
     await circuit.checkConstraintCount(819);
   });
 
@@ -226,7 +226,7 @@ describe('float_add utilities', () => {
         },
         'test/float_add'
       );
-      circuit = await createWasmTester(circuitName, 'test/float_add');
+      circuit = await WasmTester.new(circuitName, 'test/float_add');
       await circuit.checkConstraintCount(expectedConstraints.checkBitLength(b));
     });
 
@@ -265,7 +265,7 @@ describe('float_add utilities', () => {
         },
         'test/float_add'
       );
-      circuit = await createWasmTester(circuitName, 'test/float_add');
+      circuit = await WasmTester.new(circuitName, 'test/float_add');
       await circuit.checkConstraintCount(expectedConstraints.leftShift(shift_bound));
     });
 
@@ -325,7 +325,7 @@ describe('float_add utilities', () => {
         },
         'test/float_add'
       );
-      circuit = await createWasmTester(circuitName, 'test/float_add');
+      circuit = await WasmTester.new(circuitName, 'test/float_add');
       await circuit.checkConstraintCount(b);
     });
 
@@ -363,7 +363,7 @@ describe('float_add utilities', () => {
         },
         'test/float_add'
       );
-      circuit = await createWasmTester(circuitName, 'test/float_add');
+      circuit = await WasmTester.new(circuitName, 'test/float_add');
       await circuit.checkConstraintCount(expectedConstraints.normalize(P));
     });
 
@@ -422,7 +422,7 @@ describe('float_add utilities', () => {
         },
         'test/float_add'
       );
-      circuit = await createWasmTester(circuitName, 'test/float_add');
+      circuit = await WasmTester.new(circuitName, 'test/float_add');
       await circuit.checkConstraintCount(expectedConstraints.msnzb(b));
     });
 

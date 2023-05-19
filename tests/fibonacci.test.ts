@@ -1,5 +1,5 @@
-import {instantiate} from '../utils/instantiate';
-import {WasmTester, createWasmTester} from '../utils/wasmTester';
+import instantiate from '../utils/instantiate';
+import WasmTester from '../utils/wasmTester';
 
 const CIRCUIT_FILE = 'fibonacci';
 describe(CIRCUIT_FILE, () => {
@@ -14,7 +14,7 @@ describe(CIRCUIT_FILE, () => {
       publicInputs: [],
       templateParams: [N],
     });
-    circuit = await createWasmTester(circuitName);
+    circuit = await WasmTester.new(circuitName);
     await circuit.checkConstraintCount();
   });
 
@@ -43,7 +43,7 @@ describe.skip(CIRCUIT_FILE + ' recursive', () => {
       publicInputs: [],
       templateParams: [N],
     });
-    circuit = await createWasmTester(circuitName);
+    circuit = await WasmTester.new(circuitName);
     await circuit.checkConstraintCount();
   });
 

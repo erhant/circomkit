@@ -33,6 +33,7 @@
 - [x] **Simple CLI**: A very easy to use CLI is provided as a wrapper around SnarkJS commands, and they are all provided as `package.json` scripts!
 - [x] **Easily Configurable**: Just change the configured proof-system & elliptic curve at [`.cli.env`](./.cli.env) and you are good to go.
 - [x] **Witness Testing**: You can test computations & assertions for every template in a circuit, with minimal code-repetition.
+- [ ] **Easy Outputs**: Parsing the output from the witness is no more a headache.
 - [x] **Proof Testing**: With prover & verification keys and the WASM circuit, you can test proof generation & verification.
 - [x] **Type-safe**: Witness & proof testers, as well as circuit signal inputs & outputs are type-safe.
 - [x] **Solidity Exports**: Export a verifier contract in Solidity, or export a calldata for your proofs & public signals.
@@ -133,7 +134,7 @@ To run a circuit, you need to create a `main` component in Circom, where your ma
 
 ```ts
 import {instantiate} from '../utils/instantiate';
-import {createWasmTester} from '../utils/wasmTester';
+import {WasmTester} from '../utils/wasmTester';
 
 describe('multiplier', () => {
   // templates parameters!
@@ -150,7 +151,7 @@ describe('multiplier', () => {
       publicInputs: [],
       templateParams: [N],
     });
-    circuit = await createWasmTester(circuitName);
+    circuit = await WasmTester.new(circuitName);
 
     // constraint count checks!
     await circuit.checkConstraintCount(N - 1);
@@ -204,7 +205,7 @@ describe('multiplier utilities', () => {
         },
         'test/multiplier'
       );
-      circuit = await createWasmTester(circuitName, 'test/multiplier');
+      circuit = await WasmTester.new(circuitName, 'test/multiplier');
     });
 
     it('should pass for in range', async () => {
