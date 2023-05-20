@@ -13,9 +13,10 @@ const expectedConstraints = {
 };
 
 describe('float_add 32-bit', () => {
+  let circuit: WasmTester<['e', 'm'], ['e_out', 'm_out']>;
+
   const k = 8;
   const p = 23;
-  let circuit: WasmTester<['e', 'm'], ['e_out', 'm_out']>;
 
   before(async () => {
     circuit = await WasmTester.new('fp32', {

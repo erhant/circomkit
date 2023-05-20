@@ -1,8 +1,9 @@
+import {CircuitSignals} from '../types/circuit';
 import WasmTester from '../utils/wasmTester';
 
 type BoardSizes = 4 | 9;
 
-const INPUTS: {[N in BoardSizes]: any} = {
+const INPUTS: {[N in BoardSizes]: CircuitSignals<['solution', 'puzzle']>} = {
   9: {
     solution: [
       [1, 9, 4, 8, 6, 5, 2, 3, 7],

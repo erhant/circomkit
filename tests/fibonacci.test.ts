@@ -1,13 +1,13 @@
 import WasmTester from '../utils/wasmTester';
 
-const CIRCUIT_FILE = 'fibonacci';
-describe(CIRCUIT_FILE, () => {
-  const N = 19;
+describe('fibonacci', () => {
   let circuit: WasmTester<['in'], ['out']>;
 
+  const N = 19;
+
   before(async () => {
-    circuit = await WasmTester.new(`${CIRCUIT_FILE}_${N}`, {
-      file: CIRCUIT_FILE,
+    circuit = await WasmTester.new(`fibonacci_${N}`, {
+      file: 'fibonacci',
       template: 'Fibonacci',
       params: [N],
     });
@@ -27,13 +27,14 @@ describe(CIRCUIT_FILE, () => {
 });
 
 // skipping because this takes a bit longer
-describe.skip(CIRCUIT_FILE + ' recursive', () => {
-  const N = 19;
+describe('fibonacci recursive', () => {
   let circuit: WasmTester<['in'], ['out']>;
 
+  const N = 19;
+
   before(async () => {
-    circuit = await WasmTester.new(`${CIRCUIT_FILE}_${N}_recursive`, {
-      file: CIRCUIT_FILE,
+    circuit = await WasmTester.new(`fibonacci_${N}_recursive`, {
+      file: 'fibonacci',
       template: 'FibonacciRecursive',
       params: [N],
     });

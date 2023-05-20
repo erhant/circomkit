@@ -160,8 +160,10 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
    * @param outputSignals an array of signal names
    * @returns output signals
    */
-  async compute(input: CircuitSignals<IN>, outputSignals: OUT): Promise<Partial<CircuitSignals<typeof outputSignals>>> {
+  async compute(input: CircuitSignals<IN>, outputSignals: OUT): Promise<CircuitSignals<typeof outputSignals>> {
+    // compute witness & check constraints
     const witness = await this.calculateWitness(input, true);
+    await this.checkConstraints(witness);
 
     // get symbols of main component
     await this.loadSymbols();
