@@ -38,17 +38,17 @@ export default function instantiate(name: string, circuitConfig: CircuitConfig) 
 }
 
 if (require.main === module) {
-  // when directly called, we require a circuit name as the argument
-  // this circuit should be present in `circuit.config.ts`
-  const name = process.argv[2];
-  if (process.argv.length !== 3) {
-    throw new Error('Please provide the circuit name.');
+  if (process.argv.length !== 4) {
+    throw new Error('Please provide the circuit name & directory name.');
   }
+
+  const name = process.argv[2];
+  const dir = process.argv[3];
   if (!(name in config)) {
     throw new Error(`Target ${name} not found in circuit.config.cjs`);
   }
   instantiate(name, {
     ...config[name],
-    dir: 'main',
+    dir,
   });
 }

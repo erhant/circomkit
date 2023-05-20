@@ -89,13 +89,13 @@ case $FUNC in
     calldata $CIRCUIT $INPUT
     ;;
   compile) 
-    instantiate $CIRCUIT && compile $CIRCUIT
+    instantiate $CIRCUIT $CIRCOMKIT_DIRECTORY && compile $CIRCUIT $CIRCOMKIT_DIRECTORY
     ;;
   debug) 
     debug $CIRCUIT $INPUT
     ;;
   instantiate) 
-    instantiate $CIRCUIT
+    instantiate $CIRCUIT $CIRCOMKIT_DIRECTORY
     ;;
   type) 
     type $CIRCUIT
@@ -104,7 +104,7 @@ case $FUNC in
     setup $CIRCUIT $P1_PTAU $NUM_CONTRIBS
     ;;
   keygen) 
-    compile $CIRCUIT && setup $CIRCUIT $P1_PTAU $NUM_CONTRIBS
+    compile $CIRCUIT $CIRCOMKIT_DIRECTORY && setup $CIRCUIT $P1_PTAU $NUM_CONTRIBS
     ;;
   prove) 
     witness $CIRCUIT $INPUT && prove $CIRCUIT $INPUT

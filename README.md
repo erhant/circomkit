@@ -2,7 +2,7 @@
   <h1 align="center">
     Circomkit
   </h1>
-  <p align="center">A simple-to-use Circom & SnarkJS circuit development & testing environment.</p>
+  <p align="center"><i>A simple-to-use Circom & SnarkJS circuit development & testing environment.</i></p>
 </p>
 
 <p align="center">
@@ -29,9 +29,9 @@
     </a>
 </p>
 
-- [x] **Programmable Circuits**: Using circuit configs, you can programmatically create the `main` component for a circuit.
-- [x] **Simple CLI**: A very easy to use CLI is provided as a wrapper around SnarkJS commands, and they are all provided as `package.json` scripts!
-- [x] **Easily Configurable**: Just change the configured proof-system & elliptic curve at [`.cli.env`](./.cli.env) and you are good to go.
+- [x] **Programmable Circuits**: The `main` component is created & compiled programmatically.
+- [x] **Simple CLI**: A very easy to use CLI is provided as a wrapper around SnarkJS commands, all provided as NPM scripts!
+- [x] **Easily Configurable**: A single `.env` file stores the general configuration settings.
 - [x] **Witness Testing**: You can test computations & assertions for every template in a circuit, with minimal code-repetition.
 - [x] **Proof Testing**: With prover & verification keys and the WASM circuit, you can test proof generation & verification.
 - [x] **Simple Outputs**: Easily see the output signals of your circuit, without generating a proof.
@@ -40,31 +40,31 @@
 
 ## Usage
 
-Clone the repository or create a new one with this as the template! You need [Circom](https://docs.circom.io/getting-started/installation/) to compile circuits. Other than that, just `yarn` or `npm install` to get started. It will also install [Circomlib](https://github.com/iden3/circomlib/tree/master/circuits) which has many utility circuits.
+Using Circomkit is easy:
 
-The repository follows an _opinionated file structure_ shown below, abstracting away the pathing and orientation behind the scenes. Shell scripts handle most of the work, and they are exposed through a CLI.
+1. Install [Circom](https://docs.circom.io/getting-started/installation/).
+2. Clone this repo (or use it as a template) and install packages (`yarn` or `npm install`).
+3. Write your circuit templates under the `circuits` folder. Your circuit code itself should be templates only; Circomkit programmatically generates the `main` component
+4. Write your tests under the `tests` folder.
+5. Once you are ready, write the circuit config in [`circuit.config.ts`](./circuit.config.ts).
+6. Use NPM scripts (`yarn <script>` or `npm run <script>`) to compile your circuit, build keys, generate & verify proofs and much more!
 
-Write your circuits under the `circuits` folder; the circuit code itself should be templates only. The main component itself is created automatically via a [script](./utils/instantiate.ts) which uses a simple EJS [template](./circuits/ejs/template.circom) to create the main component. The target circuits are defined under the [circuit configs](./circuit.config.ts) file, such as:
+A circuit config looks like this:
 
 ```js
-// circuit name is the key
-multiplier_3: {
-  // file to include for the template
-  file: 'multiplier',
-  // template to instantiate the main component
-  template: 'Multiplier',
-  // array of public inputs
-  publicInputs: [],
-  // template parameters, order is important
-  templateParams: [3],
-}
+sudoku_4x4: { // the key is <circuit-name>
+  file: 'sudoku', // file name (circuits/sudoku.circom)
+  template: 'Sudoku', // template name
+  pubs: ['puzzle'], // public signals
+  params: [Math.sqrt(4)], // template parameters
+},
 ```
 
-Use the [CLI](./scripts/cli.sh), or its wrapper scripts in [package.json](./package.json) to do stuff with your circuits. There are also some environment variables that the CLI can make use of, they are written under [.cli.env](./.cli.env) file.
+Afterwards, you can use the following commands:
 
 ```bash
 # Compile the circuit (generates the main component too)
-yarn compile circuit-name [-d directory-name (default: main)]
+yarn compile circuit-name
 
 # Circuit setup
 yarn setup circuit-name -p phase1-ptau-path [-n num-contribs (default: 1)]
@@ -79,8 +79,10 @@ yarn contract circuit-name
 yarn clean circuit-name
 
 # Generate the `main` component without compiling it afterwards
-yarn instantiate circuit-name [-d directory-name (default: main)]
+yarn instantiate circuit-name
 ```
+
+You can change some general settings such as the configured proof system or the prime field under [`.cli.env`](./.cli.env).
 
 ### Working with Input Signals
 
@@ -88,19 +90,19 @@ Some actions such as generating a witness, generating a proof and verifying a pr
 
 ```bash
 # Generate a witness for some input
-yarn witness circuit-name -i input-name
+yarn witness circuit-name [-i input-name (default: "default")]
 
 # Generate a proof for some input
-yarn prove circuit-name -i input-name
+yarn prove circuit-name [-i input-name (default: "default")]
 
 # Verify a proof for some input (public signals only)
-yarn verify circuit-name -i input-name
+yarn verify circuit-name [-i input-name (default: "default")]
 
 # Debug a witness of some input
-yarn debug circuit-name -i input-name
+yarn debug circuit-name [-i input-name (default: "default")]
 
 # Export calldata to call your Solidity verifier contract
-yarn calldata circuit-name -i input-name
+yarn calldata circuit-name [-i input-name (default: "default")]
 ```
 
 ## Testing
@@ -109,7 +111,7 @@ To run tests do the following:
 
 ```bash
 # test a specific circuit
-yarn test "circuit name"
+yarn test <circuit-name>
 
 # test all circuits
 yarn test:all
@@ -130,53 +132,31 @@ We have several example circuits to help guide you:
 
 Witness calculation tests check whether your circuit computes the correct result based on your inputs, and makes sure that assertions are correct. We provide very useful utility functions to help write these tests.
 
-To run a circuit, you need to create a `main` component in Circom, where your main template is assigned to this component. You could do this manually, but in Circomkit we prefer to do this programmatically, using the `instantiate` function. Let us go over an example test for the multiplication circuit.
-
 ```ts
-import {instantiate} from '../utils/instantiate';
-import {WasmTester} from '../utils/wasmTester';
+import WasmTester from '../utils/wasmTester';
 
+const N = 3;
 describe('multiplier', () => {
-  // templates parameters!
-  const N = 3;
-
-  // type-safe signal names!
+  // type-safe signal names ✔
   let circuit: WasmTester<['in'], ['out']>;
 
   before(async () => {
-    const circuitName = `multiplier_${N}`;
-    instantiate(circuitName, {
+    circuit = await WasmTester.new(`multiplier_${N}`, {
       file: 'multiplier',
       template: 'Multiplier',
-      publicInputs: [],
-      templateParams: [N],
+      params: [N], // template parameters ✔
+      pubs: [], // public signals ✔
     });
-    circuit = await WasmTester.new(circuitName);
-
-    // constraint count checks!
+    // constraint count checks ✔
     await circuit.checkConstraintCount(N - 1);
   });
 
   it('should compute correctly', async () => {
     const randomNumbers = Array.from({length: N}, () => Math.floor(Math.random() * 100 * N));
-
-    await circuit.expectCorrectAssert(
-      {
-        in: randomNumbers,
-      },
-      {
-        out: randomNumbers.reduce((prev, acc) => acc * prev),
-      }
-    );
+    await circuit.expectCorrectAssert({in: randomNumbers}, {out: randomNumbers.reduce((prev, acc) => acc * prev)});
   });
 });
 ```
-
-Before tests begin, we must create a circuit tester object, which is what happens in the `before` hook.
-
-1. A `main` component is created with the given configuration.
-2. A circuit tester is created from that main component.
-3. Constraint count is checked (optional).
 
 With the circuit object, we can do the following:
 
@@ -189,9 +169,7 @@ With the circuit object, we can do the following:
 What if we would just like to see what the output is, instead of comparing it to some witness? Well, that would be a trouble because we would have to parse the witness array (which is huge for some circuits) with respect to which signals the output signals correspond to. Thankfully, Circomkit has a function for that:
 
 ```ts
-const outputSignals = ['foo', 'bar'];
-const output = await circuit.compute(INPUT, outputSignals);
-console.log(output);
+const output = await circuit.compute(INPUT, ['foo', 'bar']);
 /* {
   foo: [[1n, 2n], [3n, 4n]]
   bar: 42n
@@ -210,27 +188,15 @@ describe('multiplier utilities', () => {
     let circuit: WasmTester<['in'], ['out']>;
 
     before(async () => {
-      const circuitName = 'mulgate';
-      instantiate(
-        circuitName,
-        {
-          file: 'multiplier',
-          template: 'MultiplicationGate',
-          publicInputs: [],
-          templateParams: [],
-        },
-        'test/multiplier'
-      );
-      circuit = await WasmTester.new(circuitName, 'test/multiplier');
+      circuit = await WasmTester.new(circuitName, {
+        file: 'multiplier',
+        template: 'MultiplicationGate',
+        dir: 'test/multiplier', // nested paths ✔
+      });
     });
 
     it('should pass for in range', async () => {
-      await circuit.expectCorrectAssert(
-        {
-          in: [7, 5],
-        },
-        {out: 7 * 5}
-      );
+      await circuit.expectCorrectAssert({in: [7, 5]}, {out: 7 * 5});
     });
   });
 });
@@ -238,16 +204,15 @@ describe('multiplier utilities', () => {
 
 ### Proof Verification
 
-If you have created the prover key, verification key & the circuit WASM file, you can also test proof generation & verification.
+If you have created the prover key, verification key & the circuit WASM file (which is simply `yarn keygen <circuit-name> -p <pptau-path>`), you can also test proof generation & verification.
 
 ```ts
 describe('multiplier proofs', () => {
-  const N = 3;
   let fullProof: FullProof;
   let circuit: ProofTester<['in']>;
+
   before(async () => {
-    const circuitName = 'multiplier_' + N;
-    circuit = new ProofTester(circuitName);
+    circuit = new ProofTester(`multiplier_${N}`);
     fullProof = await circuit.prove({
       in: Array.from({length: N}, () => Math.floor(Math.random() * 100 * N)),
     });
@@ -258,7 +223,6 @@ describe('multiplier proofs', () => {
   });
 
   it('should NOT verify', async () => {
-    // just give a prime number as the output, assuming none of the inputs are 1
     await circuit.expectVerificationFail(fullProof.proof, ['13']);
   });
 });
@@ -271,7 +235,7 @@ The two utility functions provided here are:
 
 ## File Structure
 
-The underlying file structure is explained below.
+The repository follows an _opinionated file structure_ shown below, abstracting away the pathing and orientation behind the scenes. Circomkit handles most of the work with respect to this structure.
 
 ```sh
 circomkit
@@ -318,8 +282,10 @@ We use [Google TypeScript Style Guide](https://google.github.io/styleguide/tsgui
 ```bash
 # check the formatting
 yarn format
+
 # lint everything
 yarn lint
+
 # do both at once
 yarn style
 ```
