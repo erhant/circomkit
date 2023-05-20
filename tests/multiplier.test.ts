@@ -1,7 +1,6 @@
 import WasmTester from '../utils/wasmTester';
 import ProofTester from '../utils/proofTester';
 import type {FullProof} from '../types/circuit';
-import instantiate from '../utils/instantiate';
 
 describe('multiplier', () => {
   // templates parameters!
@@ -11,14 +10,11 @@ describe('multiplier', () => {
   let circuit: WasmTester<['in'], ['out']>;
 
   before(async () => {
-    const circuitName = `multiplier_${N}`;
-    instantiate(circuitName, {
+    circuit = await WasmTester.new(`multiplier_${N}`, {
       file: 'multiplier',
       template: 'Multiplier',
-      publicInputs: [],
-      templateParams: [N],
+      params: [N],
     });
-    circuit = await WasmTester.new(circuitName);
 
     // constraint count checks!
     await circuit.checkConstraintCount(N - 1);
@@ -42,18 +38,11 @@ describe('multiplier utilities', () => {
     let circuit: WasmTester<['in'], ['out']>;
 
     before(async () => {
-      const circuitName = 'mulgate';
-      instantiate(
-        circuitName,
-        {
-          file: 'multiplier',
-          template: 'MultiplicationGate',
-          publicInputs: [],
-          templateParams: [],
-        },
-        'test/multiplier'
-      );
-      circuit = await WasmTester.new(circuitName, 'test/multiplier');
+      circuit = await WasmTester.new('mulgate', {
+        file: 'multiplier',
+        template: 'MultiplicationGate',
+        dir: 'test/multiplier',
+      });
     });
 
     it('should multiply correctly', async () => {

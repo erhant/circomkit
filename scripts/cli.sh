@@ -33,7 +33,6 @@ source ./scripts/functions/witness.sh
 
 # default values
 NUM_CONTRIBS=1
-COMPILE_DIR="main"
 INPUT="default"
 P1_PTAU="./ptau/powersOfTau28_hez_final_12.ptau"
 
@@ -47,10 +46,6 @@ while getopts "f:c:n:i:p:d:" opt; do
     # circuit name
     c) 
       CIRCUIT="$OPTARG"
-      ;;
-    # director for compilation (default: main)
-    d) 
-      COMPILE_DIR="$OPTARG"
       ;;
     # number of contributions
     n) 
@@ -94,13 +89,13 @@ case $FUNC in
     calldata $CIRCUIT $INPUT
     ;;
   compile) 
-    instantiate $CIRCUIT $COMPILE_DIR && compile $CIRCUIT $COMPILE_DIR
+    instantiate $CIRCUIT && compile $CIRCUIT
     ;;
   debug) 
     debug $CIRCUIT $INPUT
     ;;
   instantiate) 
-    instantiate $CIRCUIT $COMPILE_DIR
+    instantiate $CIRCUIT
     ;;
   type) 
     type $CIRCUIT
@@ -109,7 +104,7 @@ case $FUNC in
     setup $CIRCUIT $P1_PTAU $NUM_CONTRIBS
     ;;
   keygen) 
-    compile $CIRCUIT $COMPILE_DIR && setup $CIRCUIT $P1_PTAU $NUM_CONTRIBS
+    compile $CIRCUIT && setup $CIRCUIT $P1_PTAU $NUM_CONTRIBS
     ;;
   prove) 
     witness $CIRCUIT $INPUT && prove $CIRCUIT $INPUT
@@ -135,7 +130,6 @@ case $FUNC in
     echo "    verify       Verify a proof & public signals"
     echo "    keygen       Shorthand for compile & setup"
     echo "  -c <circuit-name>"
-    echo "  -d <directory-name> (default: $COMPILE_DIR)"
     echo "  -n <num-contributions> (default: $NUM_CONTRIBS)"
     echo "  -i <input-name>"
     echo "  -p <phase1-ptau-path>"

@@ -194,7 +194,7 @@ const output = await circuit.compute(INPUT, outputSignals);
 console.log(output);
 /* {
   foo: [[1n, 2n], [3n, 4n]]
-  bar: 48n
+  bar: 42n
 } */
 ```
 

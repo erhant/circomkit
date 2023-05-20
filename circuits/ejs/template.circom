@@ -7,7 +7,7 @@ pragma circom 2.0.0;
 include "../<%= file %>.circom";
 
 component main<%=
-  publicInputs.length == 0 ?
+  pubs.length == 0 ?
   '' :
-  ' {public[' + publicInputs.join(", ") + ']}'
-  %> = <%= template %>(<%= templateParams.join(", ") %>);
+  ' {public[' + pubs.join(", ") + ']}'
+  %> = <%= template %>(<%= params.join(", ") %>);

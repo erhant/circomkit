@@ -1,4 +1,3 @@
-import instantiate from '../utils/instantiate';
 import WasmTester from '../utils/wasmTester';
 
 type BoardSizes = 4 | 9;
@@ -50,14 +49,12 @@ const INPUTS: {[N in BoardSizes]: any} = {
     let circuit: WasmTester<['solution', 'puzzle']>;
 
     before(async () => {
-      const circuitName = `sudoku_${N}x${N}`;
-      instantiate(circuitName, {
+      circuit = await WasmTester.new(`sudoku_${N}x${N}`, {
         file: 'sudoku',
         template: 'Sudoku',
-        publicInputs: ['puzzle'],
-        templateParams: [Math.sqrt(N)],
+        pubs: ['puzzle'],
+        params: [Math.sqrt(N)],
       });
-      circuit = await WasmTester.new(circuitName);
       await circuit.checkConstraintCount();
     });
 
@@ -104,18 +101,12 @@ describe('sudoku utilities', () => {
     let circuit: WasmTester<['in'], []>;
 
     before(async () => {
-      const circuitName = 'abl_' + b;
-      instantiate(
-        circuitName,
-        {
-          file: 'sudoku',
-          template: 'AssertBitLength',
-          publicInputs: [],
-          templateParams: [b],
-        },
-        'test/sudoku'
-      );
-      circuit = await WasmTester.new(circuitName, 'test/sudoku');
+      circuit = await WasmTester.new(`bitlen_${b}`, {
+        file: 'sudoku',
+        template: 'AssertBitLength',
+        dir: 'test/sudoku',
+        params: [b],
+      });
     });
 
     it('should pass for input < 2^b', async () => {
@@ -140,18 +131,12 @@ describe('sudoku utilities', () => {
     let circuit: WasmTester<['in'], []>;
 
     before(async () => {
-      const circuitName = 'distinct_' + n;
-      instantiate(
-        circuitName,
-        {
-          file: 'sudoku',
-          template: 'Distinct',
-          publicInputs: [],
-          templateParams: [n],
-        },
-        'test/sudoku'
-      );
-      circuit = await WasmTester.new(circuitName, 'test/sudoku');
+      circuit = await WasmTester.new(`distinct_${n}`, {
+        file: 'sudoku',
+        template: 'Distinct',
+        dir: 'test/sudoku',
+        params: [n],
+      });
     });
 
     it('should pass if all inputs are unique', async () => {
@@ -180,18 +165,12 @@ describe('sudoku utilities', () => {
     let circuit: WasmTester<['in'], []>;
 
     before(async () => {
-      const circuitName = 'inRange_' + MIN + '_' + MAX;
-      instantiate(
-        circuitName,
-        {
-          file: 'sudoku',
-          template: 'InRange',
-          publicInputs: [],
-          templateParams: [MIN, MAX],
-        },
-        'test/sudoku'
-      );
-      circuit = await WasmTester.new(circuitName, 'test/sudoku');
+      circuit = await WasmTester.new(`inRange_${MIN}_${MAX}`, {
+        file: 'sudoku',
+        template: 'InRange',
+        dir: 'test/sudoku',
+        params: [MIN, MAX],
+      });
     });
 
     it('should pass for in range', async () => {

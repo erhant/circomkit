@@ -2,8 +2,7 @@
 compile() {
   echo -e "\n${CIRCOMKIT_COLOR_TITLE}=== Compiling the circuit ===${CIRCOMKIT_COLOR_RESET}"
   local CIRCUIT=$1
-  local DIR=$2
-  local CIRCOM_IN=./circuits/$DIR/$CIRCUIT.circom
+  local CIRCOM_IN=./circuits/main/$CIRCUIT.circom
   local CIRCOM_OUT=./build/$CIRCUIT
   
   # create build dir if not exists already
