@@ -1,4 +1,3 @@
-import instantiate from '../utils/instantiate';
 import WasmTester from '../utils/wasmTester';
 
 // tests adapted from https://github.com/rdi-berkeley/zkp-mooc-lab
@@ -19,13 +18,11 @@ describe('float_add 32-bit', () => {
   let circuit: WasmTester<['e', 'm'], ['e_out', 'm_out']>;
 
   before(async () => {
-    instantiate('fp32', {
+    circuit = await WasmTester.new('fp32', {
       file: 'float_add',
       template: 'FloatAdd',
-      publicInputs: [],
-      templateParams: [k, p],
+      params: [k, p],
     });
-    circuit = await WasmTester.new('fp32');
     await circuit.checkConstraintCount(401);
   });
 
@@ -36,16 +33,6 @@ describe('float_add 32-bit', () => {
         m: ['11672136', '10566265'],
       },
       {e_out: '43', m_out: '11672136'}
-    );
-
-    console.log(
-      await circuit.compute(
-        {
-          e: ['43', '5'],
-          m: ['11672136', '10566265'],
-        },
-        ['e_out', 'm_out']
-      )
     );
   });
 
@@ -134,13 +121,11 @@ describe('float_add 64-bit', () => {
   let circuit: WasmTester<['e', 'm'], ['e_out', 'm_out']>;
 
   before(async () => {
-    instantiate('fp64', {
+    circuit = await WasmTester.new('fp64', {
       file: 'float_add',
       template: 'FloatAdd',
-      publicInputs: [],
-      templateParams: [k, p],
+      params: [k, p],
     });
-    circuit = await WasmTester.new('fp64');
     await circuit.checkConstraintCount(819);
   });
 
@@ -225,18 +210,12 @@ describe('float_add utilities', () => {
     let circuit: WasmTester<['in'], ['out']>;
 
     before(async () => {
-      const circuitName = 'cbl_' + b;
-      instantiate(
-        circuitName,
-        {
-          file: 'float_add',
-          template: 'CheckBitLength',
-          publicInputs: [],
-          templateParams: [b],
-        },
-        'test/float_add'
-      );
-      circuit = await WasmTester.new(circuitName, 'test/float_add');
+      circuit = await WasmTester.new(`cbl_${b}`, {
+        file: 'float_add',
+        template: 'CheckBitLength',
+        params: [b],
+        dir: 'test/float_add',
+      });
       await circuit.checkConstraintCount(expectedConstraints.checkBitLength(b));
     });
 
@@ -264,18 +243,12 @@ describe('float_add utilities', () => {
     let circuit: WasmTester<['x', 'shift', 'skip_checks'], ['y']>;
 
     before(async () => {
-      const circuitName = 'shl_' + shift_bound;
-      instantiate(
-        circuitName,
-        {
-          file: 'float_add',
-          template: 'LeftShift',
-          publicInputs: [],
-          templateParams: [shift_bound],
-        },
-        'test/float_add'
-      );
-      circuit = await WasmTester.new(circuitName, 'test/float_add');
+      circuit = await WasmTester.new(`shl_${shift_bound}`, {
+        file: 'float_add',
+        template: 'LeftShift',
+        dir: 'test/float_add',
+        params: [shift_bound],
+      });
       await circuit.checkConstraintCount(expectedConstraints.leftShift(shift_bound));
     });
 
@@ -324,18 +297,12 @@ describe('float_add utilities', () => {
     let circuit: WasmTester<['x'], ['y']>;
 
     before(async () => {
-      const circuitName = 'shr_' + b;
-      instantiate(
-        circuitName,
-        {
-          file: 'float_add',
-          template: 'RightShift',
-          publicInputs: [],
-          templateParams: [b, shift],
-        },
-        'test/float_add'
-      );
-      circuit = await WasmTester.new(circuitName, 'test/float_add');
+      circuit = await WasmTester.new(`shr_${b}`, {
+        file: 'float_add',
+        template: 'RightShift',
+        dir: 'test/float_add',
+        params: [b, shift],
+      });
       await circuit.checkConstraintCount(b);
     });
 
@@ -362,18 +329,12 @@ describe('float_add utilities', () => {
     let circuit: WasmTester<['e', 'm', 'skip_checks'], ['e_out', 'm_out']>;
 
     before(async () => {
-      const circuitName = 'normalize_' + k + p + P;
-      instantiate(
-        circuitName,
-        {
-          file: 'float_add',
-          template: 'Normalize',
-          publicInputs: [],
-          templateParams: [k, p, P],
-        },
-        'test/float_add'
-      );
-      circuit = await WasmTester.new(circuitName, 'test/float_add');
+      circuit = await WasmTester.new(`normalize_${k}_${p}_${P}`, {
+        file: 'float_add',
+        template: 'Normalize',
+        params: [k, p, P],
+        dir: 'test/float_add',
+      });
       await circuit.checkConstraintCount(expectedConstraints.normalize(P));
     });
 
@@ -421,18 +382,12 @@ describe('float_add utilities', () => {
     let circuit: WasmTester<['in', 'skip_checks'], ['one_hot']>;
 
     before(async () => {
-      const circuitName = 'msnzb_' + b;
-      instantiate(
-        circuitName,
-        {
-          file: 'float_add',
-          template: 'MSNZB',
-          publicInputs: [],
-          templateParams: [b],
-        },
-        'test/float_add'
-      );
-      circuit = await WasmTester.new(circuitName, 'test/float_add');
+      circuit = await WasmTester.new(`msnzb_${b}`, {
+        file: 'float_add',
+        template: 'MSNZB',
+        dir: 'test/float_add',
+        params: [b],
+      });
       await circuit.checkConstraintCount(expectedConstraints.msnzb(b));
     });
 

@@ -1,7 +1,9 @@
 const wasm_tester = require('circom_tester').wasm;
 import {WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/circuit';
+import {CircuitConfig} from '../types/config';
 import {CircomWasmTester} from '../types/wasmTester';
 import {assert, expect} from 'chai';
+import instantiate from '../utils/instantiate';
 
 /**
  A utility class to test your circuits. Use `expectFailedAssert` and `expectCorrectAssert` to test out evaluations
@@ -225,8 +227,10 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
    */
   static async new<IN extends string[] = [], OUT extends string[] = []>(
     circuitName: string,
-    dir = 'test'
+    circuitConfig: CircuitConfig
   ): Promise<WasmTester<IN, OUT>> {
+    const dir = circuitConfig.dir || 'test';
+    instantiate(circuitName, circuitConfig);
     const circomWasmTester: CircomWasmTester = await wasm_tester(`./circuits/${dir}/${circuitName}.circom`, {
       include: 'node_modules', // will link circomlib circuits
     });

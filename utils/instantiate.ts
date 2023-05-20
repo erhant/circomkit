@@ -6,17 +6,11 @@ import {CircuitConfig} from '../types/config';
 /**
  * Programmatically generate the `main` component of a circuit
  * @param name name of the circuit to be generated
- * @param circuitConfig circuit configurations, if `undefined` then `circuit.config.ts` will be used.
- * @param directory name of the directory under circuits to be created. Can be given sub-folders like `test/myCircuit/foobar`. Defaults to `test`
+ * @param circuitConfig circuit configuration
  */
-export default function instantiate(name: string, circuitConfig?: CircuitConfig, directory = 'test') {
-  // get config from circuit.config.ts if none are given
-  if (circuitConfig === undefined) {
-    if (!(name in config)) {
-      throw new Error(`Target ${name} not found in circuit.config.cjs`);
-    }
-    circuitConfig = config[name];
-  }
+export default function instantiate(name: string, circuitConfig: CircuitConfig) {
+  // directory to output the file
+  const directory = circuitConfig.dir || 'test';
 
   // generate the main component code using the template
   const ejsPath = './circuits/ejs/template.circom';
@@ -26,12 +20,14 @@ export default function instantiate(name: string, circuitConfig?: CircuitConfig,
   const filePrefix = '../'.repeat((directory.match(/\//g) || []).length);
 
   const circuit = ejs.render(readFileSync(ejsPath).toString(), {
-    ...circuitConfig,
+    pubs: circuitConfig.pubs || [],
+    params: circuitConfig.params || [],
+    template: circuitConfig.template,
     file: filePrefix + circuitConfig.file,
   });
 
   // output to file
-  const targetDir = `./circuits/${directory || 'main'}`;
+  const targetDir = `./circuits/${directory}`;
   if (!existsSync(targetDir)) {
     mkdirSync(targetDir, {
       recursive: true,
@@ -42,7 +38,17 @@ export default function instantiate(name: string, circuitConfig?: CircuitConfig,
 }
 
 if (require.main === module) {
+  if (process.argv.length !== 4) {
+    throw new Error('Please provide the circuit name & directory name.');
+  }
+
   const name = process.argv[2];
-  const directory = process.argv[3];
-  instantiate(name, undefined, directory);
+  const dir = process.argv[3];
+  if (!(name in config)) {
+    throw new Error(`Target ${name} not found in circuit.config.cjs`);
+  }
+  instantiate(name, {
+    ...config[name],
+    dir,
+  });
 }
