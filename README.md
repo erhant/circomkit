@@ -57,10 +57,11 @@ sudoku_4x4: { // the key is <circuit-name>
   template: 'Sudoku', // template name
   pubs: ['puzzle'], // public signals
   params: [Math.sqrt(4)], // template parameters
+  dir: "main" // output directory for main component
 },
 ```
 
-Afterwards, you can use the following commands:
+You can omit `pubs`, `params` and `dir` options, they have defaults. Afterwards, you can use the following commands:
 
 ```bash
 # Compile the circuit (generates the main component too)
@@ -121,12 +122,13 @@ You can test both witness calculations and proof generation & verification. We d
 
 ### Example Circuits
 
-We have several example circuits to help guide you:
+We have several example circuits that you can check out. With them, you can prove the following statements:
 
-- **Multiplier**: A circuit to prove that you know the factors of a number.
-- **Fibonacci**: A circuit to compute Fibonacci numbers, a recursive implementation is given too.
-- **Sudoku**: A circuit to prove that you know the solution to a Sudoku puzzle.
-- **Floating-Point Addition**: A circuit to compute the sum of two floating-point numbers, adapted from [Berkeley ZKP MOOC 2023 - Lab 1](https://github.com/rdi-berkeley/zkp-mooc-lab).
+- **Multiplier**: "I know `n` factors that make up some number".
+- **Fibonacci**: "I know the `n`'th Fibonacci number".
+- **SHA256**: "I know the `n`-byte preimage of some SHA256 digest".
+- **Sudoku**: "I know the solution to some `(n^2)x(n^2)` Sudoku puzzle".
+- **Floating-Point Addition**: "I know two floating-point numbers that make up some number with `e` exponent and `m` mantissa bits." (adapted from [Berkeley ZKP MOOC 2023 - Lab 1](https://github.com/rdi-berkeley/zkp-mooc-lab)).
 
 ### Witness Calculation
 

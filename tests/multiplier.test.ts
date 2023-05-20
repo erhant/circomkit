@@ -3,11 +3,9 @@ import ProofTester from '../utils/proofTester';
 import type {FullProof} from '../types/circuit';
 
 describe('multiplier', () => {
-  // templates parameters!
-  const N = 3;
-
-  // type-safe signal names!
   let circuit: WasmTester<['in'], ['out']>;
+
+  const N = 3;
 
   before(async () => {
     circuit = await WasmTester.new(`multiplier_${N}`, {
