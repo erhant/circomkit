@@ -29,7 +29,7 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
   }
 
   /**
-   * Assert that constraints are valid.
+   * Assert that constraints are valid for a given witness.
    * @param witness witness
    */
   checkConstraints(witness: WitnessType): Promise<void> {
@@ -219,6 +219,47 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
     }
 
     return Object.fromEntries(entries) as CircuitSignals<OUT>;
+  }
+
+  /**
+   * Override witness value to try and fake a proof. If the circuit has soundness problems, that is,
+   * some signals are not constrained correctly, then you may be able to create a fake witness by
+   * overriding specific values, and pass the constraints check.
+   *
+   * The symbol names must be given in full form, not just as the signal is named in the circuit code. In
+   * general a symbol name looks something like:
+   *
+   * - `main.signal`
+   * - `main.component.signal`
+   * - `main.component.signal[n][m]`
+   *
+   * You will likely call `checkConstraints` on the resulting fake witness to see if it can indeed fool
+   * a verifier.
+   * @see {@link checkConstraints}
+   *
+   * @param witness a witness array
+   * @param symbolValues symbols to be overridden in the witness
+   * @returns fake witness
+   */
+  async fakeWitness(
+    witness: Readonly<WitnessType>,
+    symbolValues: {[symbolName: string]: bigint}
+  ): Promise<WitnessType> {
+    await this.loadSymbols();
+
+    const fakeWitness = witness.slice();
+    for (const symbolName in symbolValues) {
+      // get corresponding symbol
+      const symbolInfo = this.symbols![symbolName];
+      if (symbolInfo === undefined) {
+        throw new Error('Invalid symbol name: ' + symbolName);
+      }
+
+      // override with user value
+      fakeWitness[symbolInfo.varIdx] = symbolValues[symbolName];
+    }
+
+    return fakeWitness;
   }
 
   /**

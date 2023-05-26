@@ -30,11 +30,11 @@
 </p>
 
 - [x] **Programmable Circuits**: The `main` component is created & compiled programmatically.
-- [x] **Simple CLI**: A very easy to use CLI is provided as a wrapper around SnarkJS commands, all provided as NPM scripts!
+- [x] **Simple CLI**: A straightforward CLI is provided as a wrapper around SnarkJS commands, exposed via NPM scripts!
 - [x] **Easily Configurable**: A single `.env` file stores the general configuration settings.
-- [x] **Witness Testing**: You can test computations & assertions for every template in a circuit, with minimal code-repetition.
+- [x] **Constraint Testing**: You can test computations & assertions for every template in a circuit, with minimal code-repetition.
 - [x] **Proof Testing**: With prover & verification keys and the WASM circuit, you can test proof generation & verification.
-- [x] **Simple Outputs**: Easily see the output signals of your circuit, without generating a proof.
+- [x] **Witness Manipulation**: You can parse the output from a witness, and furthermore create fake witnesses to try and fool the verifier.
 - [x] **Type-safe**: Witness & proof testers, as well as circuit signal inputs & outputs are all type-safe via generics.
 - [x] **Solidity Exports**: Export a verifier contract in Solidity, or export a calldata for your proofs & public signals.
 
@@ -166,7 +166,7 @@ With the circuit object, we can do the following:
 - `circuit.expectCorrectAssert(input)` to test whether the circuit assertions pass for some given input
 - `circuit.expectFailedAssert(input)` to test whether the circuit assertions pass for some given input
 
-#### Circuit outputs
+#### Witnes
 
 What if we would just like to see what the output is, instead of comparing it to some witness? Well, that would be a trouble because we would have to parse the witness array (which is huge for some circuits) with respect to which signals the output signals correspond to. Thankfully, Circomkit has a function for that:
 
