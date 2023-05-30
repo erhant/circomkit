@@ -1,21 +1,5 @@
 {
-  "extends": "./node_modules/gts/tsconfig-google.json",
-  "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "strict": true,
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "allowJs": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "rootDir": ".",
-    "pretty": true,
-    "declaration": true,
-    "sourceMap": true,
-    "outDir": "dist"
-  },
-  "include": ["src/**/*.ts", "tests/**/*.ts", "types/**/*.ts"],
+  "extends": "./tsconfig.base.json",
+  "include": ["src/types/**/*.*", "src/**/*.*", "tests/**/*.ts"],
   "exclude": ["node_modules", "build", "dist", "ptau"]
 }

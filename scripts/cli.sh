@@ -4,7 +4,7 @@ cd "${0%/*}"/.. # get to project root
 set -e # abort on error
 
 # load CLI environment variables
-source ./.cli.env
+source ./circomkit.env
 
 # check validness of variables
 valid_proof_systems=("groth16" "plonk" "fflonk")
@@ -89,13 +89,13 @@ case $FUNC in
     calldata $CIRCUIT $INPUT
     ;;
   compile) 
-    instantiate $CIRCUIT $CIRCOMKIT_DIRECTORY && compile $CIRCUIT $CIRCOMKIT_DIRECTORY
+    instantiate $CIRCUIT && compile $CIRCUIT
     ;;
   debug) 
     debug $CIRCUIT $INPUT
     ;;
   instantiate) 
-    instantiate $CIRCUIT $CIRCOMKIT_DIRECTORY
+    instantiate $CIRCUIT
     ;;
   type) 
     type $CIRCUIT
@@ -104,7 +104,7 @@ case $FUNC in
     setup $CIRCUIT $P1_PTAU $NUM_CONTRIBS
     ;;
   keygen) 
-    compile $CIRCUIT $CIRCOMKIT_DIRECTORY && setup $CIRCUIT $P1_PTAU $NUM_CONTRIBS
+    compile $CIRCUIT && setup $CIRCUIT $P1_PTAU $NUM_CONTRIBS
     ;;
   prove) 
     witness $CIRCUIT $INPUT && prove $CIRCUIT $INPUT
