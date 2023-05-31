@@ -44,27 +44,27 @@ Using Circomkit is easy:
 
 1. Install [Circom](https://docs.circom.io/getting-started/installation/).
 2. Clone this repo (or use it as a template) and install packages (`yarn` or `npm install`).
-3. Write your circuit templates under the `circuits` folder. Your circuit code itself should be templates only; Circomkit programmatically generates the `main` component
-4. Write your tests under the `tests` folder.
-5. Once you are ready, write the circuit config in [`circuit.config.ts`](./circuit.config.ts).
+3. Write your circuit templates under the [circuits](./circuits/) folder. Your circuit code itself should be templates only; Circomkit programmatically generates the `main` component
+4. Write your tests under the [tests](./tests/) folder.
+5. Once you are ready, write the circuit configurations at [circuits.json](./circuits.json).
 6. Use NPM scripts (`yarn <script>` or `npm run <script>`) to compile your circuit, build keys, generate & verify proofs and much more!
 
 A circuit config looks like this:
 
 ```js
-sudoku_4x4: { // the key is <circuit-name>
-  file: 'sudoku', // file name (circuits/sudoku.circom)
-  template: 'Sudoku', // template name
-  pubs: ['puzzle'], // public signals
-  params: [Math.sqrt(4)], // template parameters
-  dir: "main" // output directory for main component
+// the key is <circuit-name>
+sudoku_4x4: {
+  file:      'sudoku',       // file name (circuits/sudoku.circom)
+  template: 'Sudoku',       // template name
+  pubs:     ['puzzle'],     // public signals
+  params:   [Math.sqrt(4)], // template parameters
 },
 ```
 
-You can omit `pubs`, `params` and `dir` options, they have defaults. Afterwards, you can use the following commands:
+You can omit `pubs` and `params` options, they default to `[]`. Afterwards, you can use the following commands:
 
 ```bash
-# Compile the circuit (generates the main component too)
+# Compile the circuit (generates the main component & compiles it)
 yarn compile circuit-name
 
 # Circuit setup
@@ -83,7 +83,7 @@ yarn clean circuit-name
 yarn instantiate circuit-name
 ```
 
-You can change some general settings such as the configured proof system or the prime field under [`.cli.env`](./.cli.env).
+You can change some general settings such as the configured proof system or the prime field under [circomkit.env](./circomkit.env).
 
 ### Working with Input Signals
 
@@ -166,7 +166,7 @@ With the circuit object, we can do the following:
 - `circuit.expectCorrectAssert(input)` to test whether the circuit assertions pass for some given input
 - `circuit.expectFailedAssert(input)` to test whether the circuit assertions pass for some given input
 
-#### Witnes
+#### Witness
 
 What if we would just like to see what the output is, instead of comparing it to some witness? Well, that would be a trouble because we would have to parse the witness array (which is huge for some circuits) with respect to which signals the output signals correspond to. Thankfully, Circomkit has a function for that:
 
@@ -179,6 +179,17 @@ const output = await circuit.compute(INPUT, ['foo', 'bar']);
 ```
 
 Note that this operation requires parsing the symbols file (`.sym`) and reading the witness array, which may be costly for large circuits. Most of the time, you won't need this for testing; instead, you will likely use it to see what the circuit actually does for debugging.
+
+On top of these, you can create a fake witness by overriding symbols in the witness. This is useful in case you think there is a soundness error and would like to try and generate an adversarial witness.
+
+```ts
+// correct witness
+const witness = await circuit.calculateWitness(INPUT);
+// faked witness
+const fakeWitness = await circuit.fakeWitness(witness, {
+  'symbol-names-here': 42n,
+});
+```
 
 #### Multiple templates
 
@@ -241,8 +252,8 @@ The repository follows an _opinionated file structure_ shown below, abstracting 
 
 ```sh
 circomkit
-├── circuit.config.cjs # configs for circuit main components
-├── .cli.env # environment variables for cli
+├── circuits.json # configs for circuit main components
+├── circomkit.env # environment variables for cli
 ├── circuits # where you write templates
 │   ├── main # auto-generated main components
 │   │   │── sudoku_9x9.circom # e.g. a 9x9 sudoku board

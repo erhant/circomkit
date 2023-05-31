@@ -11,7 +11,7 @@ export type CircomWasmTester = {
   assertOut: (actualOut: WitnessType, expectedOut: CircuitSignals) => Promise<void>;
   calculateWitness: (input: CircuitSignals, sanityCheck: boolean) => Promise<WitnessType>;
   loadConstraints: () => Promise<void>;
-  constraints: any[] | undefined;
+  constraints: unknown[] | undefined;
   loadSymbols: () => Promise<void>;
   symbols: SymbolsType | undefined;
   getDecoratedOutput: (witness: WitnessType) => Promise<string>;

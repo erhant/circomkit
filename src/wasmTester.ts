@@ -21,7 +21,7 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
   /**
    * List of constraints, must call `loadConstraints` before accessing this key
    */
-  constraints: any[] | undefined;
+  constraints: unknown[] | undefined;
 
   constructor(circomWasmTester: CircomWasmTester) {
     this.circomWasmTester = circomWasmTester;
@@ -46,10 +46,10 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
 
   /**
    * Compute witness given the input signals.
-   * @param input all signals, private and public.
-   * @param sanityCheck check if input signals are sanitized
+   * @param input all signals, private and public
+   * @param sanityCheck check if input signals are sanitized, defaults to `true`
    */
-  calculateWitness(input: CircuitSignals<IN>, sanityCheck: boolean): Promise<WitnessType> {
+  calculateWitness(input: CircuitSignals<IN>, sanityCheck = true): Promise<WitnessType> {
     return this.circomWasmTester.calculateWitness(input, sanityCheck);
   }
 
@@ -125,7 +125,7 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
    * @param input bad input
    */
   async expectFailedAssert(input: CircuitSignals<IN>) {
-    await this.calculateWitness(input, true).then(
+    await this.calculateWitness(input).then(
       () => assert.fail(),
       err => expect(err.message.slice(0, 21)).to.eq('Error: Assert Failed.')
     );
@@ -137,7 +137,7 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
    * @param output expected output, if `undefined` it will only check constraints
    */
   async expectCorrectAssert(input: CircuitSignals<IN>, output?: CircuitSignals<OUT>) {
-    const witness = await this.calculateWitness(input, true);
+    const witness = await this.calculateWitness(input);
     await this.checkConstraints(witness);
     if (output) {
       await this.assertOut(witness, output);
@@ -161,7 +161,7 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
    */
   async compute(input: CircuitSignals<IN>, outputSignals: OUT): Promise<CircuitSignals<typeof outputSignals>> {
     // compute witness & check constraints
-    const witness = await this.calculateWitness(input, true);
+    const witness = await this.calculateWitness(input);
     await this.checkConstraints(witness);
 
     // get symbols of main component

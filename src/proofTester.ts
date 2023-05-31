@@ -17,7 +17,7 @@ export default class ProofTester<IN extends string[] = []> {
   private readonly wasmPath: string;
   private readonly proverKeyPath: string;
   private readonly verificationKeyPath: string;
-  private readonly verificationKey: any;
+  private readonly verificationKey: unknown & {protocol: ProofSystem};
 
   /**
    * Sets the paths & loads the verification key. The underlying proof system is checked by looking
@@ -42,10 +42,11 @@ export default class ProofTester<IN extends string[] = []> {
     ) as typeof this.verificationKey;
 
     // check proof system
-    if (!PROOF_SYSTEMS.includes(this.verificationKey.protocol)) {
-      throw new Error('Unknown protocol in verification key: ' + this.verificationKey.protocol);
+    const protocol = this.verificationKey.protocol;
+    if (!PROOF_SYSTEMS.includes(protocol)) {
+      throw new Error('Unknown protocol in verification key: ' + protocol);
     }
-    this.protocol = this.verificationKey.protocol;
+    this.protocol = protocol;
   }
 
   /**
