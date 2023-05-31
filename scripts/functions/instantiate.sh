@@ -13,11 +13,10 @@ instantiate() {
 
   # create JSON object
   local JSON_IN="{\"version\":\"${CIRCOMKIT_VERSION}\",$MATCH}"
-  echo $JSON_IN
 
   # generate the circuit main component
   local OUTDIR="./circuits/main/$CIRCUIT.circom"
-  #npx ejs ./ejs/template.circom -i $JSON_IN -o $OUTDIR
+  npx ejs ./ejs/template.circom -i $JSON_IN -o $OUTDIR
 
   echo -e "${CIRCOMKIT_COLOR_LOG}Done!${CIRCOMKIT_COLOR_RESET}"
 }
