@@ -7,6 +7,14 @@
   "engines": {
     "node": ">=12.0.0"
   },
+  "files": [
+    "dist"
+  ],
+  "bin": {
+    "circomkit": "dist/bin/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "repository": {
     "type": "git",
     "url": "https://github.com/erhant/circomkit.git"
@@ -17,6 +25,8 @@
   "scripts": {
     "build": "yarn build:clean && npx tsc -p tsconfig.build.json",
     "build:clean": "rimraf dist/",
+    "build:copy": "copyfiles bin/* bin/**/* dist",
+    "prepublish": "yarn build",
     "test:all": "npx mocha",
     "test": "npx mocha --grep",
     "lint": "npx gts lint",
@@ -41,6 +51,7 @@
     "@types/ejs": "^3.1.2",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.11.18",
+    "copyfiles": "^2.4.1",
     "gts": "^3.1.1",
     "mocha": "^10.2.0",
     "rimraf": "^5.0.1",

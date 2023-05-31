@@ -1,8 +1,7 @@
-import WasmTester from '../src/wasmTester';
+import {WasmTester} from '../src';
 
 describe('fibonacci', () => {
   let circuit: WasmTester<['in'], ['out']>;
-
   const N = 19;
 
   before(async () => {

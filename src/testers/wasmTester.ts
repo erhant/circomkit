@@ -1,8 +1,8 @@
 const wasm_tester = require('circom_tester').wasm;
-import type {WitnessType, CircuitSignals, SymbolsType, SignalValueType, CircuitConfig} from './types/circuit';
-import type {CircomWasmTester} from './types/wasmTester';
+import type {WitnessType, CircuitSignals, SymbolsType, SignalValueType, CircuitConfig} from '../types/circuit';
+import type {CircomWasmTester} from '../types/wasmTester';
 import {assert, expect} from 'chai';
-import instantiate from './instantiate';
+import instantiate from '../utils/instantiate';
 
 /**
  A utility class to test your circuits. Use `expectFailedAssert` and `expectCorrectAssert` to test out evaluations

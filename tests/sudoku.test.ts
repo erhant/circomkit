@@ -1,5 +1,4 @@
-import {CircuitSignals} from '../src/types/circuit';
-import WasmTester from '../src/wasmTester';
+import {WasmTester, CircuitSignals} from '../src';
 
 type BoardSizes = 4 | 9;
 

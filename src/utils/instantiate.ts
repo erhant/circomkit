@@ -1,4 +1,4 @@
-import type {CircuitConfig} from './types/circuit';
+import type {CircuitConfig} from '../types/circuit';
 import ejs from 'ejs';
 import {writeFileSync, existsSync, mkdirSync} from 'fs';
 

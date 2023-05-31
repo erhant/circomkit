@@ -79,7 +79,7 @@ CIRCUIT=$(basename $CIRCUIT .circom)
 INPUT=$(basename $INPUT .json)
 
 case $FUNC in
-  clean) 
+  clean)
     clean $CIRCUIT
     ;;
   contract) 

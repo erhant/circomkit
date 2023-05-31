@@ -1,6 +1,4 @@
-import WasmTester from '../src/wasmTester';
-import ProofTester from '../src/proofTester';
-import type {FullProof} from '../src/types/circuit';
+import {ProofTester, WasmTester, FullProof} from '../src';
 
 describe('multiplier', () => {
   let circuit: WasmTester<['in'], ['out']>;

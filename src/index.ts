@@ -1,5 +1,6 @@
-import ProofTester from './proofTester';
-import WasmTester from './wasmTester';
-import instantiate from './instantiate';
+import ProofTester from './testers/proofTester';
+import WasmTester from './testers/wasmTester';
+import instantiate from './utils/instantiate';
+export * from './types/circuit';
 
 export {ProofTester, WasmTester, instantiate};
