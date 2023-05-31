@@ -1,5 +1,5 @@
 import {expect} from 'chai';
-import WasmTester from '../utils/wasmTester';
+import WasmTester from '../src/wasmTester';
 import {randomBytes} from 'crypto';
 import {createHash} from 'crypto';
 

@@ -3,6 +3,6 @@ node_modules
 ptau
 circuits
 inputs
-scripts
+dist
 .vscode
 .github

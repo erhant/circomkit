@@ -31,7 +31,7 @@
 
 - [x] **Programmable Circuits**: The `main` component is created & compiled programmatically.
 - [x] **Simple CLI**: A straightforward CLI is provided as a wrapper around SnarkJS commands, exposed via NPM scripts!
-- [x] **Easily Configurable**: A single `.env` file stores the general configuration settings.
+- [x] **Easily Configurable**: A single `circomkit.env` file stores the general configuration settings.
 - [x] **Constraint Testing**: You can test computations & assertions for every template in a circuit, with minimal code-repetition.
 - [x] **Proof Testing**: With prover & verification keys and the WASM circuit, you can test proof generation & verification.
 - [x] **Witness Manipulation**: You can parse the output from a witness, and furthermore create fake witnesses to try and fool the verifier.

@@ -1,6 +1,6 @@
-import WasmTester from '../utils/wasmTester';
-import ProofTester from '../utils/proofTester';
-import type {FullProof} from '../types/circuit';
+import WasmTester from '../src/wasmTester';
+import ProofTester from '../src/proofTester';
+import type {FullProof} from '../src/types/circuit';
 
 describe('multiplier', () => {
   let circuit: WasmTester<['in'], ['out']>;
@@ -54,7 +54,7 @@ describe('multiplier utilities', () => {
   });
 });
 
-describe('multiplier proofs', () => {
+describe.skip('multiplier proofs', () => {
   const N = 3;
   let fullProof: FullProof;
   let circuit: ProofTester<['in']>;

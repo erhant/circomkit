@@ -1,4 +1,4 @@
-import WasmTester from '../utils/wasmTester';
+import WasmTester from '../src/wasmTester';
 
 // tests adapted from https://github.com/rdi-berkeley/zkp-mooc-lab
 

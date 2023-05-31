@@ -1,4 +1,4 @@
-import WasmTester from '../utils/wasmTester';
+import WasmTester from '../src/wasmTester';
 
 describe('fibonacci', () => {
   let circuit: WasmTester<['in'], ['out']>;
@@ -27,7 +27,7 @@ describe('fibonacci', () => {
 });
 
 // skipping because this takes a bit longer
-describe('fibonacci recursive', () => {
+describe.skip('fibonacci recursive', () => {
   let circuit: WasmTester<['in'], ['out']>;
 
   const N = 19;

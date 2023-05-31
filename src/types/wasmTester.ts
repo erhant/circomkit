@@ -1,4 +1,4 @@
-import {WitnessType, CircuitSignals, SymbolsType} from './circuit';
+import type {WitnessType, CircuitSignals, SymbolsType} from './circuit';
 
 /**
  * A simple type-wrapper for `circom_tester` WASM tester class.

@@ -1,8 +1,11 @@
 import fs from 'fs';
 const snarkjs = require('snarkjs');
 import {expect} from 'chai';
-import type {CircuitSignals, FullProof, ProofSystem} from '../types/circuit';
+import type {CircuitSignals, FullProof, ProofSystem} from './types/circuit';
 
+/**
+ * Allowed proof systems as defined in SnarkJS.
+ */
 const PROOF_SYSTEMS = ['groth16', 'plonk', 'fflonk'] as const;
 
 /**
