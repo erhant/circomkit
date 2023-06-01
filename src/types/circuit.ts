@@ -58,8 +58,10 @@ export type CircuitConfig = {
   file: string;
   /** The template name to instantiate */
   template: string;
-  /** Directory to read the file, defaults to `test` */
+  /** Directory to instantiate at */
   dir?: string;
+  /** Target version */
+  version?: `${number}.${number}.${number}`;
   /** An array of public input signal names, defaults to `[]` */
   pubs?: string[];
   /** An array of template parameters, defaults to `[]` */
