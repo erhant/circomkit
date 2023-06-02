@@ -1,6 +1,6 @@
 {
   "name": "circomkit",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A Circom development environment",
   "author": "erhant",
   "license": "MIT",
@@ -13,6 +13,7 @@
   "bin": "dist/bin/index.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "homepage": "https://github.com/erhant/circomkit",
   "repository": {
     "type": "git",
     "url": "https://github.com/erhant/circomkit.git"
@@ -65,7 +66,7 @@
     "ejs": "^3.1.9"
   },
   "peerDependencies": {
-    "snarkjs": "^0.6.0",
-    "chai": "^4.3.7"
+    "chai": "^4.3.7",
+    "snarkjs": "^0.6.0"
   }
 }
