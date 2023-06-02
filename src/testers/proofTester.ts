@@ -1,11 +1,9 @@
-import fs from 'fs';
+import {readFileSync, existsSync} from 'fs';
 const snarkjs = require('snarkjs');
 import {expect} from 'chai';
 import type {CircuitSignals, FullProof, ProofSystem} from '../types/circuit';
 
-/**
- * Allowed proof systems as defined in SnarkJS.
- */
+/** Allowed proof systems as defined in SnarkJS. */
 const PROOF_SYSTEMS = ['groth16', 'plonk', 'fflonk'] as const;
 
 /**
@@ -31,15 +29,13 @@ export default class ProofTester<IN extends string[] = []> {
     this.verificationKeyPath = `./build/${circuit}/verification_key.json`;
 
     // ensure that paths exist
-    const missing = [this.wasmPath, this.proverKeyPath, this.verificationKeyPath].filter(p => !fs.existsSync(p));
+    const missing = [this.wasmPath, this.proverKeyPath, this.verificationKeyPath].filter(p => !existsSync(p));
     if (missing.length !== 0) {
       throw new Error('Missing files for' + circuit + ':\n' + missing.join('\n'));
     }
 
     // load verification key
-    this.verificationKey = JSON.parse(
-      fs.readFileSync(this.verificationKeyPath).toString()
-    ) as typeof this.verificationKey;
+    this.verificationKey = JSON.parse(readFileSync(this.verificationKeyPath).toString()) as typeof this.verificationKey;
 
     // check proof system
     const protocol = this.verificationKey.protocol;

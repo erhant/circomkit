@@ -10,9 +10,7 @@
   "files": [
     "dist"
   ],
-  "bin": {
-    "circomkit": "dist/bin/index.js"
-  },
+  "bin": "dist/bin/index.js",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": {
@@ -27,6 +25,7 @@
     "build:clean": "rimraf dist/",
     "build:copy": "copyfiles bin/* bin/**/* dist",
     "prepublish": "yarn build",
+    "cli": "yarn build && node ./dist/bin",
     "test:all": "npx mocha",
     "test": "npx mocha --grep",
     "lint": "npx gts lint",
@@ -62,11 +61,11 @@
     "circomlib": "^2.0.5"
   },
   "dependencies": {
-    "chai": "^4.3.7",
     "circom_tester": "^0.0.19",
     "ejs": "^3.1.9"
   },
   "peerDependencies": {
-    "snarkjs": "^0.6.0"
+    "snarkjs": "^0.6.0",
+    "chai": "^4.3.7"
   }
 }
