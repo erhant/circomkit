@@ -6,6 +6,8 @@ export type CircomkitConfig = {
   proofSystem: 'groth16' | 'plonk';
   /** Curve to be used, which defines the underlying prime field. */
   curve: 'bn128' | 'bls12381' | 'goldilocks';
+  /** Directory to download PTAU files. */
+  ptauDir: string;
   /** Version number for main components. */
   version: VersionType;
   /** Hide Circomkit logs */
@@ -33,20 +35,5 @@ export type CircomkitConfig = {
   };
 };
 
-export const defaultConfig: Readonly<CircomkitConfig> = {
-  proofSystem: 'plonk',
-  curve: 'bn128',
-  version: '2.1.0',
-  silent: false,
-  colors: {
-    title: '\x1b[0;34m', // blue
-    log: '\x1b[2;37m', // gray
-    error: '\x1b[0;31m', // red
-  },
-  compiler: {
-    optimization: 0,
-    verbose: false,
-    json: false,
-    include: ['./node_modules'],
-  },
-};
+export type CircuitPathBuilders = 'target' | 'sym' | 'pkey' | 'vkey' | 'wasm' | 'sol' | 'dir' | 'r1cs';
+export type CircuitInputPathBuilders = 'pubs' | 'proof' | 'wtns' | 'in' | 'dir';

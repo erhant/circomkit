@@ -1,5 +1,3 @@
-> Work in progress...
-
 <p align="center">
   <h1 align="center">
     Circomkit
@@ -10,6 +8,9 @@
 <p align="center">
     <a href="https://opensource.org/licenses/MIT" target="_blank">
         <img src="https://img.shields.io/badge/license-MIT-yellow.svg">
+    </a>
+     <a href="https://www.npmjs.com/package/circomkit" target="_blank">
+        <img alt="NPM" src="https://img.shields.io/npm/v/circomkit?logo=npm&color=CB3837">
     </a>
     <a href="./.github/workflows/styles.yml" target="_blank">
         <img alt="Workflow: Styles" src="https://github.com/erhant/circomkit/actions/workflows/styles.yml/badge.svg?branch=main">
