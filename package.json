@@ -1,6 +1,6 @@
 {
   "name": "circomkit",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A Circom development environment",
   "author": "erhant",
   "license": "MIT",
@@ -24,7 +24,6 @@
   "scripts": {
     "build": "yarn build:clean && npx tsc -p tsconfig.build.json",
     "build:clean": "rimraf dist/",
-    "build:copy": "copyfiles bin/* bin/**/* dist",
     "prepublish": "yarn build",
     "cli": "yarn build && node ./dist/bin",
     "test:all": "npx mocha",
@@ -48,10 +47,8 @@
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
-    "@types/ejs": "^3.1.2",
     "@types/mocha": "^10.0.1",
     "@types/node": "^18.11.18",
-    "copyfiles": "^2.4.1",
     "gts": "^3.1.1",
     "mocha": "^10.2.0",
     "rimraf": "^5.0.1",
@@ -70,11 +67,11 @@
     "circom",
     "zk",
     "zero knowledge",
+    "zero-knowledge",
     "snarkjs",
     "typescript",
     "cli",
     "tooling",
-    "blockchain",
-    "ethereum"
+    "blockchain"
   ]
 }
