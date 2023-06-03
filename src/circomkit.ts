@@ -2,7 +2,7 @@ const snarkjs = require('snarkjs');
 const wasm_tester = require('circom_tester').wasm;
 import {writeFileSync, readFileSync, existsSync, mkdirSync} from 'fs';
 import {readFile, rm, writeFile} from 'fs/promises';
-import instantiate from './utils/instantiate';
+import {instantiate} from './utils/instantiate';
 import {downloadPtau, getPtauName} from './utils/ptau';
 import type {CircuitConfig, R1CSInfoType} from './types/circuit';
 import type {CircomkitConfig, CircuitInputPathBuilders, CircuitPathBuilders} from './types/circomkit';
@@ -13,7 +13,13 @@ const defaultConfig: Readonly<CircomkitConfig> = {
   curve: 'bn128',
   version: '2.1.0',
   silent: false,
-  ptauDir: './ptau',
+  dirs: {
+    ptau: './ptau',
+    circuits: './circuits',
+    inputs: './inputs',
+    main: 'main',
+    build: './build',
+  },
   compiler: {
     optimization: 0,
     verbose: false,
@@ -21,10 +27,10 @@ const defaultConfig: Readonly<CircomkitConfig> = {
     include: ['./node_modules'],
   },
   colors: {
-    title: '\x1b[0;34m', // blue
-    log: '\x1b[2;37m', // gray
-    error: '\x1b[0;31m', // red
-    success: '\x1b[0;32m', // green
+    title: '\u001b[0;34m', // blue
+    log: '\u001b[2;37m', // gray
+    error: '\u001b[0;31m', // red
+    success: '\u001b[0;32m', // green
   },
 };
 
@@ -78,12 +84,12 @@ export class Circomkit {
    * @returns path
    */
   private path(circuit: string, type: CircuitPathBuilders): string {
-    const dir = `./build/${circuit}`;
+    const dir = `${this.config.dirs.build}/${circuit}`;
     switch (type) {
       case 'dir':
         return dir;
       case 'target':
-        return `./circuits/main/${circuit}.circom`;
+        return `${this.config.dirs.circuits}/${this.config.dirs.main}/${circuit}.circom`;
       case 'pkey':
         return `${dir}/prover_key.zkey`;
       case 'vkey':
@@ -109,7 +115,7 @@ export class Circomkit {
    * @returns path
    */
   private path2(circuit: string, input: string, type: CircuitInputPathBuilders): string {
-    const dir = `./build/${circuit}/${input}`;
+    const dir = `${this.config.dirs.build}/${circuit}/${input}`;
     switch (type) {
       case 'dir':
         return dir;
@@ -120,7 +126,7 @@ export class Circomkit {
       case 'wtns':
         return `${dir}/witness.wtns`;
       case 'in':
-        return `./inputs/${circuit}/${input}.json`;
+        return `${this.config.dirs.inputs}/${circuit}/${input}.json`;
       default:
         throw new Error('Invalid type: ' + type);
     }
@@ -153,12 +159,12 @@ export class Circomkit {
     const ptauName = getPtauName(constraints);
 
     // return if ptau exists already
-    const ptauPath = `${this.config.ptauDir}/${ptauName}`;
+    const ptauPath = `${this.config.dirs.ptau}/${ptauName}`;
     if (existsSync(ptauPath)) {
       return ptauPath;
     } else {
       this.log('Downloading ' + ptauName + '...');
-      return await downloadPtau(ptauName, this.config.ptauDir);
+      return await downloadPtau(ptauName, this.config.dirs.ptau);
     }
   }
 
@@ -193,7 +199,9 @@ export class Circomkit {
     return outDir;
   }
 
-  /** Exports a solidity contract for the verifier. */
+  /** Exports a solidity contract for the verifier.
+   * @returns path to exported Solidity contract
+   */
   async contract(circuit: string) {
     const pkey = this.path(circuit, 'pkey');
     const template = readFileSync(
@@ -209,7 +217,9 @@ export class Circomkit {
     return contractPath;
   }
 
-  /** Export calldata to console. */
+  /** Export calldata to console.
+   * @returns calldata as a string
+   */
   async calldata(circuit: string, input: string) {
     const [pubs, proof] = (
       await Promise.all(
@@ -219,18 +229,22 @@ export class Circomkit {
     return await snarkjs[this.config.proofSystem].exportSolidityCallData(proof, pubs);
   }
 
-  /** Instantiate the `main` component. */
+  /** Instantiate the `main` component.
+   * @returns path to created main component
+   */
   instantiate(circuit: string) {
     const circuitConfig = this.readCircuitConfig(circuit);
     const target = instantiate(circuit, {
       ...circuitConfig,
-      dir: 'main',
+      dir: this.config.dirs.main,
       version: this.config.version,
     });
     return target;
   }
 
-  /** Generate a proof. */
+  /** Generate a proof.
+   * @returns path to directory where public signals and proof are created
+   */
   async prove(circuit: string, input: string) {
     const jsonInput = JSON.parse(readFileSync(this.path2(circuit, input, 'in'), 'utf-8'));
     const fullProof = await snarkjs[this.config.proofSystem].fullProve(
@@ -248,7 +262,9 @@ export class Circomkit {
     return dir;
   }
 
-  /** Commence a circuit-specific setup. */
+  /** Commence a circuit-specific setup.
+   * @returns path to prover key
+   */
   async setup(circuit: string) {
     const r1csPath = this.path(circuit, 'r1cs');
     const pkeyPath = this.path(circuit, 'pkey');
@@ -265,7 +281,7 @@ export class Circomkit {
     const ptau = await this.ptau(circuit);
 
     // circuit specific setup
-    if (this.config.proofSystem === 'plonk' || this.config.proofSystem === 'fflonk') {
+    if (this.config.proofSystem === 'plonk') {
       await snarkjs.plonk.setup(this.path(circuit, 'r1cs'), ptau, pkeyPath);
     } else {
       throw new Error('Not implemented.');

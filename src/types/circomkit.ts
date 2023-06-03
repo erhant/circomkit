@@ -3,11 +3,22 @@ type VersionType = `${number}.${number}.${number}`;
 
 export type CircomkitConfig = {
   /** Proof system to be used. */
-  proofSystem: 'groth16' | 'plonk' | 'fflonk';
+  proofSystem: 'groth16' | 'plonk';
   /** Curve to be used, which defines the underlying prime field. */
   curve: 'bn128' | 'bls12381' | 'goldilocks';
-  /** Directory to download PTAU files. */
-  ptauDir: string;
+  /** Directory overrides, it is best you leave this as is. */
+  dirs: {
+    /** Directory to read circuits from. */
+    circuits: string;
+    /** Folder name to output the main component under `circuits` directory. */
+    main: string;
+    /** Directory to read inputs from. */
+    inputs: string;
+    /** Directory to download PTAU files. */
+    ptau: string;
+    /** Directory to output circuit build files. */
+    build: string;
+  };
   /** Version number for main components. */
   version: VersionType;
   /** Hide Circomkit logs */

@@ -1,21 +1,22 @@
 import {readFileSync, existsSync} from 'fs';
 const snarkjs = require('snarkjs');
 import {expect} from 'chai';
-import type {CircuitSignals, FullProof, ProofSystem} from '../types/circuit';
+import type {CircuitSignals, FullProof} from '../types/circuit';
 
 /** Allowed proof systems as defined in SnarkJS. */
-const PROOF_SYSTEMS = ['groth16', 'plonk', 'fflonk'] as const;
+const PROOF_SYSTEMS = ['groth16', 'plonk'] as const;
 
 /**
  * A more extensive Circuit class, able to generate proofs & verify them.
  * Assumes that prover key and verifier key have been computed.
  */
 export default class ProofTester<IN extends string[] = []> {
-  public readonly protocol: ProofSystem;
+  public readonly protocol: 'groth16' | 'plonk';
   private readonly wasmPath: string;
   private readonly proverKeyPath: string;
   private readonly verificationKeyPath: string;
-  private readonly verificationKey: unknown & {protocol: ProofSystem};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private readonly verificationKey: any;
 
   /**
    * Sets the paths & loads the verification key. The underlying proof system is checked by looking

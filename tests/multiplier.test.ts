@@ -1,4 +1,4 @@
-import {ProofTester, WasmTester} from '../src';
+import {FullProof, ProofTester, WasmTester} from '../src';
 
 describe('multiplier', () => {
   const N = 3;
@@ -42,7 +42,7 @@ describe('multiplier utilities', () => {
 
 describe.skip('multiplier proofs', () => {
   const N = 3;
-  let fullProof: any;
+  let fullProof: FullProof;
   let circuit: ProofTester<['in']>;
   before(async () => {
     const circuitName = 'multiplier_' + N;

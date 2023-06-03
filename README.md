@@ -2,7 +2,7 @@
   <h1 align="center">
     Circomkit
   </h1>
-  <p align="center"><i>A simple-to-use Circom & SnarkJS circuit development & testing environment.</i></p>
+  <p align="center"><i>A simple-to-use & opinionated circuit development & testing toolkit.</i></p>
 </p>
 
 <p align="center">
@@ -15,14 +15,8 @@
     <a href="./.github/workflows/styles.yml" target="_blank">
         <img alt="Workflow: Styles" src="https://github.com/erhant/circomkit/actions/workflows/styles.yml/badge.svg?branch=main">
     </a>
-    <a href="https://mochajs.org/" target="_blank">
-        <img alt="Test Suite: Mocha" src="https://img.shields.io/badge/tester-mocha-8D6748?logo=Mocha">
-    </a>
-    <a href="https://eslint.org/" target="_blank">
-        <img alt="Linter: ESLint" src="https://img.shields.io/badge/linter-eslint-8080f2?logo=eslint">
-    </a>
-    <a href="https://prettier.io/" target="_blank">
-        <img alt="Formatter: Prettier" src="https://img.shields.io/badge/formatter-prettier-f8bc45?logo=prettier">
+    <a href="./.github/workflows/build.yml" target="_blank">
+        <img alt="Workflow: Build" src="https://github.com/erhant/circomkit/actions/workflows/build.yml/badge.svg?branch=main">
     </a>
     <a href="https://github.com/iden3/snarkjs" target="_blank">
         <img alt="GitHub: SnarkJS" src="https://img.shields.io/badge/github-snarkjs-lightgray?logo=github">
@@ -68,22 +62,19 @@ You can omit `pubs` and `params` options, they default to `[]`. Afterwards, you 
 
 ```bash
 # Compile the circuit (generates the main component & compiles it)
-yarn compile circuit-name
+npx circomkit compile circuit-name
 
 # Circuit setup
-yarn setup circuit-name -p phase1-ptau-path [-n num-contribs (default: 1)]
-
-# Shorthand for `compile` and then `setup`
-yarn keygen circuit-name -p phase1-ptau-path [-n num-contribs (default: 1)]
+npx circomkit setup circuit-name -p phase1-ptau-path
 
 # Create a Solidity verifier contract
-yarn contract circuit-name
+npx circomkit contract circuit-name
 
 # Clean circuit artifacts
-yarn clean circuit-name
+npx circomkit clean circuit-name
 
 # Generate the `main` component without compiling it afterwards
-yarn instantiate circuit-name
+npx circomkit instantiate circuit-name
 ```
 
 You can change some general settings such as the configured proof system or the prime field under [circomkit.env](./circomkit.env).
@@ -94,34 +85,20 @@ Some actions such as generating a witness, generating a proof and verifying a pr
 
 ```bash
 # Generate a witness for some input
-yarn witness circuit-name [-i input-name (default: "default")]
+npx circomkit witness circuit-name [-i input-name (default: "default")]
 
 # Generate a proof for some input
-yarn prove circuit-name [-i input-name (default: "default")]
+npx circomkit prove circuit-name [-i input-name (default: "default")]
 
 # Verify a proof for some input (public signals only)
-yarn verify circuit-name [-i input-name (default: "default")]
+npx circomkit verify circuit-name [-i input-name (default: "default")]
 
 # Debug a witness of some input
-yarn debug circuit-name [-i input-name (default: "default")]
+npx circomkit debug circuit-name input-name
 
 # Export calldata to call your Solidity verifier contract
-yarn calldata circuit-name [-i input-name (default: "default")]
+npx circomkit calldata circuit-name [-i input-name (default: "default")]
 ```
-
-## Testing
-
-To run tests do the following:
-
-```bash
-# test a specific circuit
-yarn test <circuit-name>
-
-# test all circuits
-yarn test:all
-```
-
-You can test both witness calculations and proof generation & verification. We describe both in their respective sections, going over an example of "Multiplication" circuit.
 
 ### Example Circuits
 
@@ -290,6 +267,20 @@ circomkit
     │   └── verification_key.json
     └── ...
 ```
+
+## Testing
+
+To run tests do the following:
+
+```bash
+# test a specific circuit
+yarn test <circuit-name>
+
+# test all circuits
+yarn test:all
+```
+
+You can test both witness calculations and proof generation & verification. We describe both in their respective sections, going over an example of "Multiplication" circuit.
 
 ## Styling
 

@@ -36,9 +36,6 @@ export type FullProof = {
   publicSignals: string[];
 };
 
-/** Proof system to be used by SnarkJS. */
-export type ProofSystem = 'groth16' | 'plonk' | 'fflonk';
-
 /** A configuration object for circuit main components. */
 export type CircuitConfig = {
   /** File to read the template from */

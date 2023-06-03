@@ -5,7 +5,6 @@ import {initFiles} from '../utils/initFiles';
 
 const CONFIG_PATH = './circomkit.json';
 const DEFAULT_INPUT = 'default';
-const DEFAULT_PTAU = './ptau/powersOfTau28_hez_final_12.ptau';
 const USAGE = `Usage:
 
   Compile the circuit.
@@ -20,6 +19,12 @@ const USAGE = `Usage:
   Export Solidity verifier.
     contract circuit
   
+  Commence circuit-specific setup.
+    setup circuit
+  
+  Download the PTAU file needed for the circuit.
+    ptau circuit
+  
   Export calldata for a verifier contract.
     contract circuit input
 
@@ -31,9 +36,6 @@ const USAGE = `Usage:
 
   Generate a witness.
     witness circuit input
-  
-  Commence circuit-specific setup.
-    setup circuit ptau-path
   
   Initialize a Circomkit project.
     init [name]
@@ -151,6 +153,8 @@ async function cli(): Promise<number> {
           }
         })
       );
+
+      circomkit.log('Circomkit project created!', 'success');
       break;
     }
 

@@ -18,7 +18,7 @@ component main${config.pubs.length === 0 ? '' : ' {public[' + config.pubs.join('
  * @param circuitConfig circuit configuration
  * @return path to the created file
  */
-export default function instantiate(name: string, circuitConfig: CircuitConfig): string {
+export function instantiate(name: string, circuitConfig: CircuitConfig): string {
   // directory to output the file
   const directory = circuitConfig.dir || 'test';
 
