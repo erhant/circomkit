@@ -1,5 +1,4 @@
-import {CircuitSignals} from '../src/types/circuit';
-import WasmTester from '../src/wasmTester';
+import {WasmTester, CircuitSignals} from '../src';
 
 type BoardSizes = 4 | 9;
 
@@ -60,37 +59,37 @@ const INPUTS: {[N in BoardSizes]: CircuitSignals<['solution', 'puzzle']>} = {
     });
 
     it('should compute correctly', async () => {
-      await circuit.expectCorrectAssert(INPUT);
+      await circuit.expectPass(INPUT);
     });
 
     it('should NOT accept non-distinct rows', async () => {
       const badInput = JSON.parse(JSON.stringify(INPUT));
       badInput.solution[0][0] = badInput.solution[0][1];
-      await circuit.expectFailedAssert(badInput);
+      await circuit.expectFail(badInput);
     });
 
     it('should NOT accept non-distinct columns', async () => {
       const badInput = JSON.parse(JSON.stringify(INPUT));
       badInput.solution[0][0] = badInput.solution[1][0];
-      await circuit.expectFailedAssert(badInput);
+      await circuit.expectFail(badInput);
     });
 
     it('should NOT accept non-distinct square', async () => {
       const badInput = JSON.parse(JSON.stringify(INPUT));
       badInput.solution[0][0] = badInput.solution[1][1];
-      await circuit.expectFailedAssert(badInput);
+      await circuit.expectFail(badInput);
     });
 
     it('should NOT accept empty value in solution', async () => {
       const badInput = JSON.parse(JSON.stringify(INPUT));
       badInput.solution[0][0] = 0;
-      await circuit.expectFailedAssert(badInput);
+      await circuit.expectFail(badInput);
     });
 
     it('should NOT accept out-of-range values', async () => {
       const badInput = JSON.parse(JSON.stringify(INPUT));
       badInput.solution[0][0] = 99999;
-      await circuit.expectFailedAssert(badInput);
+      await circuit.expectFail(badInput);
     });
   })
 );
@@ -111,16 +110,16 @@ describe('sudoku utilities', () => {
     });
 
     it('should pass for input < 2^b', async () => {
-      await circuit.expectCorrectAssert({
+      await circuit.expectPass({
         in: 2 ** b - 1,
       });
     });
 
     it('should fail for input ≥ 2^b ', async () => {
-      await circuit.expectFailedAssert({
+      await circuit.expectFail({
         in: 2 ** b,
       });
-      await circuit.expectFailedAssert({
+      await circuit.expectFail({
         in: 2 ** b + 1,
       });
     });
@@ -141,7 +140,7 @@ describe('sudoku utilities', () => {
     });
 
     it('should pass if all inputs are unique', async () => {
-      await circuit.expectCorrectAssert({
+      await circuit.expectPass({
         in: Array(n)
           .fill(0)
           .map((v, i) => v + i),
@@ -154,7 +153,7 @@ describe('sudoku utilities', () => {
         .map((v, i) => v + i);
       // make a duplicate
       arr[0] = arr[arr.length - 1];
-      await circuit.expectFailedAssert({
+      await circuit.expectFail({
         in: arr,
       });
     });
@@ -175,26 +174,26 @@ describe('sudoku utilities', () => {
     });
 
     it('should pass for in range', async () => {
-      await circuit.expectCorrectAssert({
+      await circuit.expectPass({
         in: MAX,
       });
-      await circuit.expectCorrectAssert({
+      await circuit.expectPass({
         in: MIN,
       });
-      await circuit.expectCorrectAssert({
+      await circuit.expectPass({
         in: Math.floor((MIN + MAX) / 2),
       });
     });
 
     it('should FAIL for out of range (upper bound)', async () => {
-      await circuit.expectFailedAssert({
+      await circuit.expectFail({
         in: MAX + 1,
       });
     });
 
     it('should FAIL for out of range (lower bound)', async () => {
       if (MIN > 0) {
-        await circuit.expectFailedAssert({
+        await circuit.expectFail({
           in: MIN - 1,
         });
       }

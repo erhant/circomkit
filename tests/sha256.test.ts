@@ -1,7 +1,6 @@
 import {expect} from 'chai';
-import WasmTester from '../src/wasmTester';
-import {randomBytes} from 'crypto';
-import {createHash} from 'crypto';
+import {WasmTester} from '../src';
+import {randomBytes, createHash} from 'crypto';
 
 describe('sha256', () => {
   let circuit: WasmTester<['in'], ['out']>;

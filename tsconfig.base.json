@@ -6,8 +6,6 @@
     "strict": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
-    "allowJs": true,
-    "checkJs": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
