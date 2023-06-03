@@ -46,11 +46,8 @@ export class Circomkit {
   readonly config: CircomkitConfig;
 
   constructor(overrides: Partial<CircomkitConfig> = {}) {
-    // override default options, if any
-    const config: CircomkitConfig = {
-      ...defaultConfig,
-      ...overrides,
-    };
+    // override default options with the user-provided ones
+    const config: CircomkitConfig = Object.assign({}, overrides, defaultConfig);
 
     // sanitize
     this.config = config;

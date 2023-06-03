@@ -12,7 +12,7 @@
  */
 export const initFiles = {
   circuit: {
-    dir: './circuits',
+    dir: 'circuits',
     name: 'multiplier.circom',
     content: `pragma circom 2.0.0;
 
@@ -32,7 +32,7 @@ template Multiplier(N) {
 }`,
   },
   input: {
-    dir: './inputs/multiplier_3',
+    dir: 'inputs/multiplier_3',
     name: '80.json',
     content: `{
   "in": [2, 4, 10]
@@ -52,7 +52,7 @@ template Multiplier(N) {
 `,
   },
   tests: {
-    dir: './tests',
+    dir: 'tests',
     name: 'multiplier.test.ts',
     content: `import { WasmTester } from "circomkit";
 

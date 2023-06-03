@@ -75,12 +75,12 @@ async function cli(): Promise<number> {
     case 'info': {
       circomkit.log('\n=== Circuit information ===', 'title');
       const info = await circomkit.info(process.argv[3]);
-      circomkit.log(`  # of Wires: ${info.variables}`);
-      circomkit.log(`  # of Constraints: ${info.constraints}`);
-      circomkit.log(`  # of Private Inputs: ${info.privateInputs}`);
-      circomkit.log(`  # of Public Inputs: ${info.publicInputs}`);
-      circomkit.log(`  # of Labels: ${info.labels}`);
-      circomkit.log(`  # of Outputs: ${info.outputs}`);
+      circomkit.log(`Number of of Wires: ${info.variables}`);
+      circomkit.log(`Number of Constraints: ${info.constraints}`);
+      circomkit.log(`Number of Private Inputs: ${info.privateInputs}`);
+      circomkit.log(`Number of Public Inputs: ${info.publicInputs}`);
+      circomkit.log(`Number of Labels: ${info.labels}`);
+      circomkit.log(`Number of Outputs: ${info.outputs}`);
       break;
     }
 
@@ -142,12 +142,12 @@ async function cli(): Promise<number> {
       circomkit.log('\n=== Initializing project ===', 'title');
       const baseDir = process.argv[3] || '.';
       await Promise.all(
-        [initFiles.circuit, initFiles.circuits, initFiles.input, initFiles.tests].map(item => {
+        Object.values(initFiles).map(item => {
           const path = `${baseDir}/${item.dir}/${item.name}`;
           if (!existsSync(path)) {
             mkdirSync(`${baseDir}/${item.dir}`, {recursive: true});
             writeFileSync(path, item.content);
-            circomkit.log('Created: ' + path, 'success');
+            circomkit.log('Created: ' + path);
           } else {
             circomkit.log(path + ' exists, skipping.', 'error');
           }
