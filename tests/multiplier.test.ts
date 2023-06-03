@@ -1,9 +1,9 @@
-import {ProofTester, WasmTester, FullProof} from '../src';
+import {ProofTester, WasmTester} from '../src';
 
 describe('multiplier', () => {
-  let circuit: WasmTester<['in'], ['out']>;
-
   const N = 3;
+
+  let circuit: WasmTester<['in'], ['out']>;
 
   before(async () => {
     circuit = await WasmTester.new(`multiplier_${N}`, {
@@ -18,14 +18,7 @@ describe('multiplier', () => {
 
   it('should multiply correctly', async () => {
     const randomNumbers = Array.from({length: N}, () => Math.floor(Math.random() * 100 * N));
-    await circuit.expectCorrectAssert(
-      {
-        in: randomNumbers,
-      },
-      {
-        out: randomNumbers.reduce((prev, acc) => acc * prev),
-      }
-    );
+    await circuit.expectPass({in: randomNumbers}, {out: randomNumbers.reduce((prev, acc) => acc * prev)});
   });
 });
 
@@ -42,19 +35,14 @@ describe('multiplier utilities', () => {
     });
 
     it('should multiply correctly', async () => {
-      await circuit.expectCorrectAssert(
-        {
-          in: [7, 5],
-        },
-        {out: 7 * 5}
-      );
+      await circuit.expectPass({in: [7, 5]}, {out: 7 * 5});
     });
   });
 });
 
 describe.skip('multiplier proofs', () => {
   const N = 3;
-  let fullProof: FullProof;
+  let fullProof: any;
   let circuit: ProofTester<['in']>;
   before(async () => {
     const circuitName = 'multiplier_' + N;
@@ -65,11 +53,11 @@ describe.skip('multiplier proofs', () => {
   });
 
   it('should verify', async () => {
-    await circuit.expectVerificationPass(fullProof.proof, fullProof.publicSignals);
+    await circuit.expectPass(fullProof.proof, fullProof.publicSignals);
   });
 
   it('should NOT verify', async () => {
     // just give a prime number as the output, assuming none of the inputs are 1
-    await circuit.expectVerificationFail(fullProof.proof, ['13']);
+    await circuit.expectFail(fullProof.proof, ['13']);
   });
 });

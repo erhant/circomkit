@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'fs';
 import {Circomkit} from '../circomkit';
-import {initFiles} from '../utils/init';
+import {initFiles} from '../utils/initFiles';
 
 const CONFIG_PATH = './circomkit.json';
 const DEFAULT_INPUT = 'default';
@@ -14,11 +14,14 @@ const USAGE = `Usage:
   Create main component.
     instantiate circuit
 
-  Clean build artifacts & main.
+  Clean build artifacts & main component.
     clean circuit
 
   Export Solidity verifier.
     contract circuit
+  
+  Export calldata for a verifier contract.
+    contract circuit input
 
   Generate a proof.
     prove circuit input 
@@ -29,8 +32,11 @@ const USAGE = `Usage:
   Generate a witness.
     witness circuit input
   
-  Circuit-specific setup.
-    setup circuit input
+  Commence circuit-specific setup.
+    setup circuit ptau-path
+  
+  Initialize a Circomkit project.
+    init [name]
 `;
 
 async function cli(): Promise<number> {
@@ -64,33 +70,52 @@ async function cli(): Promise<number> {
       break;
     }
 
-    // case 'type': // TODO
-    //   await circomkit.type(process.argv[3]);
-    //   break;
+    case 'info': {
+      circomkit.log('\n=== Circuit information ===', 'title');
+      const info = await circomkit.info(process.argv[3]);
+      circomkit.log(`  # of Wires: ${info.variables}`);
+      circomkit.log(`  # of Constraints: ${info.constraints}`);
+      circomkit.log(`  # of Private Inputs: ${info.privateInputs}`);
+      circomkit.log(`  # of Public Inputs: ${info.publicInputs}`);
+      circomkit.log(`  # of Labels: ${info.labels}`);
+      circomkit.log(`  # of Outputs: ${info.outputs}`);
+      break;
+    }
 
     case 'contract': {
-      circomkit.log('=== Generating verifier contract ===', 'title');
+      circomkit.log('\n=== Exporting contract ===', 'title');
       const path = await circomkit.contract(process.argv[3]);
       circomkit.log('Created at: ' + path);
       break;
     }
 
-    // case 'calldata': // // TODO
-    //   await circomkit.calldata(process.argv[3]);
-    //   break;
+    case 'calldata': {
+      circomkit.log('\n=== Exporting contract ===', 'title');
+      const calldata = await circomkit.calldata(process.argv[3], process.argv[4] || DEFAULT_INPUT);
+      circomkit.log('Calldata printed:', 'success');
+      circomkit.log(calldata);
+      break;
+    }
 
     case 'prove': {
-      circomkit.log('=== Generating proof ===', 'title');
+      circomkit.log('\n=== Generating proof ===', 'title');
       const path = await circomkit.prove(process.argv[3], process.argv[4] || DEFAULT_INPUT);
-      circomkit.log('Generated under: ' + path);
+      circomkit.log('Generated at: ' + path);
+      break;
+    }
+
+    case 'ptau': {
+      circomkit.log('\n=== Retrieving PTAU ===', 'title');
+      const path = await circomkit.ptau(process.argv[3]);
+      circomkit.log('PTAU ready at: ' + path);
       break;
     }
 
     case 'verify': {
-      circomkit.log('=== Verifying proof ===', 'title');
+      circomkit.log('\n=== Verifying proof ===', 'title');
       const result = await circomkit.verify(process.argv[3], process.argv[4] || DEFAULT_INPUT);
       if (result) {
-        circomkit.log('Verification successful.', 'log');
+        circomkit.log('Verification successful.', 'success');
       } else {
         circomkit.log('Verification failed!', 'error');
       }
@@ -98,26 +123,29 @@ async function cli(): Promise<number> {
     }
 
     case 'witness': {
-      circomkit.log('=== Calculating witness ===', 'title');
+      circomkit.log('\n=== Calculating witness ===', 'title');
       const path = await circomkit.witness(process.argv[3], process.argv[4] || DEFAULT_INPUT);
       circomkit.log('Witness created: ' + path);
       break;
     }
 
     case 'setup': {
-      circomkit.log('=== Circuit-specific setup ===', 'title');
-      const path = await circomkit.setup(process.argv[3], process.argv[4] || DEFAULT_PTAU);
+      circomkit.log('\n=== Circuit-specific setup ===', 'title');
+      const path = await circomkit.setup(process.argv[3]);
       circomkit.log('Prover key created: ' + path);
       break;
     }
 
     case 'init': {
+      circomkit.log('\n=== Initializing project ===', 'title');
+      const baseDir = process.argv[3] || '.';
       await Promise.all(
         [initFiles.circuit, initFiles.circuits, initFiles.input, initFiles.tests].map(item => {
-          const path = `${item.dir}/${item.name}`;
+          const path = `${baseDir}/${item.dir}/${item.name}`;
           if (!existsSync(path)) {
-            mkdirSync(item.dir, {recursive: true});
+            mkdirSync(`${baseDir}/${item.dir}`, {recursive: true});
             writeFileSync(path, item.content);
+            circomkit.log('Created: ' + path, 'success');
           } else {
             circomkit.log(path + ' exists, skipping.', 'error');
           }
@@ -125,7 +153,6 @@ async function cli(): Promise<number> {
       );
       break;
     }
-    // setup project structure
 
     default:
       console.log(USAGE);

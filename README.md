@@ -158,16 +158,16 @@ describe('multiplier', () => {
 
   it('should compute correctly', async () => {
     const randomNumbers = Array.from({length: N}, () => Math.floor(Math.random() * 100 * N));
-    await circuit.expectCorrectAssert({in: randomNumbers}, {out: randomNumbers.reduce((prev, acc) => acc * prev)});
+    await circuit.expectPass({in: randomNumbers}, {out: randomNumbers.reduce((prev, acc) => acc * prev)});
   });
 });
 ```
 
 With the circuit object, we can do the following:
 
-- `circuit.expectCorrectAssert(input, output)` to test whether we get the expected output for some given input.
-- `circuit.expectCorrectAssert(input)` to test whether the circuit assertions pass for some given input
-- `circuit.expectFailedAssert(input)` to test whether the circuit assertions pass for some given input
+- `circuit.expectPass(input, output)` to test whether we get the expected output for some given input.
+- `circuit.expectPass(input)` to test whether the circuit assertions pass for some given input
+- `circuit.expectFail(input)` to test whether the circuit assertions pass for some given input
 
 #### Witness
 
@@ -212,7 +212,7 @@ describe('multiplier utilities', () => {
     });
 
     it('should pass for in range', async () => {
-      await circuit.expectCorrectAssert({in: [7, 5]}, {out: 7 * 5});
+      await circuit.expectPass({in: [7, 5]}, {out: 7 * 5});
     });
   });
 });
@@ -235,19 +235,19 @@ describe('multiplier proofs', () => {
   });
 
   it('should verify', async () => {
-    await circuit.expectVerificationPass(fullProof.proof, fullProof.publicSignals);
+    await circuit.expectPass(fullProof.proof, fullProof.publicSignals);
   });
 
   it('should NOT verify', async () => {
-    await circuit.expectVerificationFail(fullProof.proof, ['13']);
+    await circuit.expectFail(fullProof.proof, ['13']);
   });
 });
 ```
 
 The two utility functions provided here are:
 
-- `circuit.expectVerificationPass(proof, publicSignals)` that makes sure that the given proof is **accepted** by the verifier for the given public signals.
-- `circuit.expectVerificationFail(proof, publicSignals)` that makes sure that the given proof is **rejected** by the verifier for the given public signals.
+- `circuit.expectPass(proof, publicSignals)` that makes sure that the given proof is **accepted** by the verifier for the given public signals.
+- `circuit.expectFail(proof, publicSignals)` that makes sure that the given proof is **rejected** by the verifier for the given public signals.
 
 ## File Structure
 

@@ -70,7 +70,7 @@ export default class ProofTester<IN extends string[] = []> {
    * @param proof proof object, given from `prove`
    * @param publicSignals public signals for the circuit
    */
-  async expectVerificationPass(proof: object, publicSignals: string[]): Promise<void> {
+  async expectPass(proof: object, publicSignals: string[]): Promise<void> {
     expect(await this.verify(proof, publicSignals)).to.be.true;
   }
 
@@ -79,7 +79,7 @@ export default class ProofTester<IN extends string[] = []> {
    * @param proof proof object, given from `prove`
    * @param publicSignals public signals for the circuit
    */
-  async expectVerificationFail(proof: object, publicSignals: string[]): Promise<void> {
+  async expectFail(proof: object, publicSignals: string[]): Promise<void> {
     expect(await this.verify(proof, publicSignals)).to.be.false;
   }
 }

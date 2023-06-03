@@ -1,11 +1,7 @@
-/**
- * An integer value is a numerical string, a number, or a bigint.
- */
+/** An integer value is a numerical string, a number, or a bigint. */
 type IntegerValueType = `${number}` | number | bigint;
 
-/**
- * A signal value is a number, or an array of numbers (recursively).
- */
+/** A signal value is a number, or an array of numbers (recursively). */
 export type SignalValueType = IntegerValueType | SignalValueType[];
 
 /**
@@ -19,10 +15,7 @@ export type CircuitSignals<T extends readonly string[] = []> = T extends []
   ? {[signal: string]: SignalValueType}
   : {[signal in T[number]]: SignalValueType};
 
-/**
- * A witness is an array of bigints, corresponding to the values of each wire in
- * the evaluation of the circuit.
- */
+/** A witness is an array of `bigint`s, corresponding to the values of each wire in the evaluation of the circuit. */
 export type WitnessType = bigint[];
 
 /**
@@ -37,22 +30,16 @@ export type SymbolsType = {
   };
 };
 
-/**
- * A FullProof, as returned from SnarkJS `fullProve` function.
- */
+/** A FullProof, as returned from SnarkJS `fullProve` function. */
 export type FullProof = {
   proof: object;
   publicSignals: string[];
 };
 
-/**
- * Proof system to be used by SnarkJS.
- */
+/** Proof system to be used by SnarkJS. */
 export type ProofSystem = 'groth16' | 'plonk' | 'fflonk';
 
-/**
- * A configuration object for circuit main components.
- */
+/** A configuration object for circuit main components. */
 export type CircuitConfig = {
   /** File to read the template from */
   file: string;
@@ -66,4 +53,16 @@ export type CircuitConfig = {
   pubs?: string[];
   /** An array of template parameters, defaults to `[]` */
   params?: (number | bigint)[];
+};
+
+/** R1CS information type, as returned by SnarkJS.
+ * Some fields may be omitted.
+ */
+export type R1CSInfoType = {
+  variables: number;
+  constraints: number;
+  privateInputs: number;
+  publicInputs: number;
+  labels: number;
+  outputs: number;
 };

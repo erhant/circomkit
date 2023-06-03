@@ -4,9 +4,7 @@ import type {CircomWasmTester} from '../types/wasmTester';
 import {assert, expect} from 'chai';
 import instantiate from '../utils/instantiate';
 
-/**
- A utility class to test your circuits. Use `expectFailedAssert` and `expectCorrectAssert` to test out evaluations
- */
+/** A utility class to test your circuits. Use `expectFail` and `expectPass` to test out evaluations. */
 export default class WasmTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
   /** The underlying `circom_tester` object */
   readonly circomWasmTester: CircomWasmTester;
@@ -133,7 +131,7 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
    * Expect an input to fail an assertion in the circuit.
    * @param input bad input
    */
-  async expectFailedAssert(input: CircuitSignals<IN>) {
+  async expectFail(input: CircuitSignals<IN>) {
     await this.calculateWitness(input).then(
       () => assert.fail(),
       err => expect(err.message.slice(0, 21)).to.eq('Error: Assert Failed.')
@@ -145,7 +143,7 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
    * @param input correct input
    * @param output expected output, if `undefined` it will only check constraints
    */
-  async expectCorrectAssert(input: CircuitSignals<IN>, output?: CircuitSignals<OUT>) {
+  async expectPass(input: CircuitSignals<IN>, output?: CircuitSignals<OUT>) {
     const witness = await this.calculateWitness(input);
     await this.checkConstraints(witness);
     if (output) {
@@ -202,10 +200,8 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
         // easy case, just return the witness of this symbol
         entries.push([outSignal, witness[idx]]);
       } else {
-        /*
-        at this point, we have an array of signals like `main.signal[0..dim1][0..dim2]..[0..dimN]` and we must construct
-        the necessary multi-dimensional array out of it.
-        */
+        // at this point, we have an array of signals like `main.signal[0..dim1][0..dim2]..[0..dimN]`
+        // and we must construct the necessary multi-dimensional array out of it.
         // eslint-disable-next-line no-inner-declarations
         function processDepth(d: number): SignalValueType {
           const acc: SignalValueType = [];

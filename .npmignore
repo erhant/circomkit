@@ -1,10 +1,5 @@
-ptau
-node_modules
-scripts
-circuits
-build
-.github
-.vscode
-inputs
-src
-tests
+*
+!dist
+!LICENSE
+!package.json
+!README.md

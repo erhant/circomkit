@@ -3,7 +3,7 @@ type VersionType = `${number}.${number}.${number}`;
 
 export type CircomkitConfig = {
   /** Proof system to be used. */
-  proofSystem: 'groth16' | 'plonk';
+  proofSystem: 'groth16' | 'plonk' | 'fflonk';
   /** Curve to be used, which defines the underlying prime field. */
   curve: 'bn128' | 'bls12381' | 'goldilocks';
   /** Directory to download PTAU files. */
@@ -29,11 +29,15 @@ export type CircomkitConfig = {
   };
   /** Colors for the logs */
   colors: {
-    title: ColorType; // blue
-    log: ColorType; // gray
-    error: ColorType; // red
+    title: ColorType;
+    success: ColorType;
+    log: ColorType;
+    error: ColorType;
   };
 };
 
+/** Shorthand notations for which path to build in Circomkit. These paths require a circuit name. */
 export type CircuitPathBuilders = 'target' | 'sym' | 'pkey' | 'vkey' | 'wasm' | 'sol' | 'dir' | 'r1cs';
+
+/** Shorthand notations for which path to build in Circomkit. These paths require a circuit name and input name. */
 export type CircuitInputPathBuilders = 'pubs' | 'proof' | 'wtns' | 'in' | 'dir';

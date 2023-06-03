@@ -62,12 +62,9 @@
     "circomlib": "^2.0.5"
   },
   "dependencies": {
+    "chai": "^4.3.7",
     "circom_tester": "^0.0.19",
-    "ejs": "^3.1.9"
-  },
-  "peerDependencies": {
-    "snarkjs": "^0.6.0",
-    "chai": "^4.3.7"
+    "snarkjs": "^0.6.0"
   },
   "keywords": [
     "circom",

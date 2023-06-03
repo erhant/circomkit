@@ -14,14 +14,7 @@ describe('fibonacci', () => {
   });
 
   it('should compute correctly', async () => {
-    await circuit.expectCorrectAssert(
-      {
-        in: [1, 1],
-      },
-      {
-        out: fibonacci([1, 1], N),
-      }
-    );
+    await circuit.expectPass({in: [1, 1]}, {out: fibonacci([1, 1], N)});
   });
 });
 
@@ -41,14 +34,7 @@ describe.skip('fibonacci recursive', () => {
   });
 
   it('should compute correctly', async () => {
-    await circuit.expectCorrectAssert(
-      {
-        in: [1, 1],
-      },
-      {
-        out: fibonacci([1, 1], N),
-      }
-    );
+    await circuit.expectPass({in: [1, 1]}, {out: fibonacci([1, 1], N)});
   });
 });
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# I couldn't bring myself to delete this file :(
+# I couldn't bring myself to delete this file, so here is a CLI Gist.
 
 cd "${0%/*}"/.. # get to project root
 set -e # abort on error
