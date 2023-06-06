@@ -160,6 +160,9 @@ export class Circomkit {
     if (existsSync(ptauPath)) {
       return ptauPath;
     } else {
+      if (this.config.curve !== 'bn128') {
+        throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
+      }
       this.log('Downloading ' + ptauName + '...');
       return await downloadPtau(ptauName, this.config.dirs.ptau);
     }
@@ -262,7 +265,7 @@ export class Circomkit {
   /** Commence a circuit-specific setup.
    * @returns path to prover key
    */
-  async setup(circuit: string) {
+  async setup(circuit: string, ptauPath?: string) {
     const r1csPath = this.path(circuit, 'r1cs');
     const pkeyPath = this.path(circuit, 'pkey');
     const vkeyPath = this.path(circuit, 'vkey');
@@ -274,8 +277,14 @@ export class Circomkit {
     }
 
     // get ptau path
-    this.log('Checking for PTAU file...');
-    const ptau = await this.ptau(circuit);
+    let ptau = '';
+    if (ptauPath) {
+      this.log('Using provided PTAU: ' + ptauPath);
+      ptau = ptauPath;
+    } else {
+      this.log('Checking for PTAU file...');
+      ptau = await this.ptau(circuit);
+    }
 
     // circuit specific setup
     if (this.config.proofSystem === 'plonk') {

@@ -12,6 +12,7 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
   symbols: SymbolsType | undefined;
   /** List of constraints, see {@link loadConstraints} */
   constraints: unknown[] | undefined;
+
   /**
    * Compiles and reutrns a circuit tester class instance.
    * @param circuit name of circuit
@@ -60,9 +61,7 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
     return this.circomWasmTester.calculateWitness(input, sanityCheck);
   }
 
-  /**
-   * Loads the list of R1CS constraints to `this.constraints`
-   */
+  /** Loads the list of R1CS constraints to `this.constraints`. */
   async loadConstraints(): Promise<void> {
     await this.circomWasmTester.loadConstraints();
     this.constraints = this.circomWasmTester.constraints;
