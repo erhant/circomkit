@@ -3,7 +3,7 @@ type VersionType = `${number}.${number}.${number}`;
 
 export type CircomkitConfig = {
   /** Proof system to be used. */
-  proofSystem: 'groth16' | 'plonk';
+  proofSystem: 'groth16' | 'plonk' | 'fflonk';
   /** Curve to be used, which defines the underlying prime field. */
   curve: 'bn128' | 'bls12381' | 'goldilocks';
   /** Directory overrides, it is best you leave this as is. */
@@ -18,6 +18,13 @@ export type CircomkitConfig = {
     ptau: string;
     /** Directory to output circuit build files. */
     build: string;
+  };
+  /** Groth16-specific configurations */
+  groth16: {
+    /** Number of contributions */
+    numContributions: number;
+    /** Ask user input to create entropy */
+    askForEntropy: boolean;
   };
   /** Version number for main components. */
   version: VersionType;
@@ -44,6 +51,7 @@ export type CircomkitConfig = {
     success: ColorType;
     log: ColorType;
     error: ColorType;
+    warn: ColorType;
   };
 };
 

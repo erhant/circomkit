@@ -40,7 +40,7 @@ describe('multiplier utilities', () => {
   });
 });
 
-describe.skip('multiplier proofs', () => {
+describe('multiplier proofs', () => {
   const N = 3;
   let fullProof: FullProof;
   let circuit: ProofTester<['in']>;
