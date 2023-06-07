@@ -60,11 +60,11 @@ Although Circomkit initializes with a Mocha test, uses Chai in the background so
 A circuit config within `circuits.json` looks like below, where the `key` is the circuit name to be used in commands, and the value is an object that describes the filename, template name, public signals and template parameters:
 
 ```js
-sudoku_4x4: {
+sudoku_9x9: {
   file:     'sudoku',
   template: 'Sudoku',
   pubs:     ['puzzle'],
-  params:   [Math.sqrt(4)],
+  params:   [3], // sqrt(9)
 },
 ```
 

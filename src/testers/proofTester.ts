@@ -1,7 +1,7 @@
 const snarkjs = require('snarkjs');
 import {expect} from 'chai';
 import type {CircuitSignals, FullProof} from '../types/circuit';
-import {existsSync, readFileSync} from 'fs';
+import {readFileSync} from 'fs';
 
 /** Allowed proof systems as defined in SnarkJS. */
 const PROOF_SYSTEMS = ['groth16', 'plonk'] as const;
@@ -12,9 +12,6 @@ const PROOF_SYSTEMS = ['groth16', 'plonk'] as const;
  */
 export default class ProofTester<IN extends string[] = []> {
   public readonly protocol: 'groth16' | 'plonk';
-  private readonly wasmPath: string;
-  private readonly proverKeyPath: string;
-  private readonly verificationKeyPath: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private readonly verificationKey: any;
 
@@ -23,21 +20,9 @@ export default class ProofTester<IN extends string[] = []> {
    * at `verificationKey.protocol`.
    * @param circuit a proof tester
    */
-  constructor(circuit: string) {
-    // find paths (computed w.r.t circuit name)
-    this.wasmPath = `./build/${circuit}/${circuit}_js/${circuit}.wasm`;
-    this.proverKeyPath = `./build/${circuit}/prover_key.zkey`;
-    this.verificationKeyPath = `./build/${circuit}/verifier_key.json`;
+  constructor(readonly wasmPath: string, readonly pkeyPath: string, readonly vkeyPath: string) {
+    this.verificationKey = JSON.parse(readFileSync(vkeyPath).toString()) as typeof this.verificationKey;
 
-    // ensure that paths exist
-    [this.wasmPath, this.proverKeyPath, this.verificationKeyPath].forEach(p => {
-      if (!existsSync(p)) throw new Error(p + ' does not exist!');
-    });
-
-    // load verification key
-    this.verificationKey = JSON.parse(readFileSync(this.verificationKeyPath).toString()) as typeof this.verificationKey;
-
-    // check proof system
     const protocol = this.verificationKey.protocol;
     if (!PROOF_SYSTEMS.includes(protocol)) {
       throw new Error('Unknown protocol in verification key: ' + protocol);

@@ -1,8 +1,6 @@
-const wasm_tester = require('circom_tester').wasm;
-import type {WitnessType, CircuitSignals, SymbolsType, SignalValueType, CircuitConfig} from '../types/circuit';
+import type {WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/circuit';
 import type {CircomWasmTester} from '../types/wasmTester';
 import {assert, expect} from 'chai';
-import {instantiate} from '../utils/instantiate';
 
 /** A utility class to test your circuits. Use `expectFail` and `expectPass` to test out evaluations. */
 export default class WasmTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
@@ -12,24 +10,6 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
   symbols: SymbolsType | undefined;
   /** List of constraints, see {@link loadConstraints} */
   constraints: unknown[] | undefined;
-
-  /**
-   * Compiles and reutrns a circuit tester class instance.
-   * @param circuit name of circuit
-   * @param dir directory to read the circuit from, defaults to `test`
-   * @returns a `WasmTester` instance
-   */
-  static async new<IN extends string[] = [], OUT extends string[] = []>(
-    circuitName: string,
-    circuitConfig: CircuitConfig
-  ): Promise<WasmTester<IN, OUT>> {
-    const dir = circuitConfig.dir || 'test';
-    instantiate(circuitName, circuitConfig);
-    const circomWasmTester: CircomWasmTester = await wasm_tester(`./circuits/${dir}/${circuitName}.circom`, {
-      include: 'node_modules', // will link circomlib circuits
-    });
-    return new WasmTester<IN, OUT>(circomWasmTester);
-  }
 
   constructor(circomWasmTester: CircomWasmTester) {
     this.circomWasmTester = circomWasmTester;

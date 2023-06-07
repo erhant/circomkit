@@ -5,8 +5,16 @@ import {readFile, rm, writeFile} from 'fs/promises';
 import {instantiate} from './utils/instantiate';
 import {downloadPtau, getPtauName} from './utils/ptau';
 import type {CircuitConfig, R1CSInfoType} from './types/circuit';
-import type {CircomkitConfig, CircuitInputPathBuilders, CircuitPathBuilders} from './types/circomkit';
+import type {
+  CircomkitConfig,
+  CircomkitConfigOverrides,
+  CircuitInputPathBuilders,
+  CircuitPathBuilders,
+} from './types/circomkit';
 import {randomBytes} from 'crypto';
+import {CircomWasmTester} from './types/wasmTester';
+import WasmTester from './testers/wasmTester';
+import ProofTester from './testers/proofTester';
 
 /** Default configurations */
 const defaultConfig: Readonly<CircomkitConfig> = {
@@ -29,7 +37,7 @@ const defaultConfig: Readonly<CircomkitConfig> = {
   },
   groth16: {
     numContributions: 1,
-    askForEntropy: true,
+    askForEntropy: false,
   },
   colors: {
     title: '\u001b[0;34m', // blue
@@ -42,6 +50,9 @@ const defaultConfig: Readonly<CircomkitConfig> = {
 
 // TODO: maybe pass a logger using logplease to snarkjs?
 
+// TODO: write a "check dependencies" module to decide which
+// components to create if missing, such as WASM / R1CS or PKEY
+
 /**
  * Circomkit is an opinionated wrapper around a few
  * [Snarkjs](../../node_modules/snarkjs/main.js) functions.
@@ -53,7 +64,7 @@ const defaultConfig: Readonly<CircomkitConfig> = {
 export class Circomkit {
   readonly config: CircomkitConfig;
 
-  constructor(overrides: Partial<CircomkitConfig> = {}) {
+  constructor(overrides: CircomkitConfigOverrides = {}) {
     // override default options with the user-provided ones
     const config: CircomkitConfig = Object.assign({}, overrides, defaultConfig);
 
@@ -255,14 +266,17 @@ export class Circomkit {
   /** Instantiate the `main` component.
    * @returns path to created main component
    */
-  instantiate(circuit: string) {
-    const circuitConfig = this.readCircuitConfig(circuit);
-    const target = instantiate(circuit, {
-      ...circuitConfig,
-      dir: this.config.dirs.main,
-      version: this.config.version,
-    });
-    return target;
+  instantiate(circuit: string, config?: CircuitConfig) {
+    if (config) {
+      return instantiate(circuit, config);
+    } else {
+      const circuitConfig = this.readCircuitConfig(circuit);
+      return instantiate(circuit, {
+        ...circuitConfig,
+        dir: this.config.dirs.main,
+        version: this.config.version,
+      });
+    }
   }
 
   /** Generate a proof.
@@ -391,5 +405,41 @@ export class Circomkit {
     mkdirSync(outDir, {recursive: true});
     await snarkjs.wtns.calculate(jsonInput, wasmPath, wtnsPath);
     return wtnsPath;
+  }
+
+  /**
+   * Compiles and reutrns a circuit tester class instance.
+   * @param circuit name of circuit
+   * @param config circuit configuration
+   * @returns a `WasmTester` instance
+   */
+  async WasmTester<IN extends string[] = [], OUT extends string[] = []>(circuit: string, config: CircuitConfig) {
+    config.dir ||= 'test';
+
+    // create circuit
+    const targetPath = this.instantiate(circuit, config);
+    const circomWasmTester: CircomWasmTester = await wasm_tester(targetPath, {
+      output: undefined, // todo: check if this is ok
+      prime: this.config.curve,
+      verbose: this.config.compiler.verbose,
+      O: this.config.compiler.optimization,
+      json: this.config.compiler.json,
+      include: this.config.compiler.include,
+      wasm: true,
+      sym: true,
+      recompile: true,
+    });
+
+    return new WasmTester<IN, OUT>(circomWasmTester);
+  }
+
+  async ProofTester<IN extends string[] = []>(circuit: string) {
+    const wasmPath = this.path(circuit, 'wasm');
+    const pkeyPath = this.path(circuit, 'pkey');
+    const vkeyPath = this.path(circuit, 'vkey');
+
+    // TODO: create necessary keys for proof tester
+
+    return new ProofTester<IN>(wasmPath, pkeyPath, vkeyPath);
   }
 }
