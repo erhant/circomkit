@@ -64,6 +64,7 @@
   "dependencies": {
     "chai": "^4.3.7",
     "circom_tester": "^0.0.19",
+    "loglevel": "^1.8.1",
     "snarkjs": "^0.6.0"
   },
   "keywords": [

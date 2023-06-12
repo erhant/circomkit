@@ -94,3 +94,10 @@ describe("multiplier", () => {
     content: string;
   };
 };
+
+export const postInitString = `
+You should also install the following packages:
+
+  npm install --save-dev ts-node typescript mocha @types/mocha
+
+`;
