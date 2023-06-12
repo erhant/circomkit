@@ -1,19 +1,23 @@
-import {FullProof, ProofTester, WasmTester} from '../src';
+import {Circomkit, CircuitConfig, FullProof, ProofTester, WasmTester} from '../src';
+
+function createConfig(n: number): CircuitConfig {
+  return {
+    file: 'multiplier',
+    template: 'Multiplier',
+    params: [n],
+  };
+}
+
+const N = 3;
+const circuitName = `multiplier_${N}`;
+const circomkit = new Circomkit();
 
 describe('multiplier', () => {
-  const N = 3;
-
   let circuit: WasmTester<['in'], ['out']>;
 
   before(async () => {
-    circuit = await WasmTester.new(`multiplier_${N}`, {
-      file: 'multiplier',
-      template: 'Multiplier',
-      params: [N],
-    });
-
-    // constraint count checks!
-    await circuit.checkConstraintCount(N - 1);
+    circuit = await circomkit.WasmTester(circuitName, createConfig(N));
+    await circuit.checkConstraintCount(N);
   });
 
   it('should multiply correctly', async () => {
@@ -22,31 +26,12 @@ describe('multiplier', () => {
   });
 });
 
-describe('multiplier utilities', () => {
-  describe('multiplication gate', () => {
-    let circuit: WasmTester<['in'], ['out']>;
-
-    before(async () => {
-      circuit = await WasmTester.new('mulgate', {
-        file: 'multiplier',
-        template: 'MultiplicationGate',
-        dir: 'test/multiplier',
-      });
-    });
-
-    it('should multiply correctly', async () => {
-      await circuit.expectPass({in: [7, 5]}, {out: 7 * 5});
-    });
-  });
-});
-
-describe.skip('multiplier proofs', () => {
-  const N = 3;
+describe('multiplier proofs', () => {
   let fullProof: FullProof;
   let circuit: ProofTester<['in']>;
+
   before(async () => {
-    const circuitName = 'multiplier_' + N;
-    circuit = new ProofTester(circuitName);
+    circuit = await circomkit.ProofTester(circuitName);
     fullProof = await circuit.prove({
       in: Array.from({length: N}, () => Math.floor(Math.random() * 100 * N)),
     });

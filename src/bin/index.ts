@@ -20,7 +20,7 @@ const USAGE = `Usage:
     contract circuit
   
   Commence circuit-specific setup.
-    setup circuit
+    setup circuit [ptau-path]
   
   Download the PTAU file needed for the circuit.
     ptau circuit

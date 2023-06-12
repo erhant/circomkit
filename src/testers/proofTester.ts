@@ -1,49 +1,20 @@
-import {readFileSync, existsSync} from 'fs';
 const snarkjs = require('snarkjs');
 import {expect} from 'chai';
+import {readFileSync} from 'fs';
 import type {CircuitSignals, FullProof} from '../types/circuit';
+import type {CircomkitConfig} from '../types/circomkit';
 
-/** Allowed proof systems as defined in SnarkJS. */
-const PROOF_SYSTEMS = ['groth16', 'plonk'] as const;
-
-/**
- * A more extensive Circuit class, able to generate proofs & verify them.
- * Assumes that prover key and verifier key have been computed.
- */
+/** A tester that is able to generate proofs & verify them.
+ * Use `expectFail` and `expectPass` to test out evaluations. */
 export default class ProofTester<IN extends string[] = []> {
-  public readonly protocol: 'groth16' | 'plonk';
-  private readonly wasmPath: string;
-  private readonly proverKeyPath: string;
-  private readonly verificationKeyPath: string;
+  public readonly protocol: CircomkitConfig['proofSystem'];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private readonly verificationKey: any;
+  public readonly verificationKey: any;
 
-  /**
-   * Sets the paths & loads the verification key. The underlying proof system is checked by looking
-   * at `verificationKey.protocol`.
-   * @param circuit a proof tester
-   */
-  constructor(circuit: string) {
-    // find paths (computed w.r.t circuit name)
-    this.wasmPath = `./build/${circuit}/${circuit}_js/${circuit}.wasm`;
-    this.proverKeyPath = `./build/${circuit}/prover_key.zkey`;
-    this.verificationKeyPath = `./build/${circuit}/verification_key.json`;
+  constructor(readonly wasmPath: string, readonly pkeyPath: string, readonly vkeyPath: string) {
+    this.verificationKey = JSON.parse(readFileSync(vkeyPath).toString()) as typeof this.verificationKey;
 
-    // ensure that paths exist
-    const missing = [this.wasmPath, this.proverKeyPath, this.verificationKeyPath].filter(p => !existsSync(p));
-    if (missing.length !== 0) {
-      throw new Error('Missing files for' + circuit + ':\n' + missing.join('\n'));
-    }
-
-    // load verification key
-    this.verificationKey = JSON.parse(readFileSync(this.verificationKeyPath).toString()) as typeof this.verificationKey;
-
-    // check proof system
-    const protocol = this.verificationKey.protocol;
-    if (!PROOF_SYSTEMS.includes(protocol)) {
-      throw new Error('Unknown protocol in verification key: ' + protocol);
-    }
-    this.protocol = protocol;
+    this.protocol = this.verificationKey.protocol;
   }
 
   /**
@@ -53,7 +24,7 @@ export default class ProofTester<IN extends string[] = []> {
    * @returns a proof and public signals
    */
   async prove(input: CircuitSignals<IN>): Promise<FullProof> {
-    return await snarkjs[this.protocol].fullProve(input, this.wasmPath, this.proverKeyPath);
+    return await snarkjs[this.protocol].fullProve(input, this.wasmPath, this.pkeyPath);
   }
 
   /**
