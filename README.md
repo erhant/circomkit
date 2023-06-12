@@ -151,20 +151,6 @@ circomkit
 
 ```
 
-## Testing
-
-To run tests do the following:
-
-```bash
-# test a specific circuit
-yarn test <circuit-name>
-
-# test all circuits
-yarn test:all
-```
-
-You can test both witness calculations and proof generation & verification. We describe both in their respective sections, going over an example of "Multiplication" circuit.
-
 ## Styling
 
 Circomkit uses [Google TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html).

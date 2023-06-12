@@ -316,7 +316,7 @@ export class Circomkit {
   }
 
   /** Commence a circuit-specific setup.
-   * @returns path to prover key
+   * @returns path to verifier key
    */
   async setup(circuit: string, ptauPath?: string) {
     const r1csPath = this.path(circuit, 'r1cs');
@@ -366,11 +366,12 @@ export class Circomkit {
           this.config.groth16.askForEntropy ? undefined : randomBytes(32) // entropy
         );
 
+        // remove current key, and move on to next one
         rmSync(curZkey);
         curZkey = nextZkey;
       }
 
-      // finally, rename to pkey
+      // finally, rename the resulting key to pkey
       renameSync(curZkey, pkeyPath);
     }
 
@@ -433,12 +434,16 @@ export class Circomkit {
     return new WasmTester<IN, OUT>(circomWasmTester);
   }
 
-  async ProofTester<IN extends string[] = []>(circuit: string) {
+  async ProofTester<IN extends string[] = []>(circuit: string, ptauPath?: string) {
     const wasmPath = this.path(circuit, 'wasm');
     const pkeyPath = this.path(circuit, 'pkey');
     const vkeyPath = this.path(circuit, 'vkey');
 
-    // TODO: create necessary keys for proof tester
+    // create keys if required
+    if (!existsSync(vkeyPath)) {
+      this.log('Verifier key does not exist, creating it now...');
+      await this.setup(circuit, ptauPath);
+    }
 
     return new ProofTester<IN>(wasmPath, pkeyPath, vkeyPath);
   }
