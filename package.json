@@ -1,6 +1,6 @@
 {
   "name": "circomkit",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "A Circom development environment",
   "author": "erhant",
   "license": "MIT",
@@ -8,7 +8,10 @@
     "node": ">=12.0.0"
   },
   "files": [
-    "dist"
+    "dist",
+    "LICENSE",
+    "README.md",
+    "package.json"
   ],
   "bin": "dist/bin/index.js",
   "main": "dist/index.js",
