@@ -53,7 +53,7 @@ This command creates the following:
 - A test using Mocha, under `tests` folder.
 - A Mocha configuration file.
 
-Although Circomkit initializes with a Mocha test, uses Chai in the background so you could use anything that supports Chai.
+Although Circomkit initializes with a Mocha test, uses Chai in the background so you could use anything that supports Chai. You should check out [circomkit-examples](https://github.com/erhant/circomkit-examples) repo as an example!
 
 ### Circuit Configuration
 
