@@ -55,7 +55,7 @@ This command creates the following:
 
 Although Circomkit initializes with a Mocha test, uses Chai in the background so you could use anything that supports Chai.
 
-### Configuration
+### Circuit Configuration
 
 A circuit config within `circuits.json` looks like below, where the `key` is the circuit name to be used in commands, and the value is an object that describes the filename, template name, public signals and template parameters:
 
@@ -109,9 +109,19 @@ npx circomkit verify circuit input
 npx circomkit calldata circuit input
 ```
 
+## Circomkit Configuration
+
+Everything used by Circomkit can be overridden in its constructor argument.
+
+// TODO
+
+### Logger
+
+SnarkJS uses [logplease](https://www.npmjs.com/package/logplease) internally where functions expect a logger as an optional last argument. Circomkit uses [loglevel](https://www.npmjs.com/package/loglevel) instead, which has the same interface and is much more popular.
+
 ## File Structure
 
-Circomkit follows an _opinionated file structure_, abstracting away the pathing and orientation behind the scenes. All of these can be customized by overriding the respective settings in `circomkit.json`.
+Circomkit with its default configuration follows an _opinionated file structure_, abstracting away the pathing and orientation behind the scenes. All of these can be customized by overriding the respective settings in `circomkit.json`.
 
 Here is an example structure, where we have a generic Sudoku proof-of-solution circuit, and we instantiate it for a 9x9 board:
 

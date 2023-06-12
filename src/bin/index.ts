@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'fs';
 import {Circomkit} from '../circomkit';
-import {initFiles} from '../utils/initFiles';
+import {initFiles, postInitString} from '../utils/initFiles';
 
 const CONFIG_PATH = './circomkit.json';
 const DEFAULT_INPUT = 'default';
@@ -12,6 +12,9 @@ const USAGE = `Usage:
 
   Create main component.
     instantiate circuit
+  
+  Print circuit information.
+    info circuit
 
   Clean build artifacts & main component.
     clean circuit
@@ -117,9 +120,9 @@ async function cli(): Promise<number> {
       circomkit.log('\n=== Verifying proof ===', 'title');
       const result = await circomkit.verify(process.argv[3], process.argv[4] || DEFAULT_INPUT);
       if (result) {
-        circomkit.log('Verification successful.', 'success');
+        circomkit.log('Verification successful.');
       } else {
-        circomkit.log('Verification failed!', 'error');
+        circomkit.logger.error('Verification failed!');
       }
       break;
     }
@@ -154,7 +157,8 @@ async function cli(): Promise<number> {
         })
       );
 
-      circomkit.log('Circomkit project created!', 'success');
+      circomkit.log('Circomkit project initialized! ✨', 'success');
+      circomkit.log(postInitString);
       break;
     }
 

@@ -5,6 +5,7 @@ import {readFile, rm, writeFile} from 'fs/promises';
 import {instantiate} from './utils/instantiate';
 import {downloadPtau, getPtauName} from './utils/ptau';
 import type {CircuitConfig, R1CSInfoType} from './types/circuit';
+import {Logger, getLogger} from 'loglevel';
 import type {
   CircomkitConfig,
   CircomkitConfigOverrides,
@@ -21,7 +22,6 @@ const defaultConfig: Readonly<CircomkitConfig> = {
   proofSystem: 'groth16',
   curve: 'bn128',
   version: '2.1.0',
-  silent: false,
   dirs: {
     ptau: './ptau',
     circuits: './circuits',
@@ -39,44 +39,53 @@ const defaultConfig: Readonly<CircomkitConfig> = {
     numContributions: 1,
     askForEntropy: false,
   },
-  colors: {
-    title: '\u001b[0;34m', // blue
-    log: '\u001b[2;37m', // gray
-    error: '\u001b[0;31m', // red
-    success: '\u001b[0;32m', // green
-    warn: '\u001b[0;33m', // yellow
+  logger: {
+    logLevel: 'INFO',
+    colors: {
+      title: '\u001b[0;34m', // blue
+      success: '\u001b[0;32m', // green
+      info: '\u001b[2;37m', // gray
+      trace: '\u001b[2;37m', // gray
+      debug: '\u001b[2;37m', // gray
+      error: '\u001b[0;31m', // red
+      warn: '\u001b[0;33m', // yellow
+    },
+    verbose: true,
   },
 };
 
-// TODO: maybe pass a logger using logplease to snarkjs?
-
-// TODO: write a "check dependencies" module to decide which
-// components to create if missing, such as WASM / R1CS or PKEY
-
 /**
- * Circomkit is an opinionated wrapper around a few
- * [Snarkjs](../../node_modules/snarkjs/main.js) functions.
+ * Circomkit is an opinionated wrapper around many SnarkJS functions.
  *
  * It abstracts away all the path and commands by providing a simple interface,
  * built around just providing the circuit name and the input name.
  *
+ * ```ts
+ * const circomkit = new Circomkit()
+ * ```
+ *
+ * It also provides a WasmTester and a ProofTester module which uses Chai assertions within.
+ *
+ * ```ts
+ * const wasmTester = circomkit.WasmTester(circuitName, circuitConfig)
+ * const proofTester = circomkit.ProofTester(circuitName)
+ * ```
  */
 export class Circomkit {
-  readonly config: CircomkitConfig;
+  public readonly config: CircomkitConfig;
+  public readonly logger: Logger;
+  private readonly _logger: Logger | undefined;
 
   constructor(overrides: CircomkitConfigOverrides = {}) {
     // override default options with the user-provided ones
     const config: CircomkitConfig = Object.assign({}, overrides, defaultConfig);
 
-    // sanitize
     this.config = config;
-  }
+    this.logger = getLogger('Circomkit');
+    this.logger.setLevel(config.logger.logLevel);
 
-  /** Colorful logging based on config, used by CLI. */
-  log(message: string, type: keyof CircomkitConfig['colors'] = 'log') {
-    if (!this.config.silent) {
-      console.log(`${this.config.colors[type]}${message}\x1b[0m`);
-    }
+    // logger for SnarkJS
+    this._logger = this.config.logger.verbose ? this.logger : undefined;
   }
 
   /** Pretty-print for JSON stringify. */
@@ -91,6 +100,16 @@ export class Circomkit {
       throw new Error('No such circuit in circuits.json');
     }
     return circuits[circuit] as CircuitConfig;
+  }
+
+  /** Colorful logging using the internal logger */
+  log(message: string, type: keyof CircomkitConfig['logger']['colors'] = 'info') {
+    // TODO: this is very smelly code, find a better way
+    if (type === 'title' || type === 'success') {
+      this.logger.info(`${this.config.logger.colors[type]}${message}\x1b[0m`);
+    } else {
+      this.logger[type](`${this.config.logger.colors[type]}${message}\x1b[0m`);
+    }
   }
 
   /**
@@ -170,7 +189,7 @@ export class Circomkit {
 
   /** Information about circuit. */
   async info(circuit: string): Promise<R1CSInfoType> {
-    const r1csinfo = await snarkjs.r1cs.info(this.path(circuit, 'r1cs'));
+    const r1csinfo = await snarkjs.r1cs.info(this.path(circuit, 'r1cs'), this._logger);
     return {
       variables: r1csinfo.nVars,
       constraints: r1csinfo.nConstraints,
@@ -194,7 +213,9 @@ export class Circomkit {
       if (this.config.curve !== 'bn128') {
         throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
       }
-      mkdirSync(this.config.dirs.ptau);
+
+      mkdirSync(this.config.dirs.ptau, {recursive: true});
+
       this.log('Downloading ' + ptauName + '...');
       return await downloadPtau(ptauName, this.config.dirs.ptau);
     }
@@ -240,9 +261,13 @@ export class Circomkit {
       `./node_modules/snarkjs/templates/verifier_${this.config.proofSystem}.sol.ejs`,
       'utf-8'
     );
-    const contractCode = await snarkjs.zKey.exportSolidityVerifier(pkey, {
-      [this.config.proofSystem]: template,
-    });
+    const contractCode = await snarkjs.zKey.exportSolidityVerifier(
+      pkey,
+      {
+        [this.config.proofSystem]: template,
+      },
+      this._logger
+    );
 
     const contractPath = this.path(circuit, 'sol');
     writeFileSync(contractPath, contractCode);
@@ -260,7 +285,7 @@ export class Circomkit {
           .map(path => readFile(path, 'utf-8'))
       )
     ).map(content => JSON.parse(content));
-    return await snarkjs[this.config.proofSystem].exportSolidityCallData(proof, pubs);
+    return await snarkjs[this.config.proofSystem].exportSolidityCallData(proof, pubs, this._logger);
   }
 
   /** Instantiate the `main` component.
@@ -304,7 +329,7 @@ export class Circomkit {
     }
     const jsonInput = JSON.parse(readFileSync(inputPath, 'utf-8'));
 
-    const fullProof = await snarkjs[this.config.proofSystem].fullProve(jsonInput, wasmPath, pkeyPath);
+    const fullProof = await snarkjs[this.config.proofSystem].fullProve(jsonInput, wasmPath, pkeyPath, this._logger);
 
     const dir = this.pathWithInput(circuit, input, 'dir');
     mkdirSync(dir, {recursive: true});
@@ -341,16 +366,16 @@ export class Circomkit {
     this.log('Beginning setup phase!');
     if (this.config.proofSystem === 'plonk' || this.config.proofSystem === 'fflonk') {
       // PLONK or FFLONK don't need specific setup
-      await snarkjs[this.config.proofSystem].setup(r1csPath, ptauPath, pkeyPath);
+      await snarkjs[this.config.proofSystem].setup(r1csPath, ptauPath, pkeyPath, this._logger);
     } else {
       // Groth16 needs a specific setup with its own PTAU ceremony
       // initialize phase 2
       const ptau2Init = this.pathPtau(`${circuit}_init.zkey`);
-      await snarkjs.powersOfTau.preparePhase2(ptauPath, ptau2Init);
+      await snarkjs.powersOfTau.preparePhase2(ptauPath, ptau2Init, this._logger);
 
       // start PTAU generation
       let curZkey = this.pathZkey(circuit, 0);
-      await snarkjs.zKey.newZKey(r1csPath, ptau2Init, curZkey);
+      await snarkjs.zKey.newZKey(r1csPath, ptau2Init, curZkey, this._logger);
       rmSync(ptau2Init);
 
       // make contributions
@@ -363,7 +388,8 @@ export class Circomkit {
           curZkey,
           nextZkey,
           `${circuit}_${contrib}`,
-          this.config.groth16.askForEntropy ? undefined : randomBytes(32) // entropy
+          this.config.groth16.askForEntropy ? undefined : randomBytes(32), // entropy
+          this._logger
         );
 
         // remove current key, and move on to next one
@@ -376,7 +402,7 @@ export class Circomkit {
     }
 
     // export verification key
-    const vkey = await snarkjs.zKey.exportVerificationKey(pkeyPath);
+    const vkey = await snarkjs.zKey.exportVerificationKey(pkeyPath, this._logger);
     writeFileSync(vkeyPath, this.prettyStringify(vkey));
     return vkeyPath;
   }
@@ -393,7 +419,7 @@ export class Circomkit {
       )
     ).map(content => JSON.parse(content));
 
-    return await snarkjs[this.config.proofSystem].verify(vkey, pubs, proof);
+    return await snarkjs[this.config.proofSystem].verify(vkey, pubs, proof, this._logger);
   }
 
   /** Calculates the witness for the given circuit and input. */
@@ -404,7 +430,7 @@ export class Circomkit {
     const jsonInput = JSON.parse(readFileSync(this.pathWithInput(circuit, input, 'in'), 'utf-8'));
 
     mkdirSync(outDir, {recursive: true});
-    await snarkjs.wtns.calculate(jsonInput, wasmPath, wtnsPath);
+    await snarkjs.wtns.calculate(jsonInput, wasmPath, wtnsPath, this._logger);
     return wtnsPath;
   }
 

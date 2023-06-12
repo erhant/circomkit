@@ -1,5 +1,4 @@
-type ColorType = `\x1b[${number}m` | `\x1b[${number};${number}m`;
-type VersionType = `${number}.${number}.${number}`;
+import type {LogLevelDesc, LogLevelNames} from 'loglevel';
 
 export type CircomkitConfig = {
   /** Proof system to be used. */
@@ -27,9 +26,7 @@ export type CircomkitConfig = {
     askForEntropy: boolean;
   };
   /** Version number for main components. */
-  version: VersionType;
-  /** Hide Circomkit logs */
-  silent: boolean;
+  version: `${number}.${number}.${number}`;
   /** Compiler options for Circom. */
   compiler: {
     /** Output constraints in JSON format. */
@@ -45,13 +42,14 @@ export type CircomkitConfig = {
     /** Include paths as libraries during compilation. */
     include: string[];
   };
-  /** Colors for the logs */
-  colors: {
-    title: ColorType;
-    success: ColorType;
-    log: ColorType;
-    error: ColorType;
-    warn: ColorType;
+  /** Logger configurations */
+  logger: {
+    /** Pass logger to SnarkJS to see its logs */
+    verbose: boolean;
+    /** Log level used by the internal logger */
+    logLevel: LogLevelDesc;
+    /** Colors used by the internal logger */
+    colors: {[level in LogLevelNames | 'title' | 'success']: `\u001b[${number}m` | `\u001b[${number};${number}m`};
   };
 };
 
