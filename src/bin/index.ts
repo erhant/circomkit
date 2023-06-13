@@ -101,9 +101,8 @@ async function cli(): Promise<number> {
     }
 
     case 'calldata': {
-      circomkit.log('\n=== Exporting contract ===', 'title');
+      circomkit.log('\n=== Printing calldata ===', 'title');
       const calldata = await circomkit.calldata(process.argv[3], process.argv[4] || DEFAULT_INPUT);
-      circomkit.log('Calldata printed:', 'success');
       circomkit.log(calldata);
       break;
     }

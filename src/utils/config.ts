@@ -5,7 +5,7 @@ import type {CircomkitConfig} from '../types/circomkit';
 export const defaultConfig: Readonly<CircomkitConfig> = {
   // general settings
   proofSystem: 'groth16',
-  curve: 'goldilocks',
+  curve: 'bn128',
   version: '2.1.0',
   // directories & paths
   circuits: './circuits.json',

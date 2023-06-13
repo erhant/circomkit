@@ -68,16 +68,6 @@ export class Circomkit {
     return circuits[circuit] as CircuitConfig;
   }
 
-  /** Colorful logging using the internal logger */
-  log(message: string, type: keyof typeof colors = 'info') {
-    // TODO: this is very smelly code, find a better way
-    if (type === 'title' || type === 'success') {
-      this.logger.info(`${colors[type]}${message}\x1b[0m`);
-    } else {
-      this.logger[type](`${colors[type]}${message}\x1b[0m`);
-    }
-  }
-
   /**
    * Computes a path that requires a circuit name.
    * @param circuit circuit name
@@ -145,8 +135,18 @@ export class Circomkit {
     return `${this.config.dirBuild}/${circuit}/${circuit}_${id}.zkey`;
   }
 
+  /** Colorful logging using the internal logger */
+  log(message: string, type: keyof typeof colors = 'info') {
+    // TODO: this is very smelly code, find a better way
+    if (type === 'title' || type === 'success') {
+      this.logger.info(`${colors[type]}${message}\x1b[0m`);
+    } else {
+      this.logger[type](`${colors[type]}${message}\x1b[0m`);
+    }
+  }
+
   /** Clean build files and the main component. */
-  async clean(circuit: string) {
+  async clean(circuit: string): Promise<void> {
     await Promise.all([
       rm(this.path(circuit, 'dir'), {recursive: true, force: true}),
       rm(this.path(circuit, 'target'), {force: true}),
@@ -170,7 +170,10 @@ export class Circomkit {
   }
 
   /** Downloads the ptau file for a circuit based on it's number of constraints. */
-  async ptau(circuit: string) {
+  async ptau(circuit: string): Promise<string> {
+    if (this.config.curve !== 'bn128') {
+      throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
+    }
     const {constraints} = await this.info(circuit);
     const ptauName = getPtauName(constraints);
 
@@ -179,10 +182,6 @@ export class Circomkit {
     if (existsSync(ptauPath)) {
       return ptauPath;
     } else {
-      if (this.config.curve !== 'bn128') {
-        throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
-      }
-
       mkdirSync(this.config.dirPtau, {recursive: true});
 
       this.log('Downloading ' + ptauName + '...');
@@ -200,11 +199,8 @@ export class Circomkit {
     const outDir = this.path(circuit, 'dir');
     const targetPath = this.path(circuit, 'target');
 
-    if (!existsSync(targetPath)) {
-      this.log('Main component does not exist, creating it now.', 'warn');
-      const path = this.instantiate(circuit);
-      this.log('Main component created at: ' + path);
-    }
+    const path = this.instantiate(circuit);
+    this.log('Main component created at: ' + path, 'debug');
 
     await wasm_tester(targetPath, {
       output: outDir,
@@ -276,7 +272,7 @@ export class Circomkit {
   /** Generate a proof.
    * @returns path to directory where public signals and proof are created
    */
-  async prove(circuit: string, input: string) {
+  async prove(circuit: string, input: string): Promise<string> {
     // create WASM if needed
     const wasmPath = this.path(circuit, 'wasm');
     if (!existsSync(wasmPath)) {
@@ -312,7 +308,7 @@ export class Circomkit {
   /** Commence a circuit-specific setup.
    * @returns path to verifier key
    */
-  async setup(circuit: string, ptauPath?: string) {
+  async setup(circuit: string, ptauPath?: string): Promise<string> {
     const r1csPath = this.path(circuit, 'r1cs');
     const pkeyPath = this.path(circuit, 'pkey');
     const vkeyPath = this.path(circuit, 'vkey');
@@ -324,10 +320,11 @@ export class Circomkit {
     }
 
     // get ptau path
-    if (ptauPath) {
-      this.log('Using provided PTAU: ' + ptauPath);
-    } else {
-      this.log('Checking for PTAU file...');
+    if (ptauPath === undefined) {
+      if (this.config.curve !== 'bn128') {
+        throw new Error('Please provide PTAU file when using a prime field other than bn128');
+      }
+      this.log('Checking for PTAU file...', 'debug');
       ptauPath = await this.ptau(circuit);
     }
 
@@ -376,8 +373,10 @@ export class Circomkit {
     return vkeyPath;
   }
 
-  /** Verify a proof for some public signals. */
-  async verify(circuit: string, input: string) {
+  /** Verify a proof for some public signals.
+   * @returns `true` if verification is successful, `false` otherwise.
+   */
+  async verify(circuit: string, input: string): Promise<boolean> {
     const [vkey, pubs, proof] = (
       await Promise.all(
         [
@@ -391,8 +390,10 @@ export class Circomkit {
     return await snarkjs[this.config.proofSystem].verify(vkey, pubs, proof, this._logger);
   }
 
-  /** Calculates the witness for the given circuit and input. */
-  async witness(circuit: string, input: string) {
+  /** Calculates the witness for the given circuit and input.
+   * @returns path to created witness
+   */
+  async witness(circuit: string, input: string): Promise<string> {
     const wasmPath = this.path(circuit, 'wasm');
     const wtnsPath = this.pathWithInput(circuit, input, 'wtns');
     const outDir = this.pathWithInput(circuit, input, 'dir');
