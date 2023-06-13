@@ -1,4 +1,4 @@
-import {LogLevelDesc, LogLevelNames} from 'loglevel';
+import type {LogLevelNames} from 'loglevel';
 import type {CircomkitConfig} from '../types/circomkit';
 
 /** Default configurations */

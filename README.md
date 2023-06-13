@@ -111,9 +111,13 @@ npx circomkit calldata circuit input
 
 ## Circomkit Configuration
 
-Everything used by Circomkit can be overridden in its constructor argument.
+Everything used by Circomkit can be optionally overridden by providing the selected fields in its constructor. Circomkit CLI does this automatically by checking out `circomkit.json` and overriding the defaults with that. You can print the active configuration via the following command:
 
-// TODO
+```sh
+npx circomkit config
+```
+
+You can edit any of the fields there to fit your needs.
 
 ### Logger
 
