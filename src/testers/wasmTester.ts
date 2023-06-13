@@ -1,5 +1,5 @@
 import type {WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/circuit';
-import type {CircomWasmTester} from '../types/wasmTester';
+import type {CircomWasmTester} from '../types/circom_tester';
 import {assert, expect} from 'chai';
 
 /** A utility class to test your circuits. Use `expectFail` and `expectPass` to test out evaluations. */

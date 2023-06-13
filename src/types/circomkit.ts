@@ -1,56 +1,38 @@
-import type {LogLevelDesc, LogLevelNames} from 'loglevel';
+import type {LogLevelDesc} from 'loglevel';
 
 export type CircomkitConfig = {
   /** Proof system to be used. */
   proofSystem: 'groth16' | 'plonk' | 'fflonk';
-  /** Curve to be used, which defines the underlying prime field. */
+  /** Underlying prime field. */
   curve: 'bn128' | 'bls12381' | 'goldilocks';
-  /** Directory overrides, it is best you leave this as is. */
-  dirs: {
-    /** Directory to read circuits from. */
-    circuits: string;
-    /** Folder name to output the main component under `circuits` directory. */
-    main: string;
-    /** Directory to read inputs from. */
-    inputs: string;
-    /** Directory to download PTAU files. */
-    ptau: string;
-    /** Directory to output circuit build files. */
-    build: string;
-  };
-  /** Groth16-specific configurations */
-  groth16: {
-    /** Number of contributions */
-    numContributions: number;
-    /** Ask user input to create entropy */
-    askForEntropy: boolean;
-  };
+  /** Circuit configurations path. */
+  circuits: string;
+  /** Directory to read circuits from. */
+  dirCircuits: string;
+  /** Directory to read inputs from. */
+  dirInputs: string;
+  /** Directory to download PTAU files. */
+  dirPtau: string;
+  /** Directory to output circuit build files. */
+  dirBuild: string;
+  /** Number of contributions */
+  groth16numContributions: number;
+  /** Ask user input to create entropy */
+  groth16askForEntropy: boolean;
   /** Version number for main components. */
   version: `${number}.${number}.${number}`;
-  /** Compiler options for Circom. */
-  compiler: {
-    /** Output constraints in JSON format. */
-    json: boolean;
-    /** Show Circom logs during compilation. */
-    verbose: boolean;
-    /**
-     * Optimization level.
-     * - `0`: No simplification is applied.
-     * - `1`: Only applies `var` to `var` and `var` to `constant` simplification.
-     */
-    optimization: 0 | 1;
-    /** Include paths as libraries during compilation. */
-    include: string[];
-  };
-  /** Logger configurations */
-  logger: {
-    /** Pass logger to SnarkJS to see its logs */
-    verbose: boolean;
-    /** Log level used by the internal logger */
-    logLevel: LogLevelDesc;
-    /** Colors used by the internal logger */
-    colors: {[level in LogLevelNames | 'title' | 'success']: `\u001b[${number}m` | `\u001b[${number};${number}m`};
-  };
+  /**
+   * Optimization level.
+   * - `0`: No simplification is applied.
+   * - `1`: Only applies `var` to `var` and `var` to `constant` simplification.
+   */
+  optimization: 0 | 1;
+  /** Include paths as libraries during compilation. */
+  include: string[];
+  /** Pass logger to SnarkJS to see its logs in addition to Circomkit */
+  verbose: boolean;
+  /** Log level used by the internal logger */
+  logLevel: LogLevelDesc;
 };
 
 /** Shorthand notations for which path to build in Circomkit. These paths require a circuit name. */

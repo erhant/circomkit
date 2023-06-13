@@ -52,8 +52,8 @@ export type CircuitConfig = {
   params?: (number | bigint)[];
 };
 
-/** R1CS information type, as returned by SnarkJS.
- * Some fields may be omitted.
+/** Some fields for the R1CS information returned by SnarkJS.
+ * Many other fields are omitted in this type.
  */
 export type R1CSInfoType = {
   variables: number;
@@ -62,4 +62,6 @@ export type R1CSInfoType = {
   publicInputs: number;
   labels: number;
   outputs: number;
+  prime: bigint;
+  curve: string;
 };
