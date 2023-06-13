@@ -127,7 +127,7 @@ async function cli(): Promise<number> {
       if (result) {
         circomkit.log('Verification successful.');
       } else {
-        circomkit.logger.error('Verification failed!');
+        circomkit.log('Verification failed!', 'error');
       }
       break;
     }
@@ -142,7 +142,7 @@ async function cli(): Promise<number> {
     case 'setup': {
       circomkit.log('\n=== Circuit-specific setup ===', 'title');
       const path = await circomkit.setup(process.argv[3]);
-      circomkit.log('Prover key created: ' + path);
+      circomkit.log('Verifier key created: ' + path);
       break;
     }
 

@@ -404,8 +404,14 @@ export class Circomkit {
     return wtnsPath;
   }
 
+  private async export() {
+    // TODO
+    // snarkjs.zKey.exportJson(zkeyFileName)
+    // snarkjs.r1cs.exportJson(r1csFileName, logger)
+  }
+
   /**
-   * Compiles and reutrns a circuit tester class instance.
+   * Compiles the circuit and reutrns a circuit tester.
    * @param circuit name of circuit
    * @param config circuit configuration
    * @returns a `WasmTester` instance
@@ -430,6 +436,12 @@ export class Circomkit {
     return new WasmTester<IN, OUT>(circomWasmTester);
   }
 
+  /**
+   * Creates a ProofTester.
+   * @param circuit circuit name
+   * @param ptauPath optional path to PTAU file
+   * @returns a ProofTester
+   */
   async ProofTester<IN extends string[] = []>(circuit: string, ptauPath?: string) {
     const wasmPath = this.path(circuit, 'wasm');
     const pkeyPath = this.path(circuit, 'pkey');
@@ -437,7 +449,7 @@ export class Circomkit {
 
     // create keys if required
     if (!existsSync(vkeyPath)) {
-      this.log('Verifier key does not exist, creating it now...');
+      this.log('Verifier key does not exist, creating it now...', 'debug');
       await this.setup(circuit, ptauPath);
     }
 
