@@ -41,11 +41,14 @@ const USAGE = `Usage:
     witness circuit input
   
   Initialize a Circomkit project.
-    init [name]
+    init [project-name]
+
+  Print configurations to console.
+    config
 `;
 
 async function cli(): Promise<number> {
-  // read user configs
+  // read user configs & override if there are any
   let config = {};
   if (existsSync(CONFIG_PATH)) {
     config = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
@@ -53,7 +56,8 @@ async function cli(): Promise<number> {
   const circomkit = new Circomkit(config);
 
   // execute command
-  switch (process.argv[2] as unknown as keyof Circomkit | 'init') {
+  type Commands = keyof Circomkit | 'init' | 'config';
+  switch (process.argv[2] as unknown as Commands) {
     case 'compile': {
       circomkit.log('\n=== Compiling the circuit ===', 'title');
       const path = await circomkit.compile(process.argv[3]);
@@ -78,12 +82,14 @@ async function cli(): Promise<number> {
     case 'info': {
       circomkit.log('\n=== Circuit information ===', 'title');
       const info = await circomkit.info(process.argv[3]);
+      circomkit.log(`Prime Field: ${info.curve}`);
       circomkit.log(`Number of of Wires: ${info.variables}`);
       circomkit.log(`Number of Constraints: ${info.constraints}`);
       circomkit.log(`Number of Private Inputs: ${info.privateInputs}`);
       circomkit.log(`Number of Public Inputs: ${info.publicInputs}`);
       circomkit.log(`Number of Labels: ${info.labels}`);
       circomkit.log(`Number of Outputs: ${info.outputs}`);
+
       break;
     }
 
@@ -138,6 +144,12 @@ async function cli(): Promise<number> {
       circomkit.log('\n=== Circuit-specific setup ===', 'title');
       const path = await circomkit.setup(process.argv[3]);
       circomkit.log('Prover key created: ' + path);
+      break;
+    }
+
+    case 'config': {
+      circomkit.log('\n=== Circomkit Configuration ===', 'title');
+      console.log(circomkit.config);
       break;
     }
 

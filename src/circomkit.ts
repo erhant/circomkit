@@ -13,46 +13,11 @@ import type {
   CircuitPathBuilders,
 } from './types/circomkit';
 import {randomBytes} from 'crypto';
-import {CircomWasmTester} from './types/wasmTester';
+import {CircomWasmTester} from './types/circom_tester';
 import WasmTester from './testers/wasmTester';
 import ProofTester from './testers/proofTester';
-
-/** Default configurations */
-const defaultConfig: Readonly<CircomkitConfig> = {
-  proofSystem: 'groth16',
-  curve: 'bn128',
-  version: '2.1.0',
-  dirs: {
-    ptau: './ptau',
-    circuits: './circuits',
-    inputs: './inputs',
-    main: 'main',
-    build: './build',
-  },
-  compiler: {
-    optimization: 0,
-    verbose: false,
-    json: false,
-    include: ['./node_modules'],
-  },
-  groth16: {
-    numContributions: 1,
-    askForEntropy: false,
-  },
-  logger: {
-    logLevel: 'INFO',
-    colors: {
-      title: '\u001b[0;34m', // blue
-      success: '\u001b[0;32m', // green
-      info: '\u001b[2;37m', // gray
-      trace: '\u001b[2;37m', // gray
-      debug: '\u001b[2;37m', // gray
-      error: '\u001b[0;31m', // red
-      warn: '\u001b[0;33m', // yellow
-    },
-    verbose: true,
-  },
-};
+import {primeToCurveName} from './utils/curves';
+import {defaultConfig, colors} from './utils/config';
 
 /**
  * Circomkit is an opinionated wrapper around many SnarkJS functions.
@@ -78,14 +43,15 @@ export class Circomkit {
 
   constructor(overrides: CircomkitConfigOverrides = {}) {
     // override default options with the user-provided ones
-    const config: CircomkitConfig = Object.assign({}, overrides, defaultConfig);
+    // we can do this via Object.assign because both are single depth
+    const config = Object.assign(defaultConfig, overrides);
 
     this.config = config;
     this.logger = getLogger('Circomkit');
-    this.logger.setLevel(config.logger.logLevel);
+    this.logger.setLevel(config.logLevel);
 
     // logger for SnarkJS
-    this._logger = this.config.logger.verbose ? this.logger : undefined;
+    this._logger = this.config.verbose ? this.logger : undefined;
   }
 
   /** Pretty-print for JSON stringify. */
@@ -95,20 +61,20 @@ export class Circomkit {
 
   /** Parse circuit config from `circuits.json` */
   private readCircuitConfig(circuit: string): CircuitConfig {
-    const circuits = JSON.parse(readFileSync('./circuits.json', 'utf-8'));
+    const circuits = JSON.parse(readFileSync(this.config.circuits, 'utf-8'));
     if (!(circuit in circuits)) {
-      throw new Error('No such circuit in circuits.json');
+      throw new Error('No such circuit in ' + this.config.circuits);
     }
     return circuits[circuit] as CircuitConfig;
   }
 
   /** Colorful logging using the internal logger */
-  log(message: string, type: keyof CircomkitConfig['logger']['colors'] = 'info') {
+  log(message: string, type: keyof typeof colors = 'info') {
     // TODO: this is very smelly code, find a better way
     if (type === 'title' || type === 'success') {
-      this.logger.info(`${this.config.logger.colors[type]}${message}\x1b[0m`);
+      this.logger.info(`${colors[type]}${message}\x1b[0m`);
     } else {
-      this.logger[type](`${this.config.logger.colors[type]}${message}\x1b[0m`);
+      this.logger[type](`${colors[type]}${message}\x1b[0m`);
     }
   }
 
@@ -119,12 +85,12 @@ export class Circomkit {
    * @returns path
    */
   private path(circuit: string, type: CircuitPathBuilders): string {
-    const dir = `${this.config.dirs.build}/${circuit}`;
+    const dir = `${this.config.dirBuild}/${circuit}`;
     switch (type) {
       case 'dir':
         return dir;
       case 'target':
-        return `${this.config.dirs.circuits}/${this.config.dirs.main}/${circuit}.circom`;
+        return `${this.config.dirCircuits}/main/${circuit}.circom`;
       case 'pkey':
         return `${dir}/prover_key.zkey`;
       case 'vkey':
@@ -150,7 +116,7 @@ export class Circomkit {
    * @returns path
    */
   private pathWithInput(circuit: string, input: string, type: CircuitInputPathBuilders): string {
-    const dir = `${this.config.dirs.build}/${circuit}/${input}`;
+    const dir = `${this.config.dirBuild}/${circuit}/${input}`;
     switch (type) {
       case 'dir':
         return dir;
@@ -161,7 +127,7 @@ export class Circomkit {
       case 'wtns':
         return `${dir}/witness.wtns`;
       case 'in':
-        return `${this.config.dirs.inputs}/${circuit}/${input}.json`;
+        return `${this.config.dirInputs}/${circuit}/${input}.json`;
       default:
         throw new Error('Invalid type: ' + type);
     }
@@ -169,14 +135,14 @@ export class Circomkit {
 
   /** Given a PTAU name, returns the relative path. */
   private pathPtau(ptauName: string): string {
-    return `${this.config.dirs.ptau}/${ptauName}`;
+    return `${this.config.dirPtau}/${ptauName}`;
   }
 
   /** Given a circuit & id name, returns the relative path to phase-2 PTAU.
    * This is used in particular by Groth16's circuit-specific setup phase.
    */
   private pathZkey(circuit: string, id: number): string {
-    return `${this.config.dirs.build}/${circuit}/${circuit}_${id}.zkey`;
+    return `${this.config.dirBuild}/${circuit}/${circuit}_${id}.zkey`;
   }
 
   /** Clean build files and the main component. */
@@ -189,7 +155,8 @@ export class Circomkit {
 
   /** Information about circuit. */
   async info(circuit: string): Promise<R1CSInfoType> {
-    const r1csinfo = await snarkjs.r1cs.info(this.path(circuit, 'r1cs'), this._logger);
+    // we do not pass this._logger here in purpose
+    const r1csinfo = await snarkjs.r1cs.info(this.path(circuit, 'r1cs'), undefined);
     return {
       variables: r1csinfo.nVars,
       constraints: r1csinfo.nConstraints,
@@ -197,6 +164,8 @@ export class Circomkit {
       publicInputs: r1csinfo.nPubInputs,
       labels: r1csinfo.nLabels,
       outputs: r1csinfo.nOutputs,
+      prime: r1csinfo.prime,
+      curve: primeToCurveName[r1csinfo.prime],
     };
   }
 
@@ -214,10 +183,10 @@ export class Circomkit {
         throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
       }
 
-      mkdirSync(this.config.dirs.ptau, {recursive: true});
+      mkdirSync(this.config.dirPtau, {recursive: true});
 
       this.log('Downloading ' + ptauName + '...');
-      return await downloadPtau(ptauName, this.config.dirs.ptau);
+      return await downloadPtau(ptauName, this.config.dirPtau);
     }
   }
 
@@ -240,10 +209,10 @@ export class Circomkit {
     await wasm_tester(targetPath, {
       output: outDir,
       prime: this.config.curve,
-      verbose: this.config.compiler.verbose,
-      O: this.config.compiler.optimization,
-      json: this.config.compiler.json,
-      include: this.config.compiler.include,
+      verbose: true,
+      O: this.config.optimization,
+      json: false,
+      include: this.config.include,
       wasm: true,
       sym: true,
       recompile: true,
@@ -298,7 +267,7 @@ export class Circomkit {
       const circuitConfig = this.readCircuitConfig(circuit);
       return instantiate(circuit, {
         ...circuitConfig,
-        dir: this.config.dirs.main,
+        dir: 'main',
         version: this.config.version,
       });
     }
@@ -379,7 +348,7 @@ export class Circomkit {
       rmSync(ptau2Init);
 
       // make contributions
-      for (let contrib = 1; contrib <= this.config.groth16.numContributions; contrib++) {
+      for (let contrib = 1; contrib <= this.config.groth16numContributions; contrib++) {
         const nextZkey = this.pathZkey(circuit, contrib);
 
         // entropy, if user wants to prompt give undefined
@@ -388,7 +357,7 @@ export class Circomkit {
           curZkey,
           nextZkey,
           `${circuit}_${contrib}`,
-          this.config.groth16.askForEntropy ? undefined : randomBytes(32), // entropy
+          this.config.groth16askForEntropy ? undefined : randomBytes(32), // entropy
           this._logger
         );
 
@@ -448,10 +417,10 @@ export class Circomkit {
     const circomWasmTester: CircomWasmTester = await wasm_tester(targetPath, {
       output: undefined, // todo: check if this is ok
       prime: this.config.curve,
-      verbose: this.config.compiler.verbose,
-      O: this.config.compiler.optimization,
-      json: this.config.compiler.json,
-      include: this.config.compiler.include,
+      verbose: true,
+      O: this.config.optimization,
+      json: false,
+      include: this.config.include,
       wasm: true,
       sym: true,
       recompile: true,
