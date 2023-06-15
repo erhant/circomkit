@@ -29,8 +29,7 @@
     "build:clean": "rimraf dist/",
     "prepublish": "yarn build",
     "cli": "yarn build && node ./dist/bin",
-    "test:all": "npx mocha",
-    "test": "npx mocha --grep",
+    "test": "npx mocha",
     "style": "yarn format && yarn lint",
     "lint": "npx gts lint",
     "format": "npx prettier --check ./**/*.ts"

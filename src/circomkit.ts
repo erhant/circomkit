@@ -55,7 +55,7 @@ export class Circomkit {
   }
 
   /** Pretty-print for JSON stringify. */
-  private prettyStringify(obj: unknown) {
+  private prettyStringify(obj: unknown): string {
     return JSON.stringify(obj, undefined, 2);
   }
 
@@ -306,9 +306,9 @@ export class Circomkit {
   }
 
   /** Commence a circuit-specific setup.
-   * @returns path to verifier key
+   * @returns path to verifier key and prover key
    */
-  async setup(circuit: string, ptauPath?: string): Promise<string> {
+  async setup(circuit: string, ptauPath?: string): Promise<{proverKey: string; verifierKey: string}> {
     const r1csPath = this.path(circuit, 'r1cs');
     const pkeyPath = this.path(circuit, 'pkey');
     const vkeyPath = this.path(circuit, 'vkey');
@@ -370,7 +370,7 @@ export class Circomkit {
     // export verification key
     const vkey = await snarkjs.zKey.exportVerificationKey(pkeyPath, this._logger);
     writeFileSync(vkeyPath, this.prettyStringify(vkey));
-    return vkeyPath;
+    return {verifierKey: vkeyPath, proverKey: pkeyPath};
   }
 
   /** Verify a proof for some public signals.
@@ -404,10 +404,51 @@ export class Circomkit {
     return wtnsPath;
   }
 
-  private async export() {
-    // TODO
-    // snarkjs.zKey.exportJson(zkeyFileName)
-    // snarkjs.r1cs.exportJson(r1csFileName, logger)
+  /**
+   * Export a circuit artifact in JSON format. If the last argument `write` is true, it will write to
+   * file with the appropriate path, and return the path. Otheriwse, returns the JSON obejct.
+   * @param type type of file to export
+   * @returns a JSON object or the path that it would be exported to.
+   */
+  async json(
+    type: 'r1cs' | 'zkey' | 'wtns',
+    circuit: string,
+    input?: string,
+    write?: boolean
+  ): Promise<object | string> {
+    let json: object;
+    let path: string;
+    switch (type) {
+      // R1CS
+      case 'r1cs': {
+        path = this.path(circuit, 'r1cs');
+        json = await snarkjs.r1cs.exportJson(path, undefined); // internal log didnt make sense
+        break;
+      }
+      // Prover key
+      case 'zkey': {
+        path = this.path(circuit, 'pkey');
+        json = await snarkjs.zKey.exportJson(path, undefined); // does not take logger
+        break;
+      }
+      // Witness
+      case 'wtns': {
+        if (!input) throw new Error('Expected input');
+        path = this.pathWithInput(circuit, input, 'wtns');
+        json = await snarkjs.wtns.exportJson(path, undefined); // does not take logger
+        break;
+      }
+      default:
+        throw new Error('Unknown export target: ' + type);
+    }
+
+    if (write) {
+      path += '.json';
+      writeFileSync(path, this.prettyStringify(json));
+      return path;
+    } else {
+      return json;
+    }
   }
 
   /**

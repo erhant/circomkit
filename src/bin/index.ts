@@ -8,43 +8,50 @@ const DEFAULT_INPUT = 'default';
 const USAGE = `Usage:
 
   Compile the circuit.
-    compile circuit
+  > compile circuit
 
   Create main component.
-    instantiate circuit
+  > instantiate circuit
   
   Print circuit information.
-    info circuit
+  > info circuit
 
   Clean build artifacts & main component.
-    clean circuit
+  > clean circuit
 
   Export Solidity verifier.
-    contract circuit
-  
-  Commence circuit-specific setup.
-    setup circuit [ptau-path]
-  
-  Download the PTAU file needed for the circuit.
-    ptau circuit
+  > contract circuit
   
   Export calldata for a verifier contract.
-    contract circuit input
+  > calldata circuit input
+
+  Export JSON for a chosen file.
+  > json r1cs circuit
+  > json zkey circuit
+  > json wtns circuit input
+
+  Commence circuit-specific setup.
+  > setup circuit
+  > setup circuit ptau-path
+  
+  Download the PTAU file needed for the circuit.
+  > ptau circuit
 
   Generate a proof.
-    prove circuit input 
+  > prove circuit input 
 
   Verify a proof.
-    verify circuit input
+  > verify circuit input
 
   Generate a witness.
-    witness circuit input
+  > witness circuit input
   
   Initialize a Circomkit project.
-    init [project-name]
+  > init                # initializes in current folder
+  > init project-name   # initializes in a new folder
 
   Print configurations to console.
-    config
+  > config
 `;
 
 async function cli(): Promise<number> {
@@ -55,32 +62,47 @@ async function cli(): Promise<number> {
   }
   const circomkit = new Circomkit(config);
 
+  /** smol utility function to print pretty titles in the same format */
+  const titleLog = (title: string) => circomkit.log(`===| ${title} |===`, 'title');
+
   // execute command
   type Commands = keyof Circomkit | 'init' | 'config';
   switch (process.argv[2] as unknown as Commands) {
     case 'compile': {
-      circomkit.log('\n=== Compiling the circuit ===', 'title');
+      titleLog('Compiling the circuit');
       const path = await circomkit.compile(process.argv[3]);
-      circomkit.log('Built at: ' + path);
+      circomkit.log('Built at: ' + path, 'success');
       break;
     }
 
     case 'instantiate': {
-      circomkit.log('\n=== Creating main component ===', 'title');
+      titleLog('Creating main component');
       const path = circomkit.instantiate(process.argv[3]);
-      circomkit.log('Created at: ' + path);
+      circomkit.log('Created at: ' + path, 'success');
       break;
     }
 
     case 'clean': {
-      circomkit.log('\n=== Cleaning artifacts ===', 'title');
+      titleLog('Cleaning artifacts');
       await circomkit.clean(process.argv[3]);
-      circomkit.log('Cleaned.');
+      circomkit.log('Cleaned.', 'success');
+      break;
+    }
+
+    case 'json': {
+      titleLog('Exporting JSON file');
+      const path = await circomkit.json(
+        process.argv[3] as 'r1cs' | 'zkey' | 'wtns',
+        process.argv[4],
+        process.argv[5],
+        true
+      );
+      circomkit.log('Exported at: ' + path, 'success');
       break;
     }
 
     case 'info': {
-      circomkit.log('\n=== Circuit information ===', 'title');
+      titleLog('Circuit information');
       const info = await circomkit.info(process.argv[3]);
       circomkit.log(`Prime Field: ${info.curve}`);
       circomkit.log(`Number of of Wires: ${info.variables}`);
@@ -89,43 +111,42 @@ async function cli(): Promise<number> {
       circomkit.log(`Number of Public Inputs: ${info.publicInputs}`);
       circomkit.log(`Number of Labels: ${info.labels}`);
       circomkit.log(`Number of Outputs: ${info.outputs}`);
-
       break;
     }
 
     case 'contract': {
-      circomkit.log('\n=== Exporting contract ===', 'title');
+      titleLog('Exporting contract');
       const path = await circomkit.contract(process.argv[3]);
-      circomkit.log('Created at: ' + path);
+      circomkit.log('Created at: ' + path, 'success');
       break;
     }
 
     case 'calldata': {
-      circomkit.log('\n=== Printing calldata ===', 'title');
+      titleLog('Printing calldata');
       const calldata = await circomkit.calldata(process.argv[3], process.argv[4] || DEFAULT_INPUT);
       circomkit.log(calldata);
       break;
     }
 
     case 'prove': {
-      circomkit.log('\n=== Generating proof ===', 'title');
+      titleLog('Generating proof');
       const path = await circomkit.prove(process.argv[3], process.argv[4] || DEFAULT_INPUT);
-      circomkit.log('Generated at: ' + path);
+      circomkit.log('Generated at: ' + path, 'success');
       break;
     }
 
     case 'ptau': {
-      circomkit.log('\n=== Retrieving PTAU ===', 'title');
+      titleLog('Retrieving PTAU');
       const path = await circomkit.ptau(process.argv[3]);
-      circomkit.log('PTAU ready at: ' + path);
+      circomkit.log('PTAU ready at: ' + path, 'success');
       break;
     }
 
     case 'verify': {
-      circomkit.log('\n=== Verifying proof ===', 'title');
+      titleLog('Verifying proof');
       const result = await circomkit.verify(process.argv[3], process.argv[4] || DEFAULT_INPUT);
       if (result) {
-        circomkit.log('Verification successful.');
+        circomkit.log('Verification successful.', 'success');
       } else {
         circomkit.log('Verification failed!', 'error');
       }
@@ -133,27 +154,28 @@ async function cli(): Promise<number> {
     }
 
     case 'witness': {
-      circomkit.log('\n=== Calculating witness ===', 'title');
+      titleLog('Calculating witness');
       const path = await circomkit.witness(process.argv[3], process.argv[4] || DEFAULT_INPUT);
-      circomkit.log('Witness created: ' + path);
+      circomkit.log('Witness created: ' + path, 'success');
       break;
     }
 
     case 'setup': {
-      circomkit.log('\n=== Circuit-specific setup ===', 'title');
-      const path = await circomkit.setup(process.argv[3]);
-      circomkit.log('Verifier key created: ' + path);
+      titleLog('Circuit-specific setup');
+      const paths = await circomkit.setup(process.argv[3]);
+      circomkit.log('Prover key created: ' + paths.proverKey, 'success');
+      circomkit.log('Verifier key created: ' + paths.verifierKey, 'success');
       break;
     }
 
     case 'config': {
-      circomkit.log('\n=== Circomkit Configuration ===', 'title');
+      titleLog('Circomkit Configuration');
       console.log(circomkit.config);
       break;
     }
 
     case 'init': {
-      circomkit.log('\n=== Initializing project ===', 'title');
+      titleLog('Initializing project');
       const baseDir = process.argv[3] || '.';
       await Promise.all(
         Object.values(initFiles).map(item => {

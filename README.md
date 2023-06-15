@@ -26,6 +26,8 @@
     </a>
 </p>
 
+_Circomkit is still being developed, although at its current state you should really be able to easily play with circuits and write their tests, and most commands should be seamless to work especially with `bn128` curve!_
+
 ## Installation
 
 Circomkit is an NPM package, which you can install via:
@@ -55,6 +57,16 @@ This command creates the following:
 
 Although Circomkit initializes with a Mocha test, uses Chai in the background so you could use anything that supports Chai. You should check out [circomkit-examples](https://github.com/erhant/circomkit-examples) repo as an example!
 
+### Circomkit Configuration
+
+Everything used by Circomkit can be optionally overridden by providing the selected fields in its constructor. Circomkit CLI does this automatically by checking out `circomkit.json` and overriding the defaults with that. You can print the active configuration via the following command:
+
+```sh
+npx circomkit config
+```
+
+You can edit any of the fields there to fit your needs.
+
 ### Circuit Configuration
 
 A circuit config within `circuits.json` looks like below, where the `key` is the circuit name to be used in commands, and the value is an object that describes the filename, template name, public signals and template parameters:
@@ -74,7 +86,7 @@ You can omit `pubs` and `params` options, they default to `[]`.
 
 Actions that require a circuit name can be called as follows:
 
-```bash
+```sh
 # Compile the circuit
 npx circomkit compile circuit
 
@@ -95,7 +107,7 @@ Circuit-specific setup optionally takes the path to a PTAU file as argument. If 
 
 Some actions such as generating a witness, generating a proof and verifying a proof require JSON inputs to provide the signal values. For that, we specifically create our input files under the `inputs` folder, and under the target circuit name there. For example, an input named `foo` for some circuit named `bar` would be at `inputs/bar/foo.json`.
 
-```bash
+```sh
 # Generate a witness
 npx circomkit witness circuit input
 
@@ -109,19 +121,9 @@ npx circomkit verify circuit input
 npx circomkit calldata circuit input
 ```
 
-## Circomkit Configuration
+## Circuit Testing
 
-Everything used by Circomkit can be optionally overridden by providing the selected fields in its constructor. Circomkit CLI does this automatically by checking out `circomkit.json` and overriding the defaults with that. You can print the active configuration via the following command:
-
-```sh
-npx circomkit config
-```
-
-You can edit any of the fields there to fit your needs.
-
-### Logger
-
-SnarkJS uses [logplease](https://www.npmjs.com/package/logplease) internally where functions expect a logger as an optional last argument. Circomkit uses [loglevel](https://www.npmjs.com/package/loglevel) instead, which has the same interface and is much more popular.
+`TODO TODO`
 
 ## File Structure
 
@@ -131,8 +133,8 @@ Here is an example structure, where we have a generic Sudoku proof-of-solution c
 
 ```sh
 circomkit
-├── circuits.json # circuit configs
-├── circomkit.json # customizations
+├── circuits.json
+├── circomkit.json
 │
 ├── circuits
 │   ├── main
@@ -165,11 +167,19 @@ circomkit
 
 ```
 
+## Testing
+
+Run all tests via:
+
+```sh
+yarn test
+```
+
 ## Styling
 
 Circomkit uses [Google TypeScript Style Guide](https://google.github.io/styleguide/tsguide.html).
 
-```bash
+```sh
 # check the formatting
 yarn format
 

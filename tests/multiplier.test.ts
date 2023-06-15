@@ -1,22 +1,18 @@
-import {Circomkit, CircuitConfig, FullProof, ProofTester, WasmTester} from '../src';
+import {Circomkit, FullProof, ProofTester, WasmTester} from '../dist';
 
-function createConfig(n: number): CircuitConfig {
-  return {
-    file: 'multiplier',
-    template: 'Multiplier',
-    params: [n],
-  };
-}
-
-const N = 3;
-const circuitName = `multiplier_${N}`;
 const circomkit = new Circomkit();
 
 describe('multiplier', () => {
+  const N = 3;
+  const circuitName = `multiplier_${N}`;
   let circuit: WasmTester<['in'], ['out']>;
 
   before(async () => {
-    circuit = await circomkit.WasmTester(circuitName, createConfig(N));
+    circuit = await circomkit.WasmTester(circuitName, {
+      file: 'multiplier',
+      template: 'Multiplier',
+      params: [N],
+    });
     await circuit.checkConstraintCount(N);
   });
 
@@ -27,8 +23,10 @@ describe('multiplier', () => {
 });
 
 describe('multiplier proofs', () => {
-  let fullProof: FullProof;
+  const N = 3;
+  const circuitName = `multiplier_${N}`;
   let circuit: ProofTester<['in']>;
+  let fullProof: FullProof;
 
   before(async () => {
     circuit = await circomkit.ProofTester(circuitName);
