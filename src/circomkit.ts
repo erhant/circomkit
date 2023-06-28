@@ -17,7 +17,7 @@ import {CircomWasmTester} from './types/circom_tester';
 import WasmTester from './testers/wasmTester';
 import ProofTester from './testers/proofTester';
 import {primeToCurveName} from './utils/curves';
-import {defaultConfig, colors} from './utils/config';
+import {defaultConfig, colors, CURVES, PROTOCOLS} from './utils/config';
 
 /**
  * Circomkit is an opinionated wrapper around many SnarkJS functions.
@@ -57,10 +57,10 @@ export class Circomkit {
     this._logger = this.config.verbose ? this.logger : undefined;
 
     // sanity check for curves and protocol
-    if (!['bn128', 'goldilocks', 'bls12381'].includes(this.config.curve)) {
+    if (!CURVES.includes(this.config.curve)) {
       throw new Error('Invalid curve in configuration.');
     }
-    if (!['groth16', 'plonk', 'fflonk'].includes(this.config.protocol)) {
+    if (!PROTOCOLS.includes(this.config.protocol)) {
       throw new Error('Invalid protocol in configuration.');
     }
   }

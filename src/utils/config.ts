@@ -1,6 +1,9 @@
 import type {LogLevelNames} from 'loglevel';
 import type {CircomkitConfig} from '../types/circomkit';
 
+export const PROTOCOLS = ['groth16', 'plonk', 'fflonk'] as const;
+export const CURVES = ['bn128', 'bls12381', 'goldilocks'] as const;
+
 /** Default configurations */
 export const defaultConfig: Readonly<CircomkitConfig> = Object.seal({
   // general settings

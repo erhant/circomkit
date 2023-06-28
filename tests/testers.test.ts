@@ -5,6 +5,7 @@ describe('testers with multiplier circuit', () => {
   const circomkit = new Circomkit({
     verbose: false,
   });
+
   const N = 3;
   const circuitName = `multiplier_${N}`;
   const numbers = Array.from({length: N}, () => Math.floor(Math.random() * 100 * N));
