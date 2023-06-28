@@ -32,8 +32,8 @@ import {defaultConfig, colors} from './utils/config';
  * It also provides a WasmTester and a ProofTester module which uses Chai assertions within.
  *
  * ```ts
- * const wasmTester = circomkit.WasmTester(circuitName, circuitConfig)
- * const proofTester = circomkit.ProofTester(circuitName)
+ * const wasmTester = await circomkit.WasmTester(circuitName, circuitConfig)
+ * const proofTester = await circomkit.ProofTester(circuitName)
  * ```
  */
 export class Circomkit {
@@ -43,8 +43,11 @@ export class Circomkit {
 
   constructor(overrides: CircomkitConfigOverrides = {}) {
     // override default options with the user-provided ones
-    // we can do this via Object.assign because both are single depth
-    const config = Object.assign(defaultConfig, overrides);
+    // we can do this via two simple spreads because both objects are single depth
+    const config = {
+      ...defaultConfig,
+      ...overrides,
+    };
 
     this.config = config;
     this.logger = getLogger('Circomkit');
@@ -52,6 +55,14 @@ export class Circomkit {
 
     // logger for SnarkJS
     this._logger = this.config.verbose ? this.logger : undefined;
+
+    // sanity check for curves and protocol
+    if (!['bn128', 'goldilocks', 'bls12381'].includes(this.config.curve)) {
+      throw new Error('Invalid curve in configuration.');
+    }
+    if (!['groth16', 'plonk', 'fflonk'].includes(this.config.protocol)) {
+      throw new Error('Invalid protocol in configuration.');
+    }
   }
 
   /** Pretty-print for JSON stringify. */
@@ -90,7 +101,7 @@ export class Circomkit {
       case 'sym':
         return `${dir}/${circuit}.sym`;
       case 'sol':
-        return `${dir}/Verifier_${this.config.proofSystem}.sol`;
+        return `${dir}/Verifier_${this.config.protocol}.sol`;
       case 'wasm':
         return `${dir}/${circuit}_js/${circuit}.wasm`;
       default:
@@ -205,7 +216,7 @@ export class Circomkit {
     await wasm_tester(targetPath, {
       output: outDir,
       prime: this.config.curve,
-      verbose: true,
+      verbose: this.config.verbose,
       O: this.config.optimization,
       json: false,
       include: this.config.include,
@@ -222,14 +233,11 @@ export class Circomkit {
    */
   async contract(circuit: string) {
     const pkey = this.path(circuit, 'pkey');
-    const template = readFileSync(
-      `./node_modules/snarkjs/templates/verifier_${this.config.proofSystem}.sol.ejs`,
-      'utf-8'
-    );
+    const template = readFileSync(`./node_modules/snarkjs/templates/verifier_${this.config.protocol}.sol.ejs`, 'utf-8');
     const contractCode = await snarkjs.zKey.exportSolidityVerifier(
       pkey,
       {
-        [this.config.proofSystem]: template,
+        [this.config.protocol]: template,
       },
       this._logger
     );
@@ -250,7 +258,7 @@ export class Circomkit {
           .map(path => readFile(path, 'utf-8'))
       )
     ).map(content => JSON.parse(content));
-    return await snarkjs[this.config.proofSystem].exportSolidityCallData(proof, pubs, this._logger);
+    return await snarkjs[this.config.protocol].exportSolidityCallData(proof, pubs, this._logger);
   }
 
   /** Instantiate the `main` component.
@@ -294,7 +302,7 @@ export class Circomkit {
     }
     const jsonInput = JSON.parse(readFileSync(inputPath, 'utf-8'));
 
-    const fullProof = await snarkjs[this.config.proofSystem].fullProve(jsonInput, wasmPath, pkeyPath, this._logger);
+    const fullProof = await snarkjs[this.config.protocol].fullProve(jsonInput, wasmPath, pkeyPath, this._logger);
 
     const dir = this.pathWithInput(circuit, input, 'dir');
     mkdirSync(dir, {recursive: true});
@@ -330,10 +338,7 @@ export class Circomkit {
 
     // circuit specific setup
     this.log('Beginning setup phase!');
-    if (this.config.proofSystem === 'plonk' || this.config.proofSystem === 'fflonk') {
-      // PLONK or FFLONK don't need specific setup
-      await snarkjs[this.config.proofSystem].setup(r1csPath, ptauPath, pkeyPath, this._logger);
-    } else {
+    if (this.config.protocol === 'groth16') {
       // Groth16 needs a specific setup with its own PTAU ceremony
       // initialize phase 2
       const ptau2Init = this.pathPtau(`${circuit}_init.zkey`);
@@ -365,6 +370,9 @@ export class Circomkit {
 
       // finally, rename the resulting key to pkey
       renameSync(curZkey, pkeyPath);
+    } else {
+      // PLONK or FFLONK don't need specific setup
+      await snarkjs[this.config.protocol].setup(r1csPath, ptauPath, pkeyPath, this._logger);
     }
 
     // export verification key
@@ -387,7 +395,7 @@ export class Circomkit {
       )
     ).map(content => JSON.parse(content));
 
-    return await snarkjs[this.config.proofSystem].verify(vkey, pubs, proof, this._logger);
+    return await snarkjs[this.config.protocol].verify(vkey, pubs, proof, this._logger);
   }
 
   /** Calculates the witness for the given circuit and input.
@@ -465,7 +473,7 @@ export class Circomkit {
     const circomWasmTester: CircomWasmTester = await wasm_tester(targetPath, {
       output: undefined, // todo: check if this is ok
       prime: this.config.curve,
-      verbose: true,
+      verbose: this.config.verbose,
       O: this.config.optimization,
       json: false,
       include: this.config.include,

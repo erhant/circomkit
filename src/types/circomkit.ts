@@ -1,8 +1,8 @@
 import type {LogLevelDesc} from 'loglevel';
 
 export type CircomkitConfig = {
-  /** Proof system to be used. */
-  proofSystem: 'groth16' | 'plonk' | 'fflonk';
+  /** Protocol to be used. */
+  protocol: 'groth16' | 'plonk' | 'fflonk';
   /** Underlying prime field. */
   curve: 'bn128' | 'bls12381' | 'goldilocks';
   /** Circuit configurations path. */

@@ -2,9 +2,9 @@ import type {LogLevelNames} from 'loglevel';
 import type {CircomkitConfig} from '../types/circomkit';
 
 /** Default configurations */
-export const defaultConfig: Readonly<CircomkitConfig> = {
+export const defaultConfig: Readonly<CircomkitConfig> = Object.seal({
   // general settings
-  proofSystem: 'groth16',
+  protocol: 'groth16',
   curve: 'bn128',
   version: '2.1.0',
   // directories & paths
@@ -22,7 +22,7 @@ export const defaultConfig: Readonly<CircomkitConfig> = {
   // logger
   logLevel: 'INFO',
   verbose: true,
-};
+});
 
 /** Colors used by the logger. */
 export const colors: {[key in LogLevelNames | 'title' | 'success']: string} = {

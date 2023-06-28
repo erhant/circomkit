@@ -1,7 +1,10 @@
-import {Circomkit, FullProof, ProofTester, WasmTester} from '../dist';
+import {Circomkit, FullProof, ProofTester, WasmTester} from '../src';
+import {expect} from 'chai';
 
-describe('circomkit testers (via multiplier circuit)', () => {
-  const circomkit = new Circomkit();
+describe('testers with multiplier circuit', () => {
+  const circomkit = new Circomkit({
+    verbose: false,
+  });
   const N = 3;
   const circuitName = `multiplier_${N}`;
   const numbers = Array.from({length: N}, () => Math.floor(Math.random() * 100 * N));
@@ -26,8 +29,15 @@ describe('circomkit testers (via multiplier circuit)', () => {
       await circuit.checkConstraintCount(N);
     });
 
-    it('should multiply correctly', async () => {
+    it('should assert correctly', async () => {
       await circuit.expectPass(INPUT, OUTPUT);
+    });
+
+    it('should compute correctly', async () => {
+      // alternative method to assert outputs
+      const output = await circuit.compute(INPUT, ['out']);
+      expect(output).to.haveOwnProperty('out');
+      expect(output.out).to.eq(BigInt(OUTPUT.out));
     });
   });
 

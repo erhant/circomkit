@@ -7,7 +7,7 @@ import type {CircomkitConfig} from '../types/circomkit';
 /** A tester that is able to generate proofs & verify them.
  * Use `expectFail` and `expectPass` to test out evaluations. */
 export default class ProofTester<IN extends string[] = []> {
-  public readonly protocol: CircomkitConfig['proofSystem'];
+  public readonly protocol: CircomkitConfig['protocol'];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public readonly verificationKey: any;
 
