@@ -1,10 +1,9 @@
-name: test
+name: tests
 
 on:
   push:
     branches:
       - main
-      - erhant/tests
 
 jobs:
   test:
@@ -22,6 +21,13 @@ jobs:
           cd circom
           cargo build --release
           cargo install --path circom
+          cd ..
 
-      - name: Print help
+      - name: Print Circom version
         run: circom --help
+
+      - name: Install dependencies
+        run: yarn
+
+      - name: Run tests
+        run: yarn test

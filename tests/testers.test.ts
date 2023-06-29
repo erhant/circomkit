@@ -1,32 +1,18 @@
 import {Circomkit, FullProof, ProofTester, WasmTester} from '../src';
 import {expect} from 'chai';
+import {CIRCUIT_CONFIG, CIRCUIT_NAME, INPUT, N, OUTPUT} from './common';
 
-describe('testers with multiplier circuit', () => {
+describe('testers', () => {
   const circomkit = new Circomkit({
     verbose: false,
+    logLevel: 'silent',
   });
-
-  const N = 3;
-  const circuitName = `multiplier_${N}`;
-  const numbers = Array.from({length: N}, () => Math.floor(Math.random() * 100 * N));
-  const product = numbers.reduce((prev, acc) => acc * prev);
-
-  const INPUT = {
-    in: numbers,
-  };
-  const OUTPUT = {
-    out: product,
-  };
 
   describe('wasm tester', () => {
     let circuit: WasmTester<['in'], ['out']>;
 
     before(async () => {
-      circuit = await circomkit.WasmTester(circuitName, {
-        file: 'multiplier',
-        template: 'Multiplier',
-        params: [N],
-      });
+      circuit = await circomkit.WasmTester(CIRCUIT_NAME, CIRCUIT_CONFIG);
       await circuit.checkConstraintCount(N);
     });
 
@@ -47,7 +33,7 @@ describe('testers with multiplier circuit', () => {
     let fullProof: FullProof;
 
     before(async () => {
-      circuit = await circomkit.ProofTester(circuitName);
+      circuit = await circomkit.ProofTester(CIRCUIT_NAME);
       fullProof = await circuit.prove(INPUT);
     });
 
@@ -56,8 +42,7 @@ describe('testers with multiplier circuit', () => {
     });
 
     it('should NOT verify', async () => {
-      // just give a prime number as the output, assuming none of the inputs are 1
-      await circuit.expectFail(fullProof.proof, ['13']);
+      await circuit.expectFail(fullProof.proof, ['1']);
     });
   });
 });

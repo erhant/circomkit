@@ -15,6 +15,9 @@
     <a href="./.github/workflows/build.yml" target="_blank">
         <img alt="Workflow: Build" src="https://github.com/erhant/circomkit/actions/workflows/build.yml/badge.svg?branch=main">
     </a>
+    <a href="./.github/workflows/tests.yml" target="_blank">
+        <img alt="Workflow: Tests" src="https://github.com/erhant/circomkit/actions/workflows/tests.yml/badge.svg?branch=main">
+    </a>
     <a href="https://github.com/iden3/snarkjs" target="_blank">
         <img alt="GitHub: SnarkJS" src="https://img.shields.io/badge/github-snarkjs-lightgray?logo=github">
     </a>
@@ -126,7 +129,7 @@ npx circomkit calldata circuit input
 
 Circomkit with its default configuration follows an _opinionated file structure_, abstracting away the pathing and orientation behind the scenes. All of these can be customized by overriding the respective settings in `circomkit.json`.
 
-Here is an example structure, where we have a generic Sudoku proof-of-solution circuit, and we instantiate it for a 9x9 board:
+An example structure is shown below. Suppose there is a generic circuit for a Sudoku solution knowledge proof written under `circuits` folder. When instantiated, a `main` component for a 9x9 board is created under `circuits/main`. The solution along with it's puzzle is stored as a JSON object under `inputs/sudoku_9x9`. You can see the respective artifacts under `build` directory. In particular, we see `groth16` prefix on some files, indicating that Groth16 protocol was used to create them.
 
 ```sh
 circomkit
@@ -159,8 +162,10 @@ circomkit
         │
         │── sudoku_9x9.r1cs
         │── sudoku_9x9.sym
-        │── prover_key.zkey
-        └── verifier_key.json
+        │
+        │── groth16_pkey.zkey
+        │── groth16_vkey.json
+        └── groth16_verifier.sol
 
 ```
 
@@ -171,6 +176,8 @@ Run all tests via:
 ```sh
 yarn test
 ```
+
+You can also use the CLI in the repo by `yarn cli` as if you are using `npx circomkit`. This is useful for hands-on testing stuff.
 
 ## Styling
 

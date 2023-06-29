@@ -1,58 +1,11 @@
 #!/usr/bin/env node
 import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'fs';
 import {Circomkit} from '../circomkit';
-import {initFiles, postInitString} from '../utils/initFiles';
+import {initFiles, postInitString, usageString} from '../utils';
+import {prettyStringify} from '../utils';
 
 const CONFIG_PATH = './circomkit.json';
 const DEFAULT_INPUT = 'default';
-const USAGE = `Usage:
-
-  Compile the circuit.
-  > compile circuit
-
-  Create main component.
-  > instantiate circuit
-  
-  Print circuit information.
-  > info circuit
-
-  Clean build artifacts & main component.
-  > clean circuit
-
-  Export Solidity verifier.
-  > contract circuit
-  
-  Export calldata for a verifier contract.
-  > calldata circuit input
-
-  Export JSON for a chosen file.
-  > json r1cs circuit
-  > json zkey circuit
-  > json wtns circuit input
-
-  Commence circuit-specific setup.
-  > setup circuit
-  > setup circuit ptau-path
-  
-  Download the PTAU file needed for the circuit.
-  > ptau circuit
-
-  Generate a proof.
-  > prove circuit input 
-
-  Verify a proof.
-  > verify circuit input
-
-  Generate a witness.
-  > witness circuit input
-  
-  Initialize a Circomkit project.
-  > init                # initializes in current folder
-  > init project-name   # initializes in a new folder
-
-  Print configurations to console.
-  > config
-`;
 
 async function cli(): Promise<number> {
   // read user configs & override if there are any
@@ -91,12 +44,12 @@ async function cli(): Promise<number> {
 
     case 'json': {
       titleLog('Exporting JSON file');
-      const path = await circomkit.json(
+      const {json, path} = await circomkit.json(
         process.argv[3] as 'r1cs' | 'zkey' | 'wtns',
         process.argv[4],
-        process.argv[5],
-        true
+        process.argv[5]
       );
+      writeFileSync(path, prettyStringify(json));
       circomkit.log('Exported at: ' + path, 'success');
       break;
     }
@@ -163,8 +116,8 @@ async function cli(): Promise<number> {
     case 'setup': {
       titleLog('Circuit-specific setup');
       const paths = await circomkit.setup(process.argv[3]);
-      circomkit.log('Prover key created: ' + paths.proverKey, 'success');
-      circomkit.log('Verifier key created: ' + paths.verifierKey, 'success');
+      circomkit.log('Prover key created: ' + paths.proverKeyPath, 'success');
+      circomkit.log('Verifier key created: ' + paths.verifierKeyPath, 'success');
       break;
     }
 
@@ -196,7 +149,7 @@ async function cli(): Promise<number> {
     }
 
     default:
-      console.log(USAGE);
+      console.log(usageString);
       return 1;
   }
 

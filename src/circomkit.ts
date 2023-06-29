@@ -4,7 +4,7 @@ import {writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, renameSync} 
 import {readFile, rm, writeFile} from 'fs/promises';
 import {instantiate} from './utils/instantiate';
 import {downloadPtau, getPtauName} from './utils/ptau';
-import type {CircuitConfig, R1CSInfoType} from './types/circuit';
+import type {CircuitConfig, CircuitSignals, R1CSInfoType} from './types/circuit';
 import {Logger, getLogger} from 'loglevel';
 import type {
   CircomkitConfig,
@@ -16,7 +16,7 @@ import {randomBytes} from 'crypto';
 import {CircomWasmTester} from './types/circom_tester';
 import WasmTester from './testers/wasmTester';
 import ProofTester from './testers/proofTester';
-import {primeToCurveName} from './utils/curves';
+import {prettyStringify, primeToCurveName} from './utils';
 import {defaultConfig, colors, CURVES, PROTOCOLS} from './utils/config';
 
 /**
@@ -29,7 +29,7 @@ import {defaultConfig, colors, CURVES, PROTOCOLS} from './utils/config';
  * const circomkit = new Circomkit()
  * ```
  *
- * It also provides a WasmTester and a ProofTester module which uses Chai assertions within.
+ * It also provides a **WasmTester** and a **ProofTester** module which uses Chai assertions within.
  *
  * ```ts
  * const wasmTester = await circomkit.WasmTester(circuitName, circuitConfig)
@@ -65,11 +65,6 @@ export class Circomkit {
     }
   }
 
-  /** Pretty-print for JSON stringify. */
-  private prettyStringify(obj: unknown): string {
-    return JSON.stringify(obj, undefined, 2);
-  }
-
   /** Parse circuit config from `circuits.json` */
   private readCircuitConfig(circuit: string): CircuitConfig {
     const circuits = JSON.parse(readFileSync(this.config.circuits, 'utf-8'));
@@ -92,18 +87,18 @@ export class Circomkit {
         return dir;
       case 'target':
         return `${this.config.dirCircuits}/main/${circuit}.circom`;
-      case 'pkey':
-        return `${dir}/prover_key.zkey`;
-      case 'vkey':
-        return `${dir}/verifier_key.json`;
       case 'r1cs':
         return `${dir}/${circuit}.r1cs`;
       case 'sym':
         return `${dir}/${circuit}.sym`;
-      case 'sol':
-        return `${dir}/Verifier_${this.config.protocol}.sol`;
       case 'wasm':
         return `${dir}/${circuit}_js/${circuit}.wasm`;
+      case 'pkey':
+        return `${dir}/${this.config.protocol}_pkey.zkey`;
+      case 'vkey':
+        return `${dir}/${this.config.protocol}_vkey.json`;
+      case 'sol':
+        return `${dir}/${this.config.protocol}_verifier.sol`;
       default:
         throw new Error('Invalid type: ' + type);
     }
@@ -166,7 +161,7 @@ export class Circomkit {
 
   /** Information about circuit. */
   async info(circuit: string): Promise<R1CSInfoType> {
-    // we do not pass this._logger here in purpose
+    // we do not pass this._logger here on purpose
     const r1csinfo = await snarkjs.r1cs.info(this.path(circuit, 'r1cs'), undefined);
     return {
       variables: r1csinfo.nVars,
@@ -250,7 +245,11 @@ export class Circomkit {
   /** Export calldata to console.
    * @returns calldata as a string
    */
-  async calldata(circuit: string, input: string) {
+  async calldata(circuit: string, input: string): Promise<string> {
+    // fflonk gives error (tested at snarkjs v0.7.0)
+    if (this.config.protocol === 'fflonk') {
+      throw new Error('Exporting calldata is not supported for fflonk yet.');
+    }
     const [pubs, proof] = (
       await Promise.all(
         (['pubs', 'proof'] as const)
@@ -307,8 +306,8 @@ export class Circomkit {
     const dir = this.pathWithInput(circuit, input, 'dir');
     mkdirSync(dir, {recursive: true});
     await Promise.all([
-      writeFile(this.pathWithInput(circuit, input, 'pubs'), this.prettyStringify(fullProof.publicSignals)),
-      writeFile(this.pathWithInput(circuit, input, 'proof'), this.prettyStringify(fullProof.proof)),
+      writeFile(this.pathWithInput(circuit, input, 'pubs'), prettyStringify(fullProof.publicSignals)),
+      writeFile(this.pathWithInput(circuit, input, 'proof'), prettyStringify(fullProof.proof)),
     ]);
     return dir;
   }
@@ -316,7 +315,7 @@ export class Circomkit {
   /** Commence a circuit-specific setup.
    * @returns path to verifier key and prover key
    */
-  async setup(circuit: string, ptauPath?: string): Promise<{proverKey: string; verifierKey: string}> {
+  async setup(circuit: string, ptauPath?: string): Promise<{proverKeyPath: string; verifierKeyPath: string}> {
     const r1csPath = this.path(circuit, 'r1cs');
     const pkeyPath = this.path(circuit, 'pkey');
     const vkeyPath = this.path(circuit, 'vkey');
@@ -377,8 +376,8 @@ export class Circomkit {
 
     // export verification key
     const vkey = await snarkjs.zKey.exportVerificationKey(pkeyPath, this._logger);
-    writeFileSync(vkeyPath, this.prettyStringify(vkey));
-    return {verifierKey: vkeyPath, proverKey: pkeyPath};
+    writeFileSync(vkeyPath, prettyStringify(vkey));
+    return {verifierKeyPath: vkeyPath, proverKeyPath: pkeyPath};
   }
 
   /** Verify a proof for some public signals.
@@ -412,20 +411,27 @@ export class Circomkit {
     return wtnsPath;
   }
 
+  /** Exports a JSON input file for some circuit with the given object.
+   * This is useful for testing real circuits, or creating an input programmatically.
+   * Overwrites an existing input.
+   * @returns path to created input file
+   */
+  input(circuit: string, input: string, data: CircuitSignals): string {
+    const inputPath = this.pathWithInput(circuit, input, 'in');
+    writeFileSync(inputPath, prettyStringify(data));
+    return inputPath;
+  }
+
   /**
    * Export a circuit artifact in JSON format. If the last argument `write` is true, it will write to
    * file with the appropriate path, and return the path. Otheriwse, returns the JSON obejct.
    * @param type type of file to export
    * @returns a JSON object or the path that it would be exported to.
    */
-  async json(
-    type: 'r1cs' | 'zkey' | 'wtns',
-    circuit: string,
-    input?: string,
-    write?: boolean
-  ): Promise<object | string> {
+  async json(type: 'r1cs' | 'zkey' | 'wtns', circuit: string, input?: string): Promise<{json: object; path: string}> {
     let json: object;
     let path: string;
+
     switch (type) {
       // R1CS
       case 'r1cs': {
@@ -435,6 +441,11 @@ export class Circomkit {
       }
       // Prover key
       case 'zkey': {
+        // must be groth16, others give error (tested at snarkjs v0.7.0)
+        if (this.config.protocol !== 'groth16') {
+          throw new Error('Exporting zKey to JSON only supported for groth16 at the moment.');
+        }
+
         path = this.path(circuit, 'pkey');
         json = await snarkjs.zKey.exportJson(path, undefined); // does not take logger
         break;
@@ -450,13 +461,10 @@ export class Circomkit {
         throw new Error('Unknown export target: ' + type);
     }
 
-    if (write) {
-      path += '.json';
-      writeFileSync(path, this.prettyStringify(json));
-      return path;
-    } else {
-      return json;
-    }
+    return {
+      json,
+      path: path + '.json',
+    };
   }
 
   /**

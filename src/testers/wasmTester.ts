@@ -96,13 +96,7 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
     console.log(`# constraints: ${numConstraints}`);
 
     if (expected !== undefined) {
-      if (numConstraints < expected) {
-        console.log(`\x1b[0;31mx expectation: ${expected}\x1b[0m`);
-      } else if (numConstraints > expected) {
-        console.log(`\x1b[0;33m! expectation: ${expected}\x1b[0m`);
-      } else {
-        console.log(`\x1b[0;32m✔\x1b[2;37m expectation: ${expected}\x1b[0m`);
-      }
+      expect(numConstraints).to.be.greaterThanOrEqual(expected, 'Circuit is under-constrained!');
     }
   }
 
