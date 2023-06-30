@@ -4,7 +4,7 @@ export type CircomkitConfig = {
   /** Protocol to be used. */
   protocol: 'groth16' | 'plonk' | 'fflonk';
   /** Underlying prime field. */
-  curve: 'bn128' | 'bls12381' | 'goldilocks';
+  prime: 'bn128' | 'bls12381' | 'goldilocks';
   /** Circuit configurations path. */
   circuits: string;
   /** Directory to read circuits from. */

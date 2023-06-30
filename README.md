@@ -26,8 +26,6 @@
     </a>
 </p>
 
-_Circomkit is still being developed, although at its current state you should really be able to easily play with circuits and write their tests, and most commands should be seamless to work especially with `bn128` curve!_
-
 ## Installation
 
 Circomkit is an NPM package, which you can install via:
@@ -65,7 +63,7 @@ Everything used by Circomkit can be optionally overridden by providing the selec
 npx circomkit config
 ```
 
-You can edit any of the fields there to fit your needs.
+You can edit any of the fields there to fit your needs. Most importantly, you can change the protocol to be `groth16`, `plonk` or `fflonk`; and you can change the underlying prime field to `bn128`, `bls12381` and `goldilocks`. Note that using a prime other than `bn128` makes things a bit harder in circuit-specific setup, as you will have to find the PTAU files yourself, whereas in `bn128` we can use Perpetual Powers of Tau.
 
 ### Circuit Configuration
 
@@ -103,7 +101,7 @@ npx circomkit clean circuit
 npx circomkit setup circuit [ptau-path]
 ```
 
-Circuit-specific setup optionally takes the path to a PTAU file as argument. If not provided, it will automatically decide the PTAU to use with respect to constraint count, and download it for you! This feature only works for `bn128` curve.
+Circuit-specific setup optionally takes the path to a PTAU file as argument. If not provided, it will automatically decide the PTAU to use with respect to constraint count, and download it for you! This feature only works for `bn128` prime.
 
 Some actions such as generating a witness, generating a proof and verifying a proof require JSON inputs to provide the signal values. For that, we specifically create our input files under the `inputs` folder, and under the target circuit name there. For example, an input named `foo` for some circuit named `bar` would be at `inputs/bar/foo.json`.
 
@@ -123,7 +121,109 @@ npx circomkit calldata circuit input
 
 ## Circuit Testing
 
-`TODO TODO`
+Circomkit provides two tester utilities that use Chai assertions within, which may be used in a test suite such as Mocha. The key point of these utilities is to help reduce boilerplate code and let you simply worry about the inputs and outputs of a circuit.
+
+### Witness Tester
+
+The Witness tester extends `require('circom_tester').wasm` tool with type-safety and few assertion functions. It provides a very simple interface:
+
+- `expectPass(input)` checks if constraints & assertions are passing for an input
+- `expectPass(input, output)` additionally checks if the outputs are matching
+- `expectFail(input)` checks if any constraints / assertions are failing
+
+See an example below:
+
+```ts
+describe('witness tester', () => {
+  // input signals and output signals can be given as type parameters
+  // this makes all functions type-safe!
+  let circuit: WitnessTester<['in'], ['out']>;
+
+  before(async () => {
+    const circomkit = new Circomkit();
+    circuit = await circomkit.WitnessTester(CIRCUIT_NAME, CIRCUIT_CONFIG);
+  });
+
+  it('should pass on correct input & output', async () => {
+    await circuit.expectPass(INPUT, OUTPUT);
+  });
+
+  it('should fail on wrong output', async () => {
+    await circuit.expectFail(INPUT, WRONG_OUTPUT);
+  });
+
+  it('should fail on bad input', async () => {
+    await circuit.expectFail(BAD_INPUT);
+  });
+});
+```
+
+You can check if the number of constraints are correct using `getConstraintCount`, as shown below:
+
+```ts
+it('should have correct number of constraints', async () => {
+  expect(await circuit.getConstraintCount()).to.eq(NUM_CONSTRAINTS);
+});
+```
+
+If you want more control over the output signals, you can use the `compute` function. It takes in an input, and an array of output signal names used in the `main` component so that they can be extracted from the witness.
+
+```ts
+it('should compute correctly', async () => {
+  const output = await circuit.compute(INPUT, ['out']);
+  expect(output).to.haveOwnProperty('out');
+  expect(output.out).to.eq(BigInt(OUTPUT.out));
+});
+```
+
+Finally, you can run tests on the witnesses too. This is most useful when you would like to check for soundness errors.
+
+- `expectConstraintsPass(witness)` checks if constraints are passing for a witness
+- `expectConstraintsFail(witness)` checks if constraints are failing
+
+You can compute the witness via the `calculateWitness(input)` function. To test for soundness errors, you may edit the witness and see if constraints are failing. Circomkit provides a nice utility for this purpose, called `editWitness(witness, symbols)`. You simply provide a dictionary of symbols to their new values, and it will edit the witness accordingly. See the example below:
+
+```ts
+it('should pass on correct witness', async () => {
+  const witness = await circuit.calculateWitness(INPUT);
+  await circuit.expectConstraintsPass(witness);
+});
+
+it('should fail on fake witness', async () => {
+  const witness = await circuit.calculateWitness(INPUT);
+  const badWitness = await circuit.editWitness(witness, {
+    'main.signal': BigInt(1234),
+    'main.component.signal': BigInt('0xCAFE'),
+    'main.foo.bar[0]': BigInt('0b0101'),
+  });
+  await circuit.expectConstraintsFail(badWitness);
+});
+```
+
+### Proof Tester
+
+As an alternative to simulate generating a proof and verifying it, you can use Proof Tester. The proof tester makes use of WASM file, prover key and verifier key in the background. It will use the underlying Circomkit configuration to look for those files, and it can generate them automatically if they do not exist. Here is an example:
+
+```ts
+describe('proof tester', () => {
+  const circomkit = new Circomkit();
+  let circuit: ProofTester<['in']>;
+  let fullProof: FullProof;
+
+  before(async () => {
+    circuit = await circomkit.ProofTester(CIRCUIT_NAME);
+    fullProof = await circuit.prove(INPUT);
+  });
+
+  it('should verify', async () => {
+    await circuit.expectPass(fullProof.proof, fullProof.publicSignals);
+  });
+
+  it('should NOT verify', async () => {
+    await circuit.expectFail(fullProof.proof, BAD_PUBLIC_SIGNALS);
+  });
+});
+```
 
 ## File Structure
 
@@ -146,7 +246,7 @@ circomkit
 │       └── my_solution.json
 │
 ├── ptau
-│   └── powersOfTau28_hez_final_12.ptau
+│   └── powersOfTau28_hez_final_08.ptau
 │
 └── build
     └── sudoku_9x9

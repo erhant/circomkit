@@ -63,5 +63,5 @@ export type R1CSInfoType = {
   labels: number;
   outputs: number;
   prime: bigint;
-  curve: string;
+  primeName: string;
 };

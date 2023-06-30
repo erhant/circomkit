@@ -14,9 +14,9 @@ import type {
 } from './types/circomkit';
 import {randomBytes} from 'crypto';
 import {CircomWasmTester} from './types/circom_tester';
-import WasmTester from './testers/wasmTester';
+import WitnessTester from './testers/witnessTester';
 import ProofTester from './testers/proofTester';
-import {prettyStringify, primeToCurveName} from './utils';
+import {prettyStringify, primeToName} from './utils';
 import {defaultConfig, colors, CURVES, PROTOCOLS} from './utils/config';
 
 /**
@@ -29,10 +29,10 @@ import {defaultConfig, colors, CURVES, PROTOCOLS} from './utils/config';
  * const circomkit = new Circomkit()
  * ```
  *
- * It also provides a **WasmTester** and a **ProofTester** module which uses Chai assertions within.
+ * It also provides a **WitnessTester** and a **ProofTester** module which uses Chai assertions within.
  *
  * ```ts
- * const wasmTester = await circomkit.WasmTester(circuitName, circuitConfig)
+ * const witnessTester = await circomkit.WitnessTester(circuitName, circuitConfig)
  * const proofTester = await circomkit.ProofTester(circuitName)
  * ```
  */
@@ -44,21 +44,21 @@ export class Circomkit {
   constructor(overrides: CircomkitConfigOverrides = {}) {
     // override default options with the user-provided ones
     // we can do this via two simple spreads because both objects are single depth
-    const config = {
+    const config: CircomkitConfig = {
       ...defaultConfig,
       ...overrides,
     };
 
-    this.config = config;
+    this.config = JSON.parse(JSON.stringify(config)) as CircomkitConfig;
     this.logger = getLogger('Circomkit');
-    this.logger.setLevel(config.logLevel);
+    this.logger.setLevel(this.config.logLevel);
 
     // logger for SnarkJS
     this._logger = this.config.verbose ? this.logger : undefined;
 
-    // sanity check for curves and protocol
-    if (!CURVES.includes(this.config.curve)) {
-      throw new Error('Invalid curve in configuration.');
+    // sanity check for prime and protocol
+    if (!CURVES.includes(this.config.prime)) {
+      throw new Error('Invalid prime in configuration.');
     }
     if (!PROTOCOLS.includes(this.config.protocol)) {
       throw new Error('Invalid protocol in configuration.');
@@ -171,13 +171,13 @@ export class Circomkit {
       labels: r1csinfo.nLabels,
       outputs: r1csinfo.nOutputs,
       prime: r1csinfo.prime,
-      curve: primeToCurveName[r1csinfo.prime],
+      primeName: primeToName[r1csinfo.prime],
     };
   }
 
   /** Downloads the ptau file for a circuit based on it's number of constraints. */
   async ptau(circuit: string): Promise<string> {
-    if (this.config.curve !== 'bn128') {
+    if (this.config.prime !== 'bn128') {
       throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
     }
     const {constraints} = await this.info(circuit);
@@ -210,7 +210,7 @@ export class Circomkit {
 
     await wasm_tester(targetPath, {
       output: outDir,
-      prime: this.config.curve,
+      prime: this.config.prime,
       verbose: this.config.verbose,
       O: this.config.optimization,
       json: false,
@@ -322,13 +322,13 @@ export class Circomkit {
 
     // create R1CS if needed
     if (!existsSync(r1csPath)) {
-      this.log('R1CS does not exist, creating it now...');
+      this.log('R1CS does not exist, creating it now...', 'warn');
       await this.compile(circuit);
     }
 
     // get ptau path
     if (ptauPath === undefined) {
-      if (this.config.curve !== 'bn128') {
+      if (this.config.prime !== 'bn128') {
         throw new Error('Please provide PTAU file when using a prime field other than bn128');
       }
       this.log('Checking for PTAU file...', 'debug');
@@ -336,7 +336,7 @@ export class Circomkit {
     }
 
     // circuit specific setup
-    this.log('Beginning setup phase!');
+    this.log('Beginning setup phase!', 'info');
     if (this.config.protocol === 'groth16') {
       // Groth16 needs a specific setup with its own PTAU ceremony
       // initialize phase 2
@@ -353,7 +353,7 @@ export class Circomkit {
         const nextZkey = this.pathZkey(circuit, contrib);
 
         // entropy, if user wants to prompt give undefined
-        this.log(`Making contribution: ${contrib}`);
+        this.log(`Making contribution: ${contrib}`, 'info');
         await snarkjs.zKey.contribute(
           curZkey,
           nextZkey,
@@ -471,16 +471,16 @@ export class Circomkit {
    * Compiles the circuit and reutrns a circuit tester.
    * @param circuit name of circuit
    * @param config circuit configuration
-   * @returns a `WasmTester` instance
+   * @returns a `WitnessTester` instance
    */
-  async WasmTester<IN extends string[] = [], OUT extends string[] = []>(circuit: string, config: CircuitConfig) {
+  async WitnessTester<IN extends string[] = [], OUT extends string[] = []>(circuit: string, config: CircuitConfig) {
     config.dir ||= 'test';
 
     // create circuit
     const targetPath = this.instantiate(circuit, config);
     const circomWasmTester: CircomWasmTester = await wasm_tester(targetPath, {
       output: undefined, // todo: check if this is ok
-      prime: this.config.curve,
+      prime: this.config.prime,
       verbose: this.config.verbose,
       O: this.config.optimization,
       json: false,
@@ -490,7 +490,7 @@ export class Circomkit {
       recompile: true,
     });
 
-    return new WasmTester<IN, OUT>(circomWasmTester);
+    return new WitnessTester<IN, OUT>(circomWasmTester);
   }
 
   /**

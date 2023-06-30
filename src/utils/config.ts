@@ -8,7 +8,7 @@ export const CURVES = ['bn128', 'bls12381', 'goldilocks'] as const;
 export const defaultConfig: Readonly<CircomkitConfig> = Object.seal({
   // general settings
   protocol: 'groth16',
-  curve: 'bn128',
+  prime: 'bn128',
   version: '2.1.0',
   // directories & paths
   circuits: './circuits.json',

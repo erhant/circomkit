@@ -1,7 +1,7 @@
 import type {CircomkitConfig} from '../types/circomkit';
 
-/** A mapping from prime (decimals) to curve name. */
-export const primeToCurveName: {[key: `${number}`]: CircomkitConfig['curve']} = {
+/** A mapping from prime (decimals) to prime name. */
+export const primeToName: {[key: `${number}`]: CircomkitConfig['prime']} = {
   '21888242871839275222246405745257275088548364400416034343698204186575808495617': 'bn128',
   '52435875175126190479447740508185965837690552500527637822603658699938581184513': 'bls12381',
   '18446744069414584321': 'goldilocks',
@@ -68,14 +68,14 @@ template Multiplier(N) {
   tests: {
     dir: 'tests',
     name: 'multiplier.test.ts',
-    content: `import { WasmTester } from "circomkit";
+    content: `import { WitnessTester } from "circomkit";
 
 // exercise: make this test work for all numbers, not just 3
 describe("multiplier", () => {
-  let circuit: WasmTester<["in"], ["out"]>;
+  let circuit: WitnessTester<["in"], ["out"]>;
 
   before(async () => {
-    circuit = await WasmTester.new('multiplier_3', {
+    circuit = await WitnessTester.new('multiplier_3', {
       file: "multiplier",
       template: "Multiplier",
       params: [3],

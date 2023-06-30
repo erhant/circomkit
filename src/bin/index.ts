@@ -15,7 +15,7 @@ async function cli(): Promise<number> {
   }
   const circomkit = new Circomkit(config);
 
-  /** smol utility function to print pretty titles in the same format */
+  // smol utility function to print pretty titles in the same format
   const titleLog = (title: string) => circomkit.log(`===| ${title} |===`, 'title');
 
   // execute command
@@ -57,7 +57,7 @@ async function cli(): Promise<number> {
     case 'info': {
       titleLog('Circuit information');
       const info = await circomkit.info(process.argv[3]);
-      circomkit.log(`Prime Field: ${info.curve}`);
+      circomkit.log(`Prime Field: ${info.primeName}`);
       circomkit.log(`Number of of Wires: ${info.variables}`);
       circomkit.log(`Number of Constraints: ${info.constraints}`);
       circomkit.log(`Number of Private Inputs: ${info.privateInputs}`);

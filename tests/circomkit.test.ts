@@ -28,7 +28,7 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
 
   it('should give correct circuit info', async () => {
     const info = await circomkit.info(CIRCUIT_NAME);
-    expect(info.curve).to.eq('bn128');
+    expect(info.primeName).to.eq('bn128');
     expect(info.constraints).to.eq(3); // three constraints for 3 numbers
     expect(info.privateInputs).to.eq(3); // input is 3 numbers, all private
     expect(info.publicInputs).to.eq(0); // there are no public inputs
@@ -38,7 +38,9 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
   });
 
   it('should setup circuit', async () => {
-    await circomkit.setup(CIRCUIT_NAME, PTAU_PATH);
+    const {proverKeyPath, verifierKeyPath} = await circomkit.setup(CIRCUIT_NAME, PTAU_PATH);
+    expect(existsSync(proverKeyPath)).to.be.true;
+    expect(existsSync(verifierKeyPath)).to.be.true;
   });
 
   it('should create an input', async () => {
