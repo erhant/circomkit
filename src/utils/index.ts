@@ -68,19 +68,19 @@ template Multiplier(N) {
   tests: {
     dir: 'tests',
     name: 'multiplier.test.ts',
-    content: `import { WitnessTester } from "circomkit";
+    content: `import { Circomkit } from "circomkit";
 
 // exercise: make this test work for all numbers, not just 3
 describe("multiplier", () => {
   let circuit: WitnessTester<["in"], ["out"]>;
 
   before(async () => {
-    circuit = await WitnessTester.new('multiplier_3', {
+    const circomkit = new Circomkit();
+    circuit = await circomkit.WitnessTester('multiplier_3', {
       file: "multiplier",
       template: "Multiplier",
       params: [3],
     });
-    await circuit.checkConstraintCount(2);
   });
 
   it("should multiply correctly", async () => {
@@ -110,7 +110,7 @@ describe("multiplier", () => {
 };
 
 export const postInitString = `
-You should also install the following packages:
+You should also install the following packages if you need to:
 
   npm install --save-dev ts-node typescript mocha @types/mocha
 

@@ -26,59 +26,31 @@
     </a>
 </p>
 
+- [x] Simple CLI, abstracting away all paths with a simple config.
+- [x] Provides a witness testing utility to check for circuit computations & soundness errors, with minimial boilerplate code!
+- [x] Supports all protocols: `groth16`, `plonk` and `fflonk`.
+- [x] Automatically downloads the Phase-1 PTAU file when using `bn128`.
+- [x] Supports multiple exports such as exporting Solidity verifier, calldata, and JSON for R1CS and Witness.
+
 ## Installation
 
-Circomkit is an NPM package, which you can install via:
+Circomkit can be installed via:
 
 ```sh
-yarn add circomkit    # yarn
-npm install circomkit # NPM
+npm install circomkit
 ```
 
-You will also need Circom, which can be installed following the instructions [here](https://docs.circom.io/getting-started/installation/).
+You will also need [Circom](https://docs.circom.io), which can be installed following the instructions [here](https://docs.circom.io/getting-started/installation/).
 
 ## Usage
 
-Create an empty project, and install Circomkit. Then, you can setup the environment by simply executing:
+You can setup a new project with the following:
 
 ```sh
 npx circomkit init
 ```
 
-This command creates the following:
-
-- An example Multiplier circuit, under `circuits` folder.
-- A circuit configuration file called `circuits.json`, with an example Multiplier circuit configuration.
-- An example input JSON file for Multiplier, under `inputs/multiplier` folder.
-- A test using Mocha, under `tests` folder.
-- A Mocha configuration file.
-
-Although Circomkit initializes with a Mocha test, uses Chai in the background so you could use anything that supports Chai. You should check out [circomkit-examples](https://github.com/erhant/circomkit-examples) repo as an example!
-
-### Circomkit Configuration
-
-Everything used by Circomkit can be optionally overridden by providing the selected fields in its constructor. Circomkit CLI does this automatically by checking out `circomkit.json` and overriding the defaults with that. You can print the active configuration via the following command:
-
-```sh
-npx circomkit config
-```
-
-You can edit any of the fields there to fit your needs. Most importantly, you can change the protocol to be `groth16`, `plonk` or `fflonk`; and you can change the underlying prime field to `bn128`, `bls12381` and `goldilocks`. Note that using a prime other than `bn128` makes things a bit harder in circuit-specific setup, as you will have to find the PTAU files yourself, whereas in `bn128` we can use Perpetual Powers of Tau.
-
-### Circuit Configuration
-
-A circuit config within `circuits.json` looks like below, where the `key` is the circuit name to be used in commands, and the value is an object that describes the filename, template name, public signals and template parameters:
-
-```js
-sudoku_9x9: {
-  file:     'sudoku',
-  template: 'Sudoku',
-  pubs:     ['puzzle'],
-  params:   [3], // sqrt(9)
-},
-```
-
-You can omit `pubs` and `params` options, they default to `[]`.
+You can check out examples at the [circomkit-examples](<[circomkit-examples](https://github.com/erhant/circomkit-examples)>) repository.
 
 ### Command Line Interface
 
@@ -99,6 +71,9 @@ npx circomkit clean circuit
 
 # Circuit-specific setup
 npx circomkit setup circuit [ptau-path]
+
+# Automatically download PTAU (for BN128)
+npx circomkit ptau circuit
 ```
 
 Circuit-specific setup optionally takes the path to a PTAU file as argument. If not provided, it will automatically decide the PTAU to use with respect to constraint count, and download it for you! This feature only works for `bn128` prime.
@@ -119,7 +94,52 @@ npx circomkit verify circuit input
 npx circomkit calldata circuit input
 ```
 
-## Circuit Testing
+### Circomkit Configurations
+
+Everything used by Circomkit can be optionally overridden by providing the selected fields in its constructor. Circomkit CLI does this automatically by checking out `circomkit.json` and overriding the defaults with that. You can print the active configuration via the following command:
+
+```sh
+npx circomkit config
+```
+
+You can edit any of the fields there to fit your needs. Most importantly, you can change the protocol to be `groth16`, `plonk` or `fflonk`; and you can change the underlying prime field to `bn128`, `bls12381` and `goldilocks`. Note that using a prime other than `bn128` makes things a bit harder in circuit-specific setup, as you will have to find the PTAU files yourself, whereas in `bn128` we can use [Perpetual Powers of Tau](https://github.com/privacy-scaling-explorations/perpetualpowersoftau).
+
+### Circuit Configurations
+
+A circuit config within `circuits.json` looks like below, where the `key` is the circuit name to be used in commands, and the value is an object that describes the filename, template name, public signals and template parameters:
+
+```js
+sudoku_9x9: {
+  file:     'sudoku',
+  template: 'Sudoku',
+  pubs:     ['puzzle'],
+  params:   [3], // sqrt(9)
+},
+```
+
+You can omit `pubs` and `params` options, they default to `[]`.
+
+### Using Circomkit in Code
+
+All CLI commands can be used with the same name and arguments within Circomkit.
+
+```ts
+import {Circomkit} from 'circomkit';
+
+const circomkit = new Circomkit({
+  /* custom configurations */
+  protocol: 'plonk',
+});
+
+circomkit.instantiate('multiplier_3', {
+  file: 'multiplier',
+  template: 'Multiplier',
+  params: [3],
+});
+await circomkit.compile('multiplier_3');
+```
+
+## Writing Tests
 
 Circomkit provides two tester utilities that use Chai assertions within, which may be used in a test suite such as Mocha. The key point of these utilities is to help reduce boilerplate code and let you simply worry about the inputs and outputs of a circuit.
 
