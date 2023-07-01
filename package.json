@@ -1,6 +1,6 @@
 {
   "name": "circomkit",
-  "version": "0.0.11",
+  "version": "0.0.12",
   "description": "A Circom development environment",
   "author": "erhant",
   "license": "MIT",
