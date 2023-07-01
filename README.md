@@ -178,11 +178,14 @@ describe('witness tester', () => {
 });
 ```
 
-You can check if the number of constraints are correct using `getConstraintCount`, as shown below:
+You can check if the number of constraints are correct using `expectConstraintCount`, as shown below:
 
 ```ts
 it('should have correct number of constraints', async () => {
-  expect(await circuit.getConstraintCount()).to.eq(NUM_CONSTRAINTS);
+  // expects at least N constraints
+  await circuit.expectConstraintCount(N);
+  // expects exactly N constraints
+  await circuit.expectConstraintCount(N, true);
 });
 ```
 
@@ -198,15 +201,15 @@ it('should compute correctly', async () => {
 
 Finally, you can run tests on the witnesses too. This is most useful when you would like to check for soundness errors.
 
-- `expectConstraintsPass(witness)` checks if constraints are passing for a witness
-- `expectConstraintsFail(witness)` checks if constraints are failing
+- `expectConstraintPass(witness)` checks if constraints are passing for a witness
+- `expectConstraintFail(witness)` checks if constraints are failing
 
 You can compute the witness via the `calculateWitness(input)` function. To test for soundness errors, you may edit the witness and see if constraints are failing. Circomkit provides a nice utility for this purpose, called `editWitness(witness, symbols)`. You simply provide a dictionary of symbols to their new values, and it will edit the witness accordingly. See the example below:
 
 ```ts
 it('should pass on correct witness', async () => {
   const witness = await circuit.calculateWitness(INPUT);
-  await circuit.expectConstraintsPass(witness);
+  await circuit.expectConstraintPass(witness);
 });
 
 it('should fail on fake witness', async () => {
@@ -216,7 +219,7 @@ it('should fail on fake witness', async () => {
     'main.component.signal': BigInt('0xCAFE'),
     'main.foo.bar[0]': BigInt('0b0101'),
   });
-  await circuit.expectConstraintsFail(badWitness);
+  await circuit.expectConstraintFail(badWitness);
 });
 ```
 

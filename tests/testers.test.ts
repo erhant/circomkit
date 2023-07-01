@@ -1,6 +1,6 @@
 import {Circomkit, ProofTester, WitnessTester} from '../src';
-import {expect} from 'chai';
 import {CIRCUIT_CONFIG, CIRCUIT_NAME, INPUT, N, OUTPUT} from './common';
+import {expect} from 'chai';
 
 describe('witness tester', () => {
   let circuit: WitnessTester<['in'], ['out']>;
@@ -14,7 +14,7 @@ describe('witness tester', () => {
   });
 
   it('should have correct number of constraints', async () => {
-    expect(await circuit.getConstraintCount()).to.eq(N);
+    await circuit.expectConstraintCount(N, true);
   });
 
   it('should assert correctly', async () => {
@@ -29,7 +29,7 @@ describe('witness tester', () => {
 
   it('should assert for correct witness', async () => {
     const witness = await circuit.calculateWitness(INPUT);
-    await circuit.expectConstraintsPass(witness);
+    await circuit.expectConstraintPass(witness);
   });
 
   it('should NOT assert for bad witness', async () => {
@@ -37,7 +37,7 @@ describe('witness tester', () => {
     const badWitness = await circuit.editWitness(witness, {
       'main.inner[0]': 99999n,
     });
-    await circuit.expectConstraintsFail(badWitness);
+    await circuit.expectConstraintFail(badWitness);
   });
 });
 

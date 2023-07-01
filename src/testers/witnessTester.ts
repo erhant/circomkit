@@ -1,6 +1,6 @@
 import type {WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/circuit';
 import type {CircomWasmTester} from '../types/circom_tester';
-import {assert, expect} from 'chai';
+import {AssertionError, assert, expect} from 'chai';
 
 /** A utility class to test your circuits. Use `expectFail` and `expectPass` to test out evaluations. */
 export default class WitnessTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
@@ -15,12 +15,10 @@ export default class WitnessTester<IN extends readonly string[] = [], OUT extend
     this.circomWasmTester = circomWasmTester;
   }
 
-  /**
-   * Assert that constraints are valid for a given witness.
+  /** Assert that constraints are valid for a given witness.
    * @param witness witness
    */
-  async expectConstraintsPass(witness: WitnessType): Promise<void> {
-    // underlying function uses Chai.assert
+  async expectConstraintPass(witness: WitnessType): Promise<void> {
     return this.circomWasmTester.checkConstraints(witness);
   }
 
@@ -31,18 +29,14 @@ export default class WitnessTester<IN extends readonly string[] = [], OUT extend
    * that there are soundness errors in the circuit.
    * @param witness witness
    */
-  async expectConstraintsFail(witness: WitnessType): Promise<void> {
-    // underlying function uses Chai.assert
-    try {
-      await this.expectConstraintsPass(witness);
-      assert.fail('Expected constraints to not match!');
-    } catch (err) {
-      expect((err as Error).message).to.eq("Constraint doesn't match");
-    }
+  async expectConstraintFail(witness: WitnessType): Promise<void> {
+    await this.expectConstraintPass(witness).then(
+      () => assert.fail('Expected constraints to not match.'),
+      err => expect(err).to.be.instanceOf(AssertionError)
+    );
   }
 
-  /**
-   * Compute witness given the input signals.
+  /** Compute witness given the input signals.
    * @param input all signals, private and public
    */
   async calculateWitness(input: CircuitSignals<IN>): Promise<WitnessType> {
@@ -58,25 +52,39 @@ export default class WitnessTester<IN extends readonly string[] = [], OUT extend
     return numConstraints;
   }
 
-  /**
-   * Expect an input to fail an assertion in the circuit.
-   * @param input bad input
+  /** Asserts that the circuit has enough constraints.
+   *
+   * By default, this function checks if there **at least** `expected` many constraints in the circuit.
+   * If `exact` option is set to `true`, it will also check if the number of constraints is exactly equal to
+   * the `expected` amount.
+   *
+   * If first check fails, it means the circuit is under-constrained. If the second check fails, it means
+   * the circuit is over-constrained.
    */
+  async expectConstraintCount(expected: number, exact?: boolean) {
+    const count = await this.getConstraintCount();
+    expect(count, 'Circuit is under-constrained').to.be.greaterThanOrEqual(expected);
+
+    if (exact) {
+      expect(count, 'Circuit is over-constrained').to.eq(expected);
+    }
+  }
+
+  /** Expect an input to fail an assertion in the circuit. */
   async expectFail(input: CircuitSignals<IN>) {
     await this.calculateWitness(input).then(
-      () => assert.fail(),
-      err => expect(err.message).to.eq('Error: Assert Failed.')
+      () => assert.fail('Expected witness calculation to fail.'),
+      err => expect(err).to.be.instanceOf(AssertionError)
     );
   }
 
-  /**
-   * Expect an input to pass assertions and match the output.
-   * @param input correct input
-   * @param output expected output, if `undefined` it will only check constraints
+  /** Expect an input to pass assertions and match the output.
+   *
+   * If `output` is omitted, it will only check for constraints to pass.
    */
   async expectPass(input: CircuitSignals<IN>, output?: CircuitSignals<OUT>) {
     const witness = await this.calculateWitness(input);
-    await this.expectConstraintsPass(witness);
+    await this.expectConstraintPass(witness);
     if (output) {
       await this.assertOut(witness, output);
     }
@@ -93,14 +101,12 @@ export default class WitnessTester<IN extends readonly string[] = [], OUT extend
    * 4. for each signal & it's required symbols, corresponding witness values are retrieved from witness
    * 5. the results are aggregated in a final object, of the same type of circuit output signals
    *
-   * @param input input signals
-   * @param outputSignals an array of signal names
    * @returns output signals
    */
   async compute(input: CircuitSignals<IN>, outputSignals: OUT): Promise<CircuitSignals<typeof outputSignals>> {
     // compute witness & check constraints
     const witness = await this.calculateWitness(input);
-    await this.expectConstraintsPass(witness);
+    await this.expectConstraintPass(witness);
 
     // get symbols of main component
     await this.loadSymbols();
