@@ -107,19 +107,12 @@ dist
 build
 dist
 
-# circuit-specific powers of tau are ignored
-*.ptau 
-# universal ptaus not ignored
-!ptau/*
-# temporary ptaus are ignored
-tmp.ptau
-
 # is this still a thing lol
 .DS_Store
 
 # ignore auto generated test circuits
 circuits/test
-ptau
 
 # for init tests
 tmptest
+inputs/multiplier_3/test-input.json

@@ -1,11 +1,14 @@
 import type {LogLevelNames} from 'loglevel';
 import type {CircomkitConfig} from '../types/circomkit';
 
+export const PROTOCOLS = ['groth16', 'plonk', 'fflonk'] as const;
+export const CURVES = ['bn128', 'bls12381', 'goldilocks'] as const;
+
 /** Default configurations */
-export const defaultConfig: Readonly<CircomkitConfig> = {
+export const defaultConfig: Readonly<CircomkitConfig> = Object.seal({
   // general settings
-  proofSystem: 'groth16',
-  curve: 'bn128',
+  protocol: 'groth16',
+  prime: 'bn128',
   version: '2.1.0',
   // directories & paths
   circuits: './circuits.json',
@@ -22,7 +25,7 @@ export const defaultConfig: Readonly<CircomkitConfig> = {
   // logger
   logLevel: 'INFO',
   verbose: true,
-};
+});
 
 /** Colors used by the logger. */
 export const colors: {[key in LogLevelNames | 'title' | 'success']: string} = {

@@ -3,13 +3,13 @@ import type {CircomWasmTester} from '../types/circom_tester';
 import {assert, expect} from 'chai';
 
 /** A utility class to test your circuits. Use `expectFail` and `expectPass` to test out evaluations. */
-export default class WasmTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
+export default class WitnessTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
   /** The underlying `circom_tester` object */
-  readonly circomWasmTester: CircomWasmTester;
+  private readonly circomWasmTester: CircomWasmTester;
   /** A dictionary of symbols, see {@link loadSymbols} */
-  symbols: SymbolsType | undefined;
+  private symbols: SymbolsType | undefined;
   /** List of constraints, see {@link loadConstraints} */
-  constraints: unknown[] | undefined;
+  private constraints: unknown[] | undefined;
 
   constructor(circomWasmTester: CircomWasmTester) {
     this.circomWasmTester = circomWasmTester;
@@ -19,91 +19,43 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
    * Assert that constraints are valid for a given witness.
    * @param witness witness
    */
-  checkConstraints(witness: WitnessType): Promise<void> {
+  async expectConstraintsPass(witness: WitnessType): Promise<void> {
+    // underlying function uses Chai.assert
     return this.circomWasmTester.checkConstraints(witness);
   }
 
   /**
-   * Assert the output of a given witness.
-   * @param actualOut expected witness
-   * @param expectedOut computed output signals
+   * Assert that constraints are NOT valid for a given witness.
+   * This is useful to test if a fake witness (a witness from a
+   * dishonest prover) can still be valid, which would indicate
+   * that there are soundness errors in the circuit.
+   * @param witness witness
    */
-  assertOut(actualOut: WitnessType, expectedOut: CircuitSignals<OUT>): Promise<void> {
-    return this.circomWasmTester.assertOut(actualOut, expectedOut);
+  async expectConstraintsFail(witness: WitnessType): Promise<void> {
+    // underlying function uses Chai.assert
+    try {
+      await this.expectConstraintsPass(witness);
+      assert.fail('Expected constraints to not match!');
+    } catch (err) {
+      expect((err as Error).message).to.eq("Constraint doesn't match");
+    }
   }
 
   /**
    * Compute witness given the input signals.
    * @param input all signals, private and public
-   * @param sanityCheck check if input signals are sanitized, defaults to `true`
    */
-  calculateWitness(input: CircuitSignals<IN>, sanityCheck = true): Promise<WitnessType> {
-    return this.circomWasmTester.calculateWitness(input, sanityCheck);
+  async calculateWitness(input: CircuitSignals<IN>): Promise<WitnessType> {
+    return this.circomWasmTester.calculateWitness(input, true);
   }
 
-  /** Loads the list of R1CS constraints to `this.constraints`. */
-  async loadConstraints(): Promise<void> {
-    await this.circomWasmTester.loadConstraints();
-    this.constraints = this.circomWasmTester.constraints;
-  }
-
-  /**
-   * Loads the symbols in a dictionary at `this.symbols`
-   * Symbols are stored under the .sym file
-   *
-   * Each line has 4 comma-separated values:
-   *
-   * 1.  symbol name
-   * 2.  label index
-   * 3.  variable index
-   * 4.  component index
-   */
-  async loadSymbols(): Promise<void> {
-    await this.circomWasmTester.loadSymbols();
-    this.symbols = this.circomWasmTester.symbols;
-  }
-
-  /**
-   * @deprecated this is buggy right now
-   * @param witness witness
-   */
-  getDecoratedOutput(witness: WitnessType): Promise<string> {
-    return this.circomWasmTester.getDecoratedOutput(witness);
-  }
-
-  /**
-   * Cleanup directory, should probably be called upon test completion
-   * @deprecated this is buggy right now
-   */
-  release(): Promise<void> {
-    return this.circomWasmTester.release();
-  }
-
-  //////// CUSTOM ADDITIONS /////////
-
-  /**
-   * Prints the number of constraints of the circuit.
-   * If expected count is provided, will also include that in the log.
-   * @param circuit WasmTester circuit
-   * @param expected expected number of constraints
-   */
-  async checkConstraintCount(expected?: number) {
-    // load constraints
+  /** Returns the number of constraints. */
+  async getConstraintCount() {
     if (this.constraints === undefined) {
       await this.loadConstraints();
     }
     const numConstraints = this.constraints!.length;
-    console.log(`# constraints: ${numConstraints}`);
-
-    if (expected !== undefined) {
-      if (numConstraints < expected) {
-        console.log(`\x1b[0;31mx expectation: ${expected}\x1b[0m`);
-      } else if (numConstraints > expected) {
-        console.log(`\x1b[0;33m! expectation: ${expected}\x1b[0m`);
-      } else {
-        console.log(`\x1b[0;32m✔\x1b[2;37m expectation: ${expected}\x1b[0m`);
-      }
-    }
+    return numConstraints;
   }
 
   /**
@@ -113,7 +65,7 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
   async expectFail(input: CircuitSignals<IN>) {
     await this.calculateWitness(input).then(
       () => assert.fail(),
-      err => expect(err.message.slice(0, 21)).to.eq('Error: Assert Failed.')
+      err => expect(err.message).to.eq('Error: Assert Failed.')
     );
   }
 
@@ -124,7 +76,7 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
    */
   async expectPass(input: CircuitSignals<IN>, output?: CircuitSignals<OUT>) {
     const witness = await this.calculateWitness(input);
-    await this.checkConstraints(witness);
+    await this.expectConstraintsPass(witness);
     if (output) {
       await this.assertOut(witness, output);
     }
@@ -148,11 +100,13 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
   async compute(input: CircuitSignals<IN>, outputSignals: OUT): Promise<CircuitSignals<typeof outputSignals>> {
     // compute witness & check constraints
     const witness = await this.calculateWitness(input);
-    await this.checkConstraints(witness);
+    await this.expectConstraintsPass(witness);
 
     // get symbols of main component
     await this.loadSymbols();
-    const symbolNames = Object.keys(this.symbols!).filter(signal => !signal.includes('.', 5)); // non-main signals have an additional `.` in them after `main.symbol`
+
+    // non-main signals have an additional `.` in them after `main.symbol`
+    const symbolNames = Object.keys(this.symbols!).filter(signal => !signal.includes('.', 5));
 
     // for each out signal, process the respective symbol
     const entries: [OUT[number], SignalValueType][] = [];
@@ -161,12 +115,10 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
       // get the symbol values from symbol names
       const symbols = symbolNames.filter(s => s.startsWith(outSignal, 5));
 
-      /*
-      we can assume that a symbol with this name appears only once in `main`, and that the depth is same for
-      all occurences of this symbol, given the type system used in Circom. So, we can just count the number
-      of `[`s in any symbol of this signal to find the number of dimensions of this signal.
-      we particularly choose the last symbol in the array, as that holds the maximum index of each dimension of this array.
-      */
+      // we can assume that a symbol with this name appears only once in `main`, and that the depth is same for
+      // all occurences of this symbol, given the type system used in Circom. So, we can just count the number
+      // of `[`s in any symbol of this signal to find the number of dimensions of this signal.
+      //we particularly choose the last symbol in the array, as that holds the maximum index of each dimension of this array.
       const splits = symbols.at(-1)!.split('[');
 
       // since we chose the last symbol, we have something like `main.signal[dim1][dim2]...[dimN]` which we can parse
@@ -205,8 +157,8 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
   }
 
   /**
-   * Override witness value to try and fake a proof. If the circuit has soundness problems, that is,
-   * some signals are not constrained correctly, then you may be able to create a fake witness by
+   * Override witness value to try and fake a proof. If the circuit has soundness problems (i.e.
+   * some signals are not constrained correctly), then you may be able to create a fake witness by
    * overriding specific values, and pass the constraints check.
    *
    * The symbol names must be given in full form, not just as the signal is named in the circuit code. In
@@ -222,9 +174,9 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
    *
    * @param witness a witness array
    * @param symbolValues symbols to be overridden in the witness
-   * @returns fake witness
+   * @returns edited witness
    */
-  async fakeWitness(
+  async editWitness(
     witness: Readonly<WitnessType>,
     symbolValues: {[symbolName: string]: bigint}
   ): Promise<WitnessType> {
@@ -243,5 +195,52 @@ export default class WasmTester<IN extends readonly string[] = [], OUT extends r
     }
 
     return fakeWitness;
+  }
+
+  /**
+   * Assert the output of a given witness.
+   * @param actualOut expected witness
+   * @param expectedOut computed output signals
+   */
+  private assertOut(actualOut: WitnessType, expectedOut: CircuitSignals<OUT>): Promise<void> {
+    return this.circomWasmTester.assertOut(actualOut, expectedOut);
+  }
+
+  /** Loads the list of R1CS constraints to `this.constraints`. */
+  private async loadConstraints(): Promise<void> {
+    await this.circomWasmTester.loadConstraints();
+    this.constraints = this.circomWasmTester.constraints;
+  }
+
+  /**
+   * Loads the symbols in a dictionary at `this.symbols`
+   * Symbols are stored under the .sym file
+   *
+   * Each line has 4 comma-separated values:
+   *
+   * 1.  symbol name
+   * 2.  label index
+   * 3.  variable index
+   * 4.  component index
+   */
+  private async loadSymbols(): Promise<void> {
+    await this.circomWasmTester.loadSymbols();
+    this.symbols = this.circomWasmTester.symbols;
+  }
+
+  /**
+   * @deprecated this is buggy right now
+   * @param witness witness
+   */
+  private getDecoratedOutput(witness: WitnessType): Promise<string> {
+    return this.circomWasmTester.getDecoratedOutput(witness);
+  }
+
+  /**
+   * Cleanup directory, should probably be called upon test completion
+   * @deprecated this is buggy right now
+   */
+  private release(): Promise<void> {
+    return this.circomWasmTester.release();
   }
 }

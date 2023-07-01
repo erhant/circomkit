@@ -12,11 +12,11 @@
      <a href="https://www.npmjs.com/package/circomkit" target="_blank">
         <img alt="NPM" src="https://img.shields.io/npm/v/circomkit?logo=npm&color=CB3837">
     </a>
-    <a href="./.github/workflows/styles.yml" target="_blank">
-        <img alt="Workflow: Styles" src="https://github.com/erhant/circomkit/actions/workflows/styles.yml/badge.svg?branch=main">
-    </a>
     <a href="./.github/workflows/build.yml" target="_blank">
         <img alt="Workflow: Build" src="https://github.com/erhant/circomkit/actions/workflows/build.yml/badge.svg?branch=main">
+    </a>
+    <a href="./.github/workflows/tests.yml" target="_blank">
+        <img alt="Workflow: Tests" src="https://github.com/erhant/circomkit/actions/workflows/tests.yml/badge.svg?branch=main">
     </a>
     <a href="https://github.com/iden3/snarkjs" target="_blank">
         <img alt="GitHub: SnarkJS" src="https://img.shields.io/badge/github-snarkjs-lightgray?logo=github">
@@ -26,61 +26,31 @@
     </a>
 </p>
 
-_Circomkit is still being developed, although at its current state you should really be able to easily play with circuits and write their tests, and most commands should be seamless to work especially with `bn128` curve!_
+- [x] Simple CLI, abstracting away all paths with a simple config.
+- [x] Provides a witness testing utility to check for circuit computations & soundness errors, with minimial boilerplate code!
+- [x] Supports all protocols: `groth16`, `plonk` and `fflonk`.
+- [x] Automatically downloads the Phase-1 PTAU file when using `bn128`.
+- [x] Supports multiple exports such as exporting Solidity verifier, calldata, and JSON for R1CS and Witness.
 
 ## Installation
 
-Circomkit is an NPM package, which you can install via:
+Circomkit can be installed via:
 
 ```sh
-yarn add circomkit    # yarn
-npm install circomkit # NPM
+npm install circomkit
 ```
 
-You will also need Circom, which can be installed following the instructions [here](https://docs.circom.io/getting-started/installation/).
+You will also need [Circom](https://docs.circom.io), which can be installed following the instructions [here](https://docs.circom.io/getting-started/installation/).
 
 ## Usage
 
-Create an empty project, and install Circomkit. Then, you can setup the environment by simply executing:
+You can setup a new project with the following:
 
 ```sh
 npx circomkit init
 ```
 
-This command creates the following:
-
-- An example Multiplier circuit, under `circuits` folder.
-- A circuit configuration file called `circuits.json`, with an example Multiplier circuit configuration.
-- An example input JSON file for Multiplier, under `inputs/multiplier` folder.
-- A test using Mocha, under `tests` folder.
-- A Mocha configuration file.
-
-Although Circomkit initializes with a Mocha test, uses Chai in the background so you could use anything that supports Chai. You should check out [circomkit-examples](https://github.com/erhant/circomkit-examples) repo as an example!
-
-### Circomkit Configuration
-
-Everything used by Circomkit can be optionally overridden by providing the selected fields in its constructor. Circomkit CLI does this automatically by checking out `circomkit.json` and overriding the defaults with that. You can print the active configuration via the following command:
-
-```sh
-npx circomkit config
-```
-
-You can edit any of the fields there to fit your needs.
-
-### Circuit Configuration
-
-A circuit config within `circuits.json` looks like below, where the `key` is the circuit name to be used in commands, and the value is an object that describes the filename, template name, public signals and template parameters:
-
-```js
-sudoku_9x9: {
-  file:     'sudoku',
-  template: 'Sudoku',
-  pubs:     ['puzzle'],
-  params:   [3], // sqrt(9)
-},
-```
-
-You can omit `pubs` and `params` options, they default to `[]`.
+You can check out examples at the [circomkit-examples](<[circomkit-examples](https://github.com/erhant/circomkit-examples)>) repository.
 
 ### Command Line Interface
 
@@ -101,9 +71,12 @@ npx circomkit clean circuit
 
 # Circuit-specific setup
 npx circomkit setup circuit [ptau-path]
+
+# Automatically download PTAU (for BN128)
+npx circomkit ptau circuit
 ```
 
-Circuit-specific setup optionally takes the path to a PTAU file as argument. If not provided, it will automatically decide the PTAU to use with respect to constraint count, and download it for you! This feature only works for `bn128` curve.
+Circuit-specific setup optionally takes the path to a PTAU file as argument. If not provided, it will automatically decide the PTAU to use with respect to constraint count, and download it for you! This feature only works for `bn128` prime.
 
 Some actions such as generating a witness, generating a proof and verifying a proof require JSON inputs to provide the signal values. For that, we specifically create our input files under the `inputs` folder, and under the target circuit name there. For example, an input named `foo` for some circuit named `bar` would be at `inputs/bar/foo.json`.
 
@@ -121,15 +94,162 @@ npx circomkit verify circuit input
 npx circomkit calldata circuit input
 ```
 
-## Circuit Testing
+### Circomkit Configurations
 
-`TODO TODO`
+Everything used by Circomkit can be optionally overridden by providing the selected fields in its constructor. Circomkit CLI does this automatically by checking out `circomkit.json` and overriding the defaults with that. You can print the active configuration via the following command:
+
+```sh
+npx circomkit config
+```
+
+You can edit any of the fields there to fit your needs. Most importantly, you can change the protocol to be `groth16`, `plonk` or `fflonk`; and you can change the underlying prime field to `bn128`, `bls12381` and `goldilocks`. Note that using a prime other than `bn128` makes things a bit harder in circuit-specific setup, as you will have to find the PTAU files yourself, whereas in `bn128` we can use [Perpetual Powers of Tau](https://github.com/privacy-scaling-explorations/perpetualpowersoftau).
+
+### Circuit Configurations
+
+A circuit config within `circuits.json` looks like below, where the `key` is the circuit name to be used in commands, and the value is an object that describes the filename, template name, public signals and template parameters:
+
+```js
+sudoku_9x9: {
+  file:     'sudoku',
+  template: 'Sudoku',
+  pubs:     ['puzzle'],
+  params:   [3], // sqrt(9)
+},
+```
+
+You can omit `pubs` and `params` options, they default to `[]`.
+
+### Using Circomkit in Code
+
+All CLI commands can be used with the same name and arguments within Circomkit.
+
+```ts
+import {Circomkit} from 'circomkit';
+
+const circomkit = new Circomkit({
+  /* custom configurations */
+  protocol: 'plonk',
+});
+
+circomkit.instantiate('multiplier_3', {
+  file: 'multiplier',
+  template: 'Multiplier',
+  params: [3],
+});
+await circomkit.compile('multiplier_3');
+```
+
+## Writing Tests
+
+Circomkit provides two tester utilities that use Chai assertions within, which may be used in a test suite such as Mocha. The key point of these utilities is to help reduce boilerplate code and let you simply worry about the inputs and outputs of a circuit.
+
+### Witness Tester
+
+The Witness tester extends `require('circom_tester').wasm` tool with type-safety and few assertion functions. It provides a very simple interface:
+
+- `expectPass(input)` checks if constraints & assertions are passing for an input
+- `expectPass(input, output)` additionally checks if the outputs are matching
+- `expectFail(input)` checks if any constraints / assertions are failing
+
+See an example below:
+
+```ts
+describe('witness tester', () => {
+  // input signals and output signals can be given as type parameters
+  // this makes all functions type-safe!
+  let circuit: WitnessTester<['in'], ['out']>;
+
+  before(async () => {
+    const circomkit = new Circomkit();
+    circuit = await circomkit.WitnessTester(CIRCUIT_NAME, CIRCUIT_CONFIG);
+  });
+
+  it('should pass on correct input & output', async () => {
+    await circuit.expectPass(INPUT, OUTPUT);
+  });
+
+  it('should fail on wrong output', async () => {
+    await circuit.expectFail(INPUT, WRONG_OUTPUT);
+  });
+
+  it('should fail on bad input', async () => {
+    await circuit.expectFail(BAD_INPUT);
+  });
+});
+```
+
+You can check if the number of constraints are correct using `getConstraintCount`, as shown below:
+
+```ts
+it('should have correct number of constraints', async () => {
+  expect(await circuit.getConstraintCount()).to.eq(NUM_CONSTRAINTS);
+});
+```
+
+If you want more control over the output signals, you can use the `compute` function. It takes in an input, and an array of output signal names used in the `main` component so that they can be extracted from the witness.
+
+```ts
+it('should compute correctly', async () => {
+  const output = await circuit.compute(INPUT, ['out']);
+  expect(output).to.haveOwnProperty('out');
+  expect(output.out).to.eq(BigInt(OUTPUT.out));
+});
+```
+
+Finally, you can run tests on the witnesses too. This is most useful when you would like to check for soundness errors.
+
+- `expectConstraintsPass(witness)` checks if constraints are passing for a witness
+- `expectConstraintsFail(witness)` checks if constraints are failing
+
+You can compute the witness via the `calculateWitness(input)` function. To test for soundness errors, you may edit the witness and see if constraints are failing. Circomkit provides a nice utility for this purpose, called `editWitness(witness, symbols)`. You simply provide a dictionary of symbols to their new values, and it will edit the witness accordingly. See the example below:
+
+```ts
+it('should pass on correct witness', async () => {
+  const witness = await circuit.calculateWitness(INPUT);
+  await circuit.expectConstraintsPass(witness);
+});
+
+it('should fail on fake witness', async () => {
+  const witness = await circuit.calculateWitness(INPUT);
+  const badWitness = await circuit.editWitness(witness, {
+    'main.signal': BigInt(1234),
+    'main.component.signal': BigInt('0xCAFE'),
+    'main.foo.bar[0]': BigInt('0b0101'),
+  });
+  await circuit.expectConstraintsFail(badWitness);
+});
+```
+
+### Proof Tester
+
+As an alternative to simulate generating a proof and verifying it, you can use Proof Tester. The proof tester makes use of WASM file, prover key and verifier key in the background. It will use the underlying Circomkit configuration to look for those files, and it can generate them automatically if they do not exist. Here is an example:
+
+```ts
+describe('proof tester', () => {
+  const circomkit = new Circomkit();
+  let circuit: ProofTester<['in']>;
+  let fullProof: FullProof;
+
+  before(async () => {
+    circuit = await circomkit.ProofTester(CIRCUIT_NAME);
+    fullProof = await circuit.prove(INPUT);
+  });
+
+  it('should verify', async () => {
+    await circuit.expectPass(fullProof.proof, fullProof.publicSignals);
+  });
+
+  it('should NOT verify', async () => {
+    await circuit.expectFail(fullProof.proof, BAD_PUBLIC_SIGNALS);
+  });
+});
+```
 
 ## File Structure
 
 Circomkit with its default configuration follows an _opinionated file structure_, abstracting away the pathing and orientation behind the scenes. All of these can be customized by overriding the respective settings in `circomkit.json`.
 
-Here is an example structure, where we have a generic Sudoku proof-of-solution circuit, and we instantiate it for a 9x9 board:
+An example structure is shown below. Suppose there is a generic circuit for a Sudoku solution knowledge proof written under `circuits` folder. When instantiated, a `main` component for a 9x9 board is created under `circuits/main`. The solution along with it's puzzle is stored as a JSON object under `inputs/sudoku_9x9`. You can see the respective artifacts under `build` directory. In particular, we see `groth16` prefix on some files, indicating that Groth16 protocol was used to create them.
 
 ```sh
 circomkit
@@ -146,7 +266,7 @@ circomkit
 │       └── my_solution.json
 │
 ├── ptau
-│   └── powersOfTau28_hez_final_12.ptau
+│   └── powersOfTau28_hez_final_08.ptau
 │
 └── build
     └── sudoku_9x9
@@ -162,8 +282,10 @@ circomkit
         │
         │── sudoku_9x9.r1cs
         │── sudoku_9x9.sym
-        │── prover_key.zkey
-        └── verifier_key.json
+        │
+        │── groth16_pkey.zkey
+        │── groth16_vkey.json
+        └── groth16_verifier.sol
 
 ```
 
@@ -174,6 +296,8 @@ Run all tests via:
 ```sh
 yarn test
 ```
+
+You can also use the CLI in the repo by `yarn cli` as if you are using `npx circomkit`. This is useful for hands-on testing stuff.
 
 ## Styling
 
