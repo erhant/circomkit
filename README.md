@@ -27,7 +27,7 @@
 </p>
 
 - [x] Simple CLI, abstracting away all paths with a simple config.
-- [x] Provides a witness testing utility to check for circuit computations & soundness errors, with minimial boilerplate code!
+- [x] Provides type-safe testing utilities to check for circuit computations & soundness errors, with minimal boilerplate code!
 - [x] Supports all protocols: `groth16`, `plonk` and `fflonk`.
 - [x] Automatically downloads the Phase-1 PTAU file when using `bn128`.
 - [x] Supports multiple exports such as exporting Solidity verifier, calldata, and JSON for R1CS and Witness.
@@ -222,28 +222,38 @@ it('should fail on fake witness', async () => {
 
 ### Proof Tester
 
-As an alternative to simulate generating a proof and verifying it, you can use Proof Tester. The proof tester makes use of WASM file, prover key and verifier key in the background. It will use the underlying Circomkit configuration to look for those files, and it can generate them automatically if they do not exist. Here is an example:
+As an alternative to simulate generating a proof and verifying it, you can use Proof Tester. The proof tester makes use of WASM file, prover key and verifier key in the background. It will use the underlying Circomkit configuration to look for those files, and it can generate them automatically if they do not exist. An example using Plonk protocol is given below. Notice how we create the necessary files before creating the tester, as they are required for proof generation and verification.
 
 ```ts
 describe('proof tester', () => {
-  const circomkit = new Circomkit();
+  // input signals and output signals can be given as type parameters
+  // this makes all functions type-safe!
   let circuit: ProofTester<['in']>;
-  let fullProof: FullProof;
 
   before(async () => {
+    const circomkit = new Circomkit({
+      protocol: 'plonk',
+    });
+    circomkit.instantiate(CIRCUIT_NAME, CIRCUIT_CONFIG);
+    await circomkit.setup(CIRCUIT_NAME, PTAU_PATH);
     circuit = await circomkit.ProofTester(CIRCUIT_NAME);
-    fullProof = await circuit.prove(INPUT);
   });
 
-  it('should verify', async () => {
-    await circuit.expectPass(fullProof.proof, fullProof.publicSignals);
+  it('should verify a proof correctly', async () => {
+    const {proof, publicSignals} = await circuit.prove(INPUT);
+    await circuit.expectPass(proof, publicSignals);
   });
 
-  it('should NOT verify', async () => {
-    await circuit.expectFail(fullProof.proof, BAD_PUBLIC_SIGNALS);
+  it('should NOT verify a proof with invalid public signals', async () => {
+    const {proof} = await circuit.prove(INPUT);
+    await circuit.expectFail(proof, BAD_PUBLIC_SIGNALS);
   });
 });
 ```
+
+### Type-Safety
+
+You may notice that there are optional template parameters in both testers: `WitnessTester<InputSignals, OutputSignals>` and `ProofTester<InputSignals>`. These template parameters take in an array of strings corresponding to signal names. For example, if your circuit has two input signals `in1, in2` and an output `out`, you may instantiate the tester as `WitnessTester<['in1', 'in2'], ['out']>`. In doing so, you will get type-checking on all inputs and outputs required by the tester.
 
 ## File Structure
 

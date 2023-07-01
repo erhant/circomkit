@@ -30,12 +30,6 @@ export type SymbolsType = {
   };
 };
 
-/** A FullProof, as returned from SnarkJS `fullProve` function. */
-export type FullProof = {
-  proof: object;
-  publicSignals: string[];
-};
-
 /** A configuration object for circuit main components. */
 export type CircuitConfig = {
   /** File to read the template from */

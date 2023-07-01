@@ -1,4 +1,4 @@
-import {Circomkit, FullProof, ProofTester, WitnessTester} from '../src';
+import {Circomkit, ProofTester, WitnessTester} from '../src';
 import {expect} from 'chai';
 import {CIRCUIT_CONFIG, CIRCUIT_NAME, INPUT, N, OUTPUT} from './common';
 
@@ -43,22 +43,25 @@ describe('witness tester', () => {
 
 describe('proof tester', () => {
   let circuit: ProofTester<['in']>;
-  let fullProof: FullProof;
 
   before(async () => {
     const circomkit = new Circomkit({
       verbose: false,
       logLevel: 'silent',
+      protocol: 'plonk',
     });
+    circomkit.instantiate(CIRCUIT_NAME, CIRCUIT_CONFIG);
+    await circomkit.setup(CIRCUIT_NAME, './ptau/powersOfTau28_hez_final_08.ptau');
     circuit = await circomkit.ProofTester(CIRCUIT_NAME);
-    fullProof = await circuit.prove(INPUT);
   });
 
-  it('should verify', async () => {
-    await circuit.expectPass(fullProof.proof, fullProof.publicSignals);
+  it('should verify a proof correctly', async () => {
+    const {proof, publicSignals} = await circuit.prove(INPUT);
+    await circuit.expectPass(proof, publicSignals);
   });
 
-  it('should NOT verify', async () => {
-    await circuit.expectFail(fullProof.proof, ['1']);
+  it('should NOT verify a proof with invalid public signals', async () => {
+    const {proof} = await circuit.prove(INPUT);
+    await circuit.expectFail(proof, ['1']);
   });
 });

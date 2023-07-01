@@ -28,6 +28,8 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
 
   it('should give correct circuit info', async () => {
     const info = await circomkit.info(CIRCUIT_NAME);
+
+    // for multiplier_3
     expect(info.primeName).to.eq('bn128');
     expect(info.constraints).to.eq(3); // three constraints for 3 numbers
     expect(info.privateInputs).to.eq(3); // input is 3 numbers, all private
@@ -93,11 +95,7 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
         throw new Error('Should have thrown an error before this.');
       }
     } catch (err) {
-      expect((err as Error).message).to.eq('Exporting zKey to JSON only supported for groth16 at the moment.');
+      expect((err as Error).message).to.eq('Exporting zKey to JSON is only supported for Groth16 at the moment.');
     }
-  });
-
-  it('should clean artifacts', async () => {
-    await circomkit.clean(CIRCUIT_NAME);
   });
 });

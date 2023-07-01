@@ -1,7 +1,7 @@
 const snarkjs = require('snarkjs');
 import {expect} from 'chai';
 import {readFileSync} from 'fs';
-import type {CircuitSignals, FullProof} from '../types/circuit';
+import type {CircuitSignals} from '../types/circuit';
 import type {CircomkitConfig} from '../types/circomkit';
 
 /** A tester that is able to generate proofs & verify them.
@@ -13,7 +13,6 @@ export default class ProofTester<IN extends string[] = []> {
 
   constructor(readonly wasmPath: string, readonly pkeyPath: string, readonly vkeyPath: string) {
     this.verificationKey = JSON.parse(readFileSync(vkeyPath).toString()) as typeof this.verificationKey;
-
     this.protocol = this.verificationKey.protocol;
   }
 
@@ -23,7 +22,10 @@ export default class ProofTester<IN extends string[] = []> {
    * @param input input signals for the circuit
    * @returns a proof and public signals
    */
-  async prove(input: CircuitSignals<IN>): Promise<FullProof> {
+  async prove(input: CircuitSignals<IN>): Promise<{
+    proof: object;
+    publicSignals: string[];
+  }> {
     return await snarkjs[this.protocol].fullProve(input, this.wasmPath, this.pkeyPath);
   }
 
@@ -43,7 +45,7 @@ export default class ProofTester<IN extends string[] = []> {
    * @param publicSignals public signals for the circuit
    */
   async expectPass(proof: object, publicSignals: string[]): Promise<void> {
-    expect(await this.verify(proof, publicSignals)).to.be.true;
+    expect(await this.verify(proof, publicSignals), 'Expected proof to be verified.').to.be.true;
   }
 
   /**
@@ -52,6 +54,6 @@ export default class ProofTester<IN extends string[] = []> {
    * @param publicSignals public signals for the circuit
    */
   async expectFail(proof: object, publicSignals: string[]): Promise<void> {
-    expect(await this.verify(proof, publicSignals)).to.be.false;
+    expect(await this.verify(proof, publicSignals), 'Expected proof to be not verified.').to.be.false;
   }
 }

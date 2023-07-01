@@ -3,5 +3,5 @@ import ProofTester from './testers/proofTester';
 import WitnessTester from './testers/witnessTester';
 
 export {Circomkit, ProofTester, WitnessTester};
-export type {FullProof, CircuitSignals, CircuitConfig} from './types/circuit';
+export type {CircuitSignals, CircuitConfig} from './types/circuit';
 export type {CircomkitConfig} from './types/circomkit';

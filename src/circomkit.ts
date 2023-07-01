@@ -65,7 +65,7 @@ export class Circomkit {
     }
   }
 
-  /** Parse circuit config from `circuits.json` */
+  /** Parse circuit config from `circuits.json`. */
   private readCircuitConfig(circuit: string): CircuitConfig {
     const circuits = JSON.parse(readFileSync(this.config.circuits, 'utf-8'));
     if (!(circuit in circuits)) {
@@ -74,12 +74,7 @@ export class Circomkit {
     return circuits[circuit] as CircuitConfig;
   }
 
-  /**
-   * Computes a path that requires a circuit name.
-   * @param circuit circuit name
-   * @param type path type
-   * @returns path
-   */
+  /** Computes a path that requires a circuit name. */
   private path(circuit: string, type: CircuitPathBuilders): string {
     const dir = `${this.config.dirBuild}/${circuit}`;
     switch (type) {
@@ -104,13 +99,7 @@ export class Circomkit {
     }
   }
 
-  /**
-   * Computes a path that requires a circuit and an input name.
-   * @param circuit circuit name
-   * @param input input name
-   * @param type path type
-   * @returns path
-   */
+  /** Computes a path that requires a circuit and an input name. */
   private pathWithInput(circuit: string, input: string, type: CircuitInputPathBuilders): string {
     const dir = `${this.config.dirBuild}/${circuit}/${input}`;
     switch (type) {
@@ -134,9 +123,8 @@ export class Circomkit {
     return `${this.config.dirPtau}/${ptauName}`;
   }
 
-  /** Given a circuit & id name, returns the relative path to phase-2 PTAU.
-   * This is used in particular by Groth16's circuit-specific setup phase.
-   */
+  /** Given a circuit & id name, returns the relative path of the phase-2 PTAU.
+   * This is used in particular by Groth16's circuit-specific setup phase. */
   private pathZkey(circuit: string, id: number): string {
     return `${this.config.dirBuild}/${circuit}/${circuit}_${id}.zkey`;
   }
@@ -151,7 +139,7 @@ export class Circomkit {
     }
   }
 
-  /** Clean build files and the main component. */
+  /** Clean build files and the `main` component of a circuit. */
   async clean(circuit: string): Promise<void> {
     await Promise.all([
       rm(this.path(circuit, 'dir'), {recursive: true, force: true}),
@@ -175,7 +163,15 @@ export class Circomkit {
     };
   }
 
-  /** Downloads the ptau file for a circuit based on it's number of constraints. */
+  /** Downloads the phase-1 setup PTAU file for a circuit based on it's number of constraints.
+   *
+   * The downloaded PTAU files can be seen at [SnarkJS docs](https://github.com/iden3/snarkjs#7-prepare-phase-2).
+   * Note that this may take a while if the circuit is large and thus a larger PTAU is needed.
+   *
+   * This function only works when the used prime is `bn128`.
+   *
+   * @returns path of the downloaded PTAU file
+   */
   async ptau(circuit: string): Promise<string> {
     if (this.config.prime !== 'bn128') {
       throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
@@ -196,10 +192,11 @@ export class Circomkit {
   }
 
   /** Compile the circuit.
+   *
    * This function uses [wasm tester](../../node_modules/circom_tester/wasm/tester.js)
    * in the background.
    *
-   * @returns path to build files
+   * @returns path of the build directory
    */
   async compile(circuit: string) {
     const outDir = this.path(circuit, 'dir');
@@ -224,7 +221,8 @@ export class Circomkit {
   }
 
   /** Exports a solidity contract for the verifier.
-   * @returns path to exported Solidity contract
+   *
+   * @returns path of the exported Solidity contract
    */
   async contract(circuit: string) {
     const pkey = this.path(circuit, 'pkey');
@@ -242,8 +240,8 @@ export class Circomkit {
     return contractPath;
   }
 
-  /** Export calldata to console.
-   * @returns calldata as a string
+  /** Export calldata to call a Verifier contract.
+   * @returns calldata
    */
   async calldata(circuit: string, input: string): Promise<string> {
     // fflonk gives error (tested at snarkjs v0.7.0)
@@ -261,7 +259,11 @@ export class Circomkit {
   }
 
   /** Instantiate the `main` component.
-   * @returns path to created main component
+   *
+   * If `config` argument is omitted, this function will look for it at `circuits.json`
+   * in the working directory, and throw an error if no entry is found for the circuit.
+   *
+   * @returns path of the created main component
    */
   instantiate(circuit: string, config?: CircuitConfig) {
     if (config) {
@@ -277,7 +279,7 @@ export class Circomkit {
   }
 
   /** Generate a proof.
-   * @returns path to directory where public signals and proof are created
+   * @returns path of the directory where public signals and proof are created
    */
   async prove(circuit: string, input: string): Promise<string> {
     // create WASM if needed
@@ -301,19 +303,28 @@ export class Circomkit {
     }
     const jsonInput = JSON.parse(readFileSync(inputPath, 'utf-8'));
 
-    const fullProof = await snarkjs[this.config.protocol].fullProve(jsonInput, wasmPath, pkeyPath, this._logger);
+    const {proof, publicSignals} = await snarkjs[this.config.protocol].fullProve(
+      jsonInput,
+      wasmPath,
+      pkeyPath,
+      this._logger
+    );
 
     const dir = this.pathWithInput(circuit, input, 'dir');
     mkdirSync(dir, {recursive: true});
     await Promise.all([
-      writeFile(this.pathWithInput(circuit, input, 'pubs'), prettyStringify(fullProof.publicSignals)),
-      writeFile(this.pathWithInput(circuit, input, 'proof'), prettyStringify(fullProof.proof)),
+      writeFile(this.pathWithInput(circuit, input, 'pubs'), prettyStringify(publicSignals)),
+      writeFile(this.pathWithInput(circuit, input, 'proof'), prettyStringify(proof)),
     ]);
     return dir;
   }
 
   /** Commence a circuit-specific setup.
-   * @returns path to verifier key and prover key
+   *
+   * If `ptauPath` argument is omitted, this function will try to automatically download it.
+   * See the {@link ptau} method for more information about this.
+   *
+   * @returns path of the verifier key and prover key
    */
   async setup(circuit: string, ptauPath?: string): Promise<{proverKeyPath: string; verifierKeyPath: string}> {
     const r1csPath = this.path(circuit, 'r1cs');
@@ -398,7 +409,7 @@ export class Circomkit {
   }
 
   /** Calculates the witness for the given circuit and input.
-   * @returns path to created witness
+   * @returns path of the created witness
    */
   async witness(circuit: string, input: string): Promise<string> {
     const wasmPath = this.path(circuit, 'wasm');
@@ -412,9 +423,11 @@ export class Circomkit {
   }
 
   /** Exports a JSON input file for some circuit with the given object.
+   *
    * This is useful for testing real circuits, or creating an input programmatically.
    * Overwrites an existing input.
-   * @returns path to created input file
+   *
+   * @returns path of the created input file
    */
   input(circuit: string, input: string, data: CircuitSignals): string {
     const inputPath = this.pathWithInput(circuit, input, 'in');
@@ -422,10 +435,11 @@ export class Circomkit {
     return inputPath;
   }
 
-  /**
-   * Export a circuit artifact in JSON format. If the last argument `write` is true, it will write to
-   * file with the appropriate path, and return the path. Otheriwse, returns the JSON obejct.
-   * @param type type of file to export
+  /** Export a circuit artifact in JSON format.
+   *
+   * Returns the JSON object itself, and the path that it would be exported to with
+   * respect to the Circomkit configuration.
+   *
    * @returns a JSON object or the path that it would be exported to.
    */
   async json(type: 'r1cs' | 'zkey' | 'wtns', circuit: string, input?: string): Promise<{json: object; path: string}> {
@@ -443,7 +457,7 @@ export class Circomkit {
       case 'zkey': {
         // must be groth16, others give error (tested at snarkjs v0.7.0)
         if (this.config.protocol !== 'groth16') {
-          throw new Error('Exporting zKey to JSON only supported for groth16 at the moment.');
+          throw new Error('Exporting zKey to JSON is only supported for Groth16 at the moment.');
         }
 
         path = this.path(circuit, 'pkey');
@@ -467,12 +481,7 @@ export class Circomkit {
     };
   }
 
-  /**
-   * Compiles the circuit and reutrns a circuit tester.
-   * @param circuit name of circuit
-   * @param config circuit configuration
-   * @returns a `WitnessTester` instance
-   */
+  /** Compiles the circuit and returns a witness tester instance. */
   async WitnessTester<IN extends string[] = [], OUT extends string[] = []>(circuit: string, config: CircuitConfig) {
     config.dir ||= 'test';
 
@@ -493,21 +502,16 @@ export class Circomkit {
     return new WitnessTester<IN, OUT>(circomWasmTester);
   }
 
-  /**
-   * Creates a ProofTester.
-   * @param circuit circuit name
-   * @param ptauPath optional path to PTAU file
-   * @returns a ProofTester
-   */
-  async ProofTester<IN extends string[] = []>(circuit: string, ptauPath?: string) {
+  /** Returns a proof tester. */
+  async ProofTester<IN extends string[] = []>(circuit: string) {
     const wasmPath = this.path(circuit, 'wasm');
     const pkeyPath = this.path(circuit, 'pkey');
     const vkeyPath = this.path(circuit, 'vkey');
 
-    // create keys if required
-    if (!existsSync(vkeyPath)) {
-      this.log('Verifier key does not exist, creating it now...', 'debug');
-      await this.setup(circuit, ptauPath);
+    // check if all files are present
+    const missingPaths = [wasmPath, pkeyPath, vkeyPath].filter(p => !existsSync(p));
+    if (missingPaths.length !== 0) {
+      throw new Error('Missing files: ' + missingPaths.join(', '));
     }
 
     return new ProofTester<IN>(wasmPath, pkeyPath, vkeyPath);
