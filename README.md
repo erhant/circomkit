@@ -121,7 +121,7 @@ You can omit `pubs` and `params` options, they default to `[]`.
 
 ### Using Circomkit in Code
 
-All CLI commands can be used with the same name and arguments within Circomkit.
+All CLI commands other than `init` can be used with the same name and arguments within Circomkit.
 
 ```ts
 import {Circomkit} from 'circomkit';
