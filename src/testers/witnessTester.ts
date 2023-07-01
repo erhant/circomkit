@@ -15,9 +15,7 @@ export default class WitnessTester<IN extends readonly string[] = [], OUT extend
     this.circomWasmTester = circomWasmTester;
   }
 
-  /** Assert that constraints are valid for a given witness.
-   * @param witness witness
-   */
+  /** Assert that constraints are valid for a given witness. */
   async expectConstraintPass(witness: WitnessType): Promise<void> {
     return this.circomWasmTester.checkConstraints(witness);
   }
@@ -27,18 +25,18 @@ export default class WitnessTester<IN extends readonly string[] = [], OUT extend
    * This is useful to test if a fake witness (a witness from a
    * dishonest prover) can still be valid, which would indicate
    * that there are soundness errors in the circuit.
-   * @param witness witness
    */
   async expectConstraintFail(witness: WitnessType): Promise<void> {
     await this.expectConstraintPass(witness).then(
       () => assert.fail('Expected constraints to not match.'),
-      err => expect(err).to.be.instanceOf(AssertionError)
+      err => {
+        // console.log(err.message);
+        expect(err.message).to.eq("Constraint doesn't match");
+      }
     );
   }
 
-  /** Compute witness given the input signals.
-   * @param input all signals, private and public
-   */
+  /** Compute witness given the input signals. */
   async calculateWitness(input: CircuitSignals<IN>): Promise<WitnessType> {
     return this.circomWasmTester.calculateWitness(input, true);
   }
@@ -74,7 +72,10 @@ export default class WitnessTester<IN extends readonly string[] = [], OUT extend
   async expectFail(input: CircuitSignals<IN>) {
     await this.calculateWitness(input).then(
       () => assert.fail('Expected witness calculation to fail.'),
-      err => expect(err).to.be.instanceOf(AssertionError)
+      err => {
+        // console.log(err.message);
+        expect(err.message.startsWith('Error: Assert Failed.')).to.be.true;
+      }
     );
   }
 

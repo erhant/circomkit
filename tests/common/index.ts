@@ -3,6 +3,8 @@ export const N = 3;
 
 const numbers = Array.from({length: N}, () => Math.floor(Math.random() * 100 * N));
 const product = numbers.reduce((prev, acc) => acc * prev);
+const malicious = Array.from({length: N}, () => 1);
+malicious[0] = product;
 
 export const CIRCUIT_NAME = `multiplier_${N}`;
 export const CIRCUIT_CONFIG = {
@@ -15,6 +17,9 @@ export const PTAU_PATH = './ptau/powersOfTau28_hez_final_08.ptau';
 
 export const INPUT = {
   in: numbers,
+};
+export const BAD_INPUT = {
+  in: malicious,
 };
 export const OUTPUT = {
   out: product,
