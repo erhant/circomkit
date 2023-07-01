@@ -43,7 +43,9 @@ describe('witness tester', () => {
   it('should NOT assert for bad witness', async () => {
     const witness = await circuit.calculateWitness(INPUT);
     const badWitness = await circuit.editWitness(witness, {
-      'main.inner[0]': 1n,
+      'main.in[0]': 1n,
+      'main.in[1]': 1n,
+      'main.in[2]': BigInt(OUTPUT.out),
     });
     await circuit.expectConstraintFail(badWitness);
   });
