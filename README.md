@@ -50,7 +50,7 @@ You can setup a new project with the following:
 npx circomkit init
 ```
 
-You can check out examples at the [circomkit-examples](<[circomkit-examples](https://github.com/erhant/circomkit-examples)>) repository.
+You can check out examples at the [circomkit-examples](https://github.com/erhant/circomkit-examples) repository.
 
 ### Command Line Interface
 
@@ -58,22 +58,22 @@ Actions that require a circuit name can be called as follows:
 
 ```sh
 # Compile the circuit
-npx circomkit compile circuit
+npx circomkit compile <circuit>
 
 # Create the main component
-npx circomkit instantiate circuit
+npx circomkit instantiate <circuit>
 
 # Create a Solidity verifier contract
-npx circomkit contract circuit
+npx circomkit contract <circuit>
 
 # Clean circuit artifacts
-npx circomkit clean circuit
+npx circomkit clean <circuit>
 
 # Circuit-specific setup
-npx circomkit setup circuit [ptau-path]
+npx circomkit setup <circuit> [ptau-path]
 
 # Automatically download PTAU (for BN128)
-npx circomkit ptau circuit
+npx circomkit ptau <circuit>
 ```
 
 Circuit-specific setup optionally takes the path to a PTAU file as argument. If not provided, it will automatically decide the PTAU to use with respect to constraint count, and download it for you! This feature only works for `bn128` prime.
@@ -82,16 +82,16 @@ Some actions such as generating a witness, generating a proof and verifying a pr
 
 ```sh
 # Generate a witness
-npx circomkit witness circuit input
+npx circomkit witness <circuit> <input>
 
 # Generate a proof
-npx circomkit prove circuit input
+npx circomkit prove <circuit> <input>
 
 # Verify a proof with public signals
-npx circomkit verify circuit input
+npx circomkit verify <circuit> <input>
 
 # Export Solidity calldata to console
-npx circomkit calldata circuit input
+npx circomkit calldata <circuit> <input>
 ```
 
 ### Circomkit Configurations
