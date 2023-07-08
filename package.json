@@ -25,8 +25,8 @@
     "url": "https://github.com/erhant/circomkit/issues/"
   },
   "scripts": {
-    "build": "yarn build:clean && npx tsc -p tsconfig.build.json",
-    "build:clean": "rimraf dist/",
+    "build": "npx tsc -p tsconfig.build.json",
+    "prebuild": "rimraf dist/",
     "prepublish": "yarn build",
     "cli": "yarn build && node ./dist/bin",
     "test": "npx mocha",

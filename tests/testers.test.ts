@@ -14,11 +14,11 @@ describe('witness tester', () => {
   });
 
   it('should have correct number of constraints', async () => {
-    // N - 1 constraints for each multiplication
-    // 1 constraint for the output
-    // 4 * N constraints to check if each input is different than 1
-    // TOTAL: 5 * N
-    await circuit.expectConstraintCount(5 * N, true);
+    // N-1 quadratic constraints for multiplications
+    // N quadratic constraints for inverting the numbers
+    // N linear constraints to check each number is non-zero
+    // TOTAL: 3*N - 1
+    await circuit.expectConstraintCount(3 * N - 1, true);
   });
 
   it('should assert correctly', async () => {

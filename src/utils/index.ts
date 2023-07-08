@@ -30,19 +30,19 @@ export const initFiles = {
     name: 'multiplier.circom',
     content: `pragma circom 2.0.0;
 
-template Multiplier(N) {
-  assert(N > 1);
-  signal input in[N];
+template Multiplier(n) {
+  assert(n > 1);
+  signal input in[n];
   signal output out;
 
-  signal inner[N-1];
+  signal inner[n-1];
 
   inner[0] <== in[0] * in[1];
-  for(var i = 2; i < N; i++) {
+  for(var i = 2; i < n; i++) {
     inner[i-1] <== inner[i-2] * in[i];
   }
 
-  out <== inner[N-2]; 
+  out <== inner[n-2]; 
 }`,
   },
   input: {
@@ -68,7 +68,7 @@ template Multiplier(N) {
   tests: {
     dir: 'tests',
     name: 'multiplier.test.ts',
-    content: `import { Circomkit } from "circomkit";
+    content: `import { Circomkit, WitnessTester } from "circomkit";
 
 // exercise: make this test work for all numbers, not just 3
 describe("multiplier", () => {
@@ -113,6 +113,7 @@ export const postInitString = `
 You should also install the following packages if you need to:
 
   npm install --save-dev ts-node typescript mocha @types/mocha
+  yarn add -D ts-node typescript mocha @types/mocha
 
 `;
 

@@ -13,6 +13,6 @@
     "pretty": true,
     "declaration": true,
     "sourceMap": true,
-    "outDir": "dist"
+    "noEmit": true
   }
 }
