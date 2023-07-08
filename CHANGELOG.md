@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
+- Added teardown script to terminate SnarkJS which makes tests hang indefinitely otherwise.
+
 ### Changed
 
 - Default optimization level is now 1.
