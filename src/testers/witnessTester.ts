@@ -92,75 +92,15 @@ export default class WitnessTester<IN extends readonly string[] = [], OUT extend
   }
 
   /**
-   * Computes the output.
-   *
-   * This is an **expensive operation** in the following sense:
-   *
-   * 1. the witness is calculated via `calculateWitness`
-   * 2. symbols are loaded via `loadSymbols`, which is a bit expensive in it's own sense
-   * 3. for the requested output signals, the symbols are parsed and the required symbols are retrieved
-   * 4. for each signal & it's required symbols, corresponding witness values are retrieved from witness
-   * 5. the results are aggregated in a final object, of the same type of circuit output signals
-   *
-   * @returns output signals
+   * Computes the witness.
+   * This is a shorthand for calculating the witness and calling {@link readWitnessSignals} on the result.
    */
-  async compute(input: CircuitSignals<IN>, outputSignals: OUT): Promise<CircuitSignals<typeof outputSignals>> {
+  async compute(input: CircuitSignals<IN>, signals: string[] | OUT): Promise<CircuitSignals> {
     // compute witness & check constraints
     const witness = await this.calculateWitness(input);
     await this.expectConstraintPass(witness);
 
-    // get symbols of main component
-    await this.loadSymbols();
-
-    // non-main signals have an additional `.` in them after `main.symbol`
-    const symbolNames = Object.keys(this.symbols!).filter(signal => !signal.includes('.', 5));
-
-    // for each out signal, process the respective symbol
-    const entries: [OUT[number], SignalValueType][] = [];
-
-    for (const outSignal of outputSignals) {
-      // get the symbol values from symbol names
-      const symbols = symbolNames.filter(s => s.startsWith(outSignal, 5));
-
-      // we can assume that a symbol with this name appears only once in `main`, and that the depth is same for
-      // all occurences of this symbol, given the type system used in Circom. So, we can just count the number
-      // of `[`s in any symbol of this signal to find the number of dimensions of this signal.
-      //we particularly choose the last symbol in the array, as that holds the maximum index of each dimension of this array.
-      const splits = symbols.at(-1)!.split('[');
-
-      // since we chose the last symbol, we have something like `main.signal[dim1][dim2]...[dimN]` which we can parse
-      const dims = splits.slice(1).map(dim => parseInt(dim.slice(0, -1)) + 1); // +1 is needed because the final value is 0-indexed
-
-      // since signal names are consequent, we only need to know the witness index of the first symbol
-      let idx = this.symbols![symbols[0]].varIdx;
-
-      if (dims.length === 0) {
-        // easy case, just return the witness of this symbol
-        entries.push([outSignal, witness[idx]]);
-      } else {
-        // at this point, we have an array of signals like `main.signal[0..dim1][0..dim2]..[0..dimN]`
-        // and we must construct the necessary multi-dimensional array out of it.
-        // eslint-disable-next-line no-inner-declarations
-        function processDepth(d: number): SignalValueType {
-          const acc: SignalValueType = [];
-          if (d === dims.length - 1) {
-            // final depth, count witnesses
-            for (let i = 0; i < dims[d]; i++) {
-              acc.push(witness[idx++]);
-            }
-          } else {
-            // not final depth, recurse to next
-            for (let i = 0; i < dims[d]; i++) {
-              acc.push(processDepth(d + 1));
-            }
-          }
-          return acc;
-        }
-        entries.push([outSignal, processDepth(0)]);
-      }
-    }
-
-    return Object.fromEntries(entries) as CircuitSignals<OUT>;
+    return await this.readWitnessSignals(witness, signals);
   }
 
   /**
@@ -178,10 +118,6 @@ export default class WitnessTester<IN extends readonly string[] = [], OUT extend
    * You will likely call `checkConstraints` on the resulting fake witness to see if it can indeed fool
    * a verifier.
    * @see {@link checkConstraints}
-   *
-   * @param witness a witness array
-   * @param symbolValues symbols to be overridden in the witness
-   * @returns edited witness
    */
   async editWitness(
     witness: Readonly<WitnessType>,
@@ -202,6 +138,112 @@ export default class WitnessTester<IN extends readonly string[] = [], OUT extend
     }
 
     return fakeWitness;
+  }
+
+  /** Read symbol values from a witness. */
+  async readWitness(witness: Readonly<WitnessType>, symbols: string[]): Promise<Record<string, bigint>> {
+    await this.loadSymbols();
+
+    const ans: Record<string, bigint> = {};
+    for (const symbolName of symbols) {
+      // get corresponding symbol
+      const symbolInfo = this.symbols![symbolName];
+      if (symbolInfo === undefined) {
+        throw new Error('Invalid symbol name: ' + symbolName);
+      }
+
+      // override with user value
+      ans[symbolName] = witness[symbolInfo.varIdx];
+    }
+
+    return ans;
+  }
+
+  /**
+   * Read signals from a witness.
+   *
+   * This is not the same as {@link readWitness} in the sense that the entire value represented by a signal
+   * will be returned here. For example, instead of reading `main.out[0], main.out[1], main.out[2]` with `readWitness`,
+   * you can simply query `out` in this function and an object with `{out: [...]}` will be returned.
+   *
+   * To read signals within a component, simply refer to them as `component.signal`. In other words, omit the `main.` prefix
+   * and array dimensions.
+   */
+  async readWitnessSignals(witness: Readonly<WitnessType>, signals: string[] | OUT): Promise<CircuitSignals> {
+    await this.loadSymbols();
+
+    // for each out signal, process the respective symbol
+    const entries: [OUT[number], SignalValueType][] = [];
+
+    // returns the dot count in the symbol
+    // for example `main.inner.in` has 2 dots
+    function dotCount(s: string): number {
+      return s.split('.').length;
+    }
+
+    for (const signal of signals) {
+      // if our symbol has N dots (0 for `main` signals), we must filter symbols that have different
+      // amount of dots. this shall speed-up the rest of the algorithm, as symbol count may be large
+      // non-main signals have an additional `.` in them after `main.symbol`
+      const signalDotCount = dotCount(signal) + 1; // +1 for the dot in `main.`
+      const signalLength = signal.length + 5; // +5 for prefix `main.`
+      const symbolNames = Object.keys(this.symbols!).filter(s => signalDotCount === dotCount(s));
+
+      // get the symbol values from symbol names, ignoring `main.` prefix
+      // the matched symbols must exactly equal the signal
+      const matchedSymbols = symbolNames.filter(s => {
+        const i = s.indexOf('[');
+        if (i === -1) {
+          // not an array signal
+          return s.length === signalLength;
+        } else {
+          // an array signal, we only care about the symbol name
+          return s.slice(0, i).length === signalLength;
+        }
+      });
+
+      if (matchedSymbols.length === 0) {
+        // no matches!
+        throw new Error('No symbols matched for signal: ' + signal);
+      } else if (matchedSymbols.length === 1) {
+        // easy case, just return the witness of this symbol
+        entries.push([signal, witness[this.symbols![matchedSymbols[0]].varIdx]]);
+      } else {
+        // since signal names are consequent, we only need to know the witness index of the first symbol
+        let idx = this.symbols![matchedSymbols[0]].varIdx;
+
+        // we can assume that a symbol with this name appears only once in a component, and that the depth is same for
+        // all occurences of this symbol, given the type system used in Circom. So, we can just count the number
+        // of `[`s in any symbol of this signal to find the number of dimensions of this signal.
+        // we particularly choose the last symbol in the array, as that holds the maximum index of each dimension of this array.
+        const splits = matchedSymbols.at(-1)!.split('[');
+
+        // since we chose the last symbol, we have something like `main.signal[dim1][dim2]...[dimN]` which we can parse
+        const dims = splits.slice(1).map(dim => parseInt(dim.slice(0, -1)) + 1); // +1 is needed because the final value is 0-indexed
+
+        // at this point, we have an array of signals like `main.signal[0..dim1][0..dim2]..[0..dimN]`
+        // and we must construct the necessary multi-dimensional array out of it.
+        // eslint-disable-next-line no-inner-declarations
+        function processDepth(d: number): SignalValueType {
+          const acc: SignalValueType = [];
+          if (d === dims.length - 1) {
+            // final depth, count witnesses
+            for (let i = 0; i < dims[d]; i++) {
+              acc.push(witness[idx++]);
+            }
+          } else {
+            // not final depth, recurse to next
+            for (let i = 0; i < dims[d]; i++) {
+              acc.push(processDepth(d + 1));
+            }
+          }
+          return acc;
+        }
+        entries.push([signal, processDepth(0)]);
+      }
+    }
+
+    return Object.fromEntries(entries) as CircuitSignals<OUT>;
   }
 
   /**
@@ -231,6 +273,8 @@ export default class WitnessTester<IN extends readonly string[] = [], OUT extend
    * 4.  component index
    */
   private async loadSymbols(): Promise<void> {
+    // no need to check if symbols are already defined
+    // that check happens within circomWasmTester
     await this.circomWasmTester.loadSymbols();
     this.symbols = this.circomWasmTester.symbols;
   }
@@ -244,7 +288,7 @@ export default class WitnessTester<IN extends readonly string[] = [], OUT extend
   }
 
   /**
-   * Cleanup directory, should probably be called upon test completion
+   * Cleanup directory, should probably be called upon test completion (?)
    * @deprecated this is buggy right now
    */
   private release(): Promise<void> {

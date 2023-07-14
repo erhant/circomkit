@@ -16,12 +16,7 @@ export default class ProofTester<IN extends string[] = []> {
     this.protocol = this.verificationKey.protocol;
   }
 
-  /**
-   * Generate a proof for the witness computed from the given input signals.
-   * Calls `fullProve` behind the scenes.
-   * @param input input signals for the circuit
-   * @returns a proof and public signals
-   */
+  /** Generate a proof for the witness computed from the given input signals. */
   async prove(input: CircuitSignals<IN>): Promise<{
     proof: object;
     publicSignals: string[];
@@ -29,30 +24,17 @@ export default class ProofTester<IN extends string[] = []> {
     return await snarkjs[this.protocol].fullProve(input, this.wasmPath, this.pkeyPath);
   }
 
-  /**
-   * Verify a proof for some public signals.
-   * @param proof proof object, given from `prove`
-   * @param publicSignals public signals for the circuit
-   * @returns `true` if proof verifies, `false` otherwise
-   */
+  /** Returns the verification result of a proof for some public signals. */
   async verify(proof: object, publicSignals: string[]): Promise<boolean> {
     return await snarkjs[this.protocol].verify(this.verificationKey, publicSignals, proof);
   }
 
-  /**
-   * Verification should pass for this proof and public signals.
-   * @param proof proof object, given from `prove`
-   * @param publicSignals public signals for the circuit
-   */
+  /** Expects a verification to pass for this proof and public signals. */
   async expectPass(proof: object, publicSignals: string[]): Promise<void> {
     expect(await this.verify(proof, publicSignals), 'Expected proof to be verified.').to.be.true;
   }
 
-  /**
-   * Verification should fail for this proof and public signals.
-   * @param proof proof object, given from `prove`
-   * @param publicSignals public signals for the circuit
-   */
+  /** Expects a verification to fail for this proof and public signals. */
   async expectFail(proof: object, publicSignals: string[]): Promise<void> {
     expect(await this.verify(proof, publicSignals), 'Expected proof to be not verified.').to.be.false;
   }

@@ -35,6 +35,14 @@ describe('witness tester', () => {
     expect(output.out).to.eq(BigInt(OUTPUT.out));
   });
 
+  it('should read witness correctly', async () => {
+    const witness = await circuit.calculateWitness(INPUT);
+    const symbol = 'main.out';
+    const symbolValues = await circuit.readWitness(witness, [symbol]);
+    expect(symbolValues).to.haveOwnProperty(symbol);
+    expect(symbolValues[symbol]).to.eq(BigInt(OUTPUT['out']));
+  });
+
   it('should assert for correct witness', async () => {
     const witness = await circuit.calculateWitness(INPUT);
     await circuit.expectConstraintPass(witness);

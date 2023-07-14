@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Added
 
-- Added teardown script to terminate SnarkJS which makes tests hang indefinitely otherwise.
+- Teardown script to terminate SnarkJS which makes tests hang indefinitely otherwise.
+- `readWitness` added to `WitnessTester`.
+- `readWitnessSignals` added to `WitnessTester`.
+- `compute` function parameter typing fixed. It now allows any symbol.
 
 ### Changed
 
@@ -21,4 +24,4 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [0.0.12] - 2023-07-01
 
-Released to public.
+- Released to public via Twitter post: <https://twitter.com/0xerhant/status/1675589591452065793>.
