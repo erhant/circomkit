@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
-## [Unreleased] - yyyy-mm-dd
+## [0.0.14] - 2023-18-15
 
 ### Added
 
@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 
 - Fixed missing `WitnessTester` import in outputs of `npx circomkit init`.
+
+## [0.0.13] - 2023-18-15
+
+- Wrongfully published.
 
 ## [0.0.12] - 2023-07-01
 
