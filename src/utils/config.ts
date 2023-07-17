@@ -18,6 +18,7 @@ export const defaultConfig: Readonly<CircomkitConfig> = Object.seal({
   dirBuild: './build',
   // compiler-specific
   optimization: 1,
+  inspect: true,
   include: ['./node_modules'],
   // groth16 phase-2 settings
   groth16numContributions: 1,

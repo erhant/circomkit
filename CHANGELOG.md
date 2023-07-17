@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](http://semver.org/).
 
+## [0.0.15] - 2023-18-17
+
+### Added
+
+- `compile` now calls Circom subprocess instead of using WASM tester. This provides better control over cmdline args, e.g. we can call `--inspect` and `--O2` and such. [#20](https://github.com/erhant/circomkit/issues/20)
+- Added `inspect` option to config, defaulting to `true`.
+- Added `--O2` and `--O2round` optimization levels by allowing `optimization` to be any number. If optimization is greater than 2, it corresponds to `--O2round` with the max round number as optimization level.
+
 ## [0.0.14] - 2023-18-15
 
 ### Added
