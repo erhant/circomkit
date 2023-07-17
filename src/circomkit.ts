@@ -205,6 +205,7 @@ export class Circomkit {
     this.log('Main component created at: ' + path, 'debug');
 
     const outDir = this.path(circuit, 'dir');
+    mkdirSync(outDir, {recursive: true});
 
     // prettier-ignore
     let flags = `--sym --wasm --r1cs -p ${this.config.prime} -o ${outDir}`;

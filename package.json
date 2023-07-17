@@ -1,6 +1,6 @@
 {
   "name": "circomkit",
-  "version": "0.0.15",
+  "version": "0.0.16",
   "description": "A Circom development environment",
   "author": "erhant",
   "license": "MIT",
@@ -30,6 +30,7 @@
     "prepublish": "yarn build",
     "cli": "yarn build && node ./dist/bin",
     "test": "npx mocha",
+    "pretest": "rimraf build/",
     "style": "yarn format && yarn lint",
     "lint": "npx gts lint",
     "format": "npx prettier --check ./**/*.ts"
