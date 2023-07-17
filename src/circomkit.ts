@@ -18,6 +18,7 @@ import WitnessTester from './testers/witnessTester';
 import ProofTester from './testers/proofTester';
 import {prettyStringify, primeToName} from './utils';
 import {defaultConfig, colors, CURVES, PROTOCOLS} from './utils/config';
+import {exec} from 'child_process';
 
 /**
  * Circomkit is an opinionated wrapper around many SnarkJS functions.
@@ -56,12 +57,15 @@ export class Circomkit {
     // logger for SnarkJS
     this._logger = this.config.verbose ? this.logger : undefined;
 
-    // sanity check for prime and protocol
+    // sanity checks
     if (!CURVES.includes(this.config.prime)) {
       throw new Error('Invalid prime in configuration.');
     }
     if (!PROTOCOLS.includes(this.config.protocol)) {
       throw new Error('Invalid protocol in configuration.');
+    }
+    if (this.config.optimization < 0) {
+      this.config.optimization = 0;
     }
   }
 
@@ -192,36 +196,54 @@ export class Circomkit {
   }
 
   /** Compile the circuit.
-   *
-   * This function uses [wasm tester](../../node_modules/circom_tester/wasm/tester.js)
-   * in the background.
-   *
    * @returns path of the build directory
    */
   async compile(circuit: string) {
-    const outDir = this.path(circuit, 'dir');
+    // instantiate main component
     const targetPath = this.path(circuit, 'target');
-
     const path = this.instantiate(circuit);
     this.log('Main component created at: ' + path, 'debug');
 
-    await wasm_tester(targetPath, {
-      output: outDir,
-      prime: this.config.prime,
-      verbose: this.config.verbose,
-      O: this.config.optimization,
-      json: false,
-      include: this.config.include,
-      wasm: true,
-      sym: true,
-      recompile: true,
-    });
+    const outDir = this.path(circuit, 'dir');
+
+    // prettier-ignore
+    let flags = `--sym --wasm --r1cs -p ${this.config.prime} -o ${outDir}`;
+    if (this.config.include.length > 0) flags += ' ' + this.config.include.map(path => `-l ${path}`).join(' ');
+    if (this.config.verbose) flags += ' --verbose';
+    if (this.config.inspect) flags += ' --inspect';
+    if (this.config.optimization > 2) {
+      // --O2round <value>
+      flags += ` --O2round ${this.config.optimization}`;
+    } else {
+      // --O0, --O1 or --O2
+      flags += ` --O${this.config.optimization}`;
+    }
+
+    // call `circom` as a sub-process
+    try {
+      const result = await new Promise<{stdout: string; stderr: string}>((resolve, reject) => {
+        exec(`circom ${flags} ${targetPath}`, (error, stdout, stderr) => {
+          if (error === null) {
+            resolve({stdout, stderr});
+          } else {
+            reject(error);
+          }
+        });
+      });
+      if (this.config.verbose) {
+        this.log(result.stdout);
+      }
+      if (result.stderr) {
+        this.log(result.stderr, 'error');
+      }
+    } catch (e) {
+      throw new Error('Compiler error:\n' + e);
+    }
 
     return outDir;
   }
 
   /** Exports a solidity contract for the verifier.
-   *
    * @returns path of the exported Solidity contract
    */
   async contract(circuit: string) {
@@ -483,15 +505,14 @@ export class Circomkit {
 
   /** Compiles the circuit and returns a witness tester instance. */
   async WitnessTester<IN extends string[] = [], OUT extends string[] = []>(circuit: string, config: CircuitConfig) {
-    config.dir ||= 'test';
+    config.dir ||= 'test'; // default to test directory
 
-    // create circuit
     const targetPath = this.instantiate(circuit, config);
     const circomWasmTester: CircomWasmTester = await wasm_tester(targetPath, {
-      output: undefined, // todo: check if this is ok
+      output: undefined, // this makes tests to be created under /tmp
       prime: this.config.prime,
       verbose: this.config.verbose,
-      O: this.config.optimization,
+      O: Math.min(this.config.optimization, 1), // tester doesnt have O2
       json: false,
       include: this.config.include,
       wasm: true,

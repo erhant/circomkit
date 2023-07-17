@@ -22,11 +22,15 @@ export type CircomkitConfig = {
   /** Version number for main components. */
   version: `${number}.${number}.${number}`;
   /**
-   * Optimization level.
+   * [Optimization level](https://docs.circom.io/getting-started/compilation-options/#flags-and-options-related-to-the-r1cs-optimization).
    * - `0`: No simplification is applied.
    * - `1`: Only applies `var` to `var` and `var` to `constant` simplification.
+   * - `2`: Full constraint simplificiation via Gaussian eliminations.
+   * - `>2`: Any number higher than 2 will use `--O2round` with the number as simplification rounds.
    */
-  optimization: 0 | 1;
+  optimization: number;
+  /** Does an additional check over the constraints produced. */
+  inspect: boolean;
   /** Include paths as libraries during compilation. */
   include: string[];
   /** Pass logger to SnarkJS to see its logs in addition to Circomkit */
