@@ -30,7 +30,7 @@ import {exec} from 'child_process';
  * const circomkit = new Circomkit()
  * ```
  *
- * It also provides a **WitnessTester** and a **ProofTester** module which uses Chai assertions within.
+ * It also provides a **WitnessTester** and a **ProofTester** module which use Chai assertions within.
  *
  * ```ts
  * const witnessTester = await circomkit.WitnessTester(circuitName, circuitConfig)
@@ -521,7 +521,7 @@ export class Circomkit {
       include: this.config.include,
       wasm: true,
       sym: true,
-      recompile: true,
+      recompile: true, // TODO: take this as an option
     });
 
     return new WitnessTester<IN, OUT>(circomWasmTester);

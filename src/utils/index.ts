@@ -12,111 +12,6 @@ export function prettyStringify(obj: unknown): string {
   return JSON.stringify(obj, undefined, 2);
 }
 
-/**
- * Initial files for Cirocmkit development environment.
- * This is most likely to be used by the CLI via `npx circomkit init`.
- *
- * It has the following:
- *
- * - An example circuit.
- * - A circuit config for that circuit.
- * - An input for that circuit.
- * - A test code for that circuit.
- * - A `.mocharc.json` for the tests.
- */
-export const initFiles = {
-  circuit: {
-    dir: 'circuits',
-    name: 'multiplier.circom',
-    content: `pragma circom 2.0.0;
-
-template Multiplier(n) {
-  assert(n > 1);
-  signal input in[n];
-  signal output out;
-
-  signal inner[n-1];
-
-  inner[0] <== in[0] * in[1];
-  for(var i = 2; i < n; i++) {
-    inner[i-1] <== inner[i-2] * in[i];
-  }
-
-  out <== inner[n-2]; 
-}`,
-  },
-  input: {
-    dir: 'inputs/multiplier_3',
-    name: '80.json',
-    content: `{
-  "in": [2, 4, 10]
-}
-`,
-  },
-  circuits: {
-    dir: '.',
-    name: 'circuits.json',
-    content: `{
-  "multiplier_3": {
-    "file": "multiplier",
-    "template": "Multiplier",
-    "params": [3]
-  }
-}
-`,
-  },
-  tests: {
-    dir: 'tests',
-    name: 'multiplier.test.ts',
-    content: `import { Circomkit, WitnessTester } from "circomkit";
-
-// exercise: make this test work for all numbers, not just 3
-describe("multiplier", () => {
-  let circuit: WitnessTester<["in"], ["out"]>;
-
-  before(async () => {
-    const circomkit = new Circomkit();
-    circuit = await circomkit.WitnessTester('multiplier_3', {
-      file: "multiplier",
-      template: "Multiplier",
-      params: [3],
-    });
-  });
-
-  it("should multiply correctly", async () => {
-    await circuit.expectPass({ in: [2, 4, 10] }, { out: 80 });
-  });
-});
-`,
-  },
-  mochaConfig: {
-    dir: '.',
-    name: '.mocharc.json',
-    content: `{
-  "extension": ["ts"],
-  "require": "ts-node/register",
-  "spec": "tests/**/*.ts",
-  "timeout": 100000,
-  "exit": true
-}
-`,
-  },
-} satisfies {
-  [key: string]: {
-    dir: string;
-    name: string;
-    content: string;
-  };
-};
-
-export const postInitString = `
-You should also install the following packages if you need to:
-
-  npm install --save-dev ts-node typescript mocha @types/mocha
-  yarn add -D ts-node typescript mocha @types/mocha
-
-`;
-
 export const usageString = `Usage:
 
   Compile the circuit.
@@ -159,8 +54,8 @@ export const usageString = `Usage:
   > witness circuit input
   
   Initialize a Circomkit project.
-  > init                # initializes in current folder
-  > init project-name   # initializes in a new folder
+  > init                # initializes in "circomkit-project" folder
+  > init project-name   # initializes in <project-name> folder
 
   Print configurations to console.
   > config
