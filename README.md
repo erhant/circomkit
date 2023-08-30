@@ -118,22 +118,28 @@ You can omit `pubs` and `params` options, they default to `[]`.
 
 ### Using Circomkit in Code
 
-All CLI commands other than `init` can be used with the same name and arguments within Circomkit.
+All CLI commands other than `init` can be used with the same name and arguments within Circomkit. Furthermore, you can provide configuration & inputs directly, instead of letting Circomkit read from `circuits.json` or from within the `inputs` folder.
 
 ```ts
 import {Circomkit} from 'circomkit';
 
 const circomkit = new Circomkit({
-  /* custom configurations */
+  // custom configurations
   protocol: 'plonk',
 });
 
-circomkit.instantiate('multiplier_3', {
+// artifacts output at `build/multiplier_3` directory
+await circomkit.compile('multiplier_3', {
   file: 'multiplier',
   template: 'Multiplier',
   params: [3],
 });
-await circomkit.compile('multiplier_3');
+
+// proof & public signals at `build/multiplier_3/my_input` directory
+await circomkit.prove('multiplier_3', 'my_input', [3, 5, 7]);
+
+// verify with proof & public signals at `build/multiplier_3/my_input`
+await circomkit.verify('multiplier_3', 'my_input');
 ```
 
 ## Writing Tests

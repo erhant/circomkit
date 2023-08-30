@@ -24,3 +24,16 @@ export const BAD_INPUT = {
 export const OUTPUT = {
   out: product,
 };
+
+export const FIBONACCI_CASES = [
+  {
+    file: 'fibonacci/vanilla',
+    circuit: 'fibo_vanilla',
+    input: 'vanilla',
+  },
+  {
+    file: 'fibonacci/recursive',
+    circuit: 'fibo_recursive',
+    input: 'recursive',
+  },
+];

@@ -7,6 +7,7 @@
 - Added tests for the opitonal argument.
 - Added optional input data arguments to `prove` and `witness`, allowing one to provide data without having it at `inputs` folder.
 - Tidy up the changelog.
+- Updated `gts` for development
 
 ## [0.0.16] - 2023-18-17
 
