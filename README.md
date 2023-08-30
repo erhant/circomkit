@@ -136,7 +136,7 @@ await circomkit.compile('multiplier_3', {
 });
 
 // proof & public signals at `build/multiplier_3/my_input` directory
-await circomkit.prove('multiplier_3', 'my_input', [3, 5, 7]);
+await circomkit.prove('multiplier_3', 'my_input', {in: [3, 5, 7]});
 
 // verify with proof & public signals at `build/multiplier_3/my_input`
 await circomkit.verify('multiplier_3', 'my_input');

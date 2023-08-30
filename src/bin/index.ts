@@ -3,6 +3,7 @@ import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'fs';
 import {Circomkit} from '../circomkit';
 import {initFiles, postInitString, usageString} from '../utils';
 import {prettyStringify} from '../utils';
+import {exec} from 'child_process';
 
 const CONFIG_PATH = './circomkit.json';
 const DEFAULT_INPUT = 'default';
@@ -129,22 +130,28 @@ async function cli(): Promise<number> {
 
     case 'init': {
       titleLog('Initializing project');
-      const baseDir = process.argv[3] || '.';
-      await Promise.all(
-        Object.values(initFiles).map(item => {
-          const path = `${baseDir}/${item.dir}/${item.name}`;
-          if (!existsSync(path)) {
-            mkdirSync(`${baseDir}/${item.dir}`, {recursive: true});
-            writeFileSync(path, item.content);
-            circomkit.log('Created: ' + path);
-          } else {
-            circomkit.log(path + ' exists, skipping.', 'error');
-          }
-        })
-      );
+      const dir = process.argv[3] || '';
+
+      try {
+        const result = await new Promise<{stdout: string; stderr: string}>((resolve, reject) => {
+          exec(`git clone https://github.com/erhant/circomkit-examples.git ${dir}`, (error, stdout, stderr) => {
+            console.log(error);
+            if (error === null) {
+              resolve({stdout, stderr});
+            } else {
+              reject(error);
+            }
+          });
+        });
+        circomkit.log(result.stdout);
+        if (result.stderr) {
+          circomkit.log(result.stderr, 'error');
+        }
+      } catch (e) {
+        throw new Error('Error initializing new project:\n' + e);
+      }
 
       circomkit.log('Circomkit project initialized! ✨', 'success');
-      circomkit.log(postInitString);
       break;
     }
 

@@ -13,7 +13,7 @@ import type {
   CircuitPathBuilders,
 } from './types/circomkit';
 import {randomBytes} from 'crypto';
-import {CircomWasmTester} from './types/circom_tester';
+import {CircomWasmTester} from './types/circomTester';
 import WitnessTester from './testers/witnessTester';
 import ProofTester from './testers/proofTester';
 import {prettyStringify, primeToName} from './utils';
