@@ -12,9 +12,6 @@
      <a href="https://www.npmjs.com/package/circomkit" target="_blank">
         <img alt="NPM" src="https://img.shields.io/npm/v/circomkit?logo=npm&color=CB3837">
     </a>
-    <a href="./.github/workflows/build.yml" target="_blank">
-        <img alt="Workflow: Build" src="https://github.com/erhant/circomkit/actions/workflows/build.yml/badge.svg?branch=main">
-    </a>
     <a href="./.github/workflows/tests.yml" target="_blank">
         <img alt="Workflow: Tests" src="https://github.com/erhant/circomkit/actions/workflows/tests.yml/badge.svg?branch=main">
     </a>

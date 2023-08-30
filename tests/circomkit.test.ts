@@ -2,7 +2,7 @@ import forEach from 'mocha-each';
 import {PROTOCOLS} from '../src/utils/config';
 import {Circomkit} from '../src';
 import {expect} from 'chai';
-import {existsSync} from 'fs';
+import {existsSync, rmSync} from 'fs';
 import {CIRCUIT_CONFIG, CIRCUIT_NAME, INPUT, INPUT_NAME, PTAU_PATH} from './common';
 
 // we are not testing all curves because PTAU is only available for bn128
@@ -20,6 +20,7 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
   it('should instantiate circuit', () => {
     const path = circomkit.instantiate(CIRCUIT_NAME, CIRCUIT_CONFIG);
     expect(existsSync(path)).to.be.true;
+    rmSync(path); // remove it to see if compile command creates it too
   });
 
   it('should compile circuit', async () => {
