@@ -2,8 +2,8 @@ import forEach from 'mocha-each';
 import {PROTOCOLS} from '../src/utils/config';
 import {Circomkit} from '../src';
 import {expect} from 'chai';
-import {existsSync} from 'fs';
-import {CIRCUIT_CONFIG, CIRCUIT_NAME, INPUT, INPUT_NAME, PTAU_PATH} from './common';
+import {existsSync, rmSync} from 'fs';
+import {CIRCUIT_CONFIG, CIRCUIT_NAME, FIBONACCI_CASES, INPUT, INPUT_NAME, PTAU_PATH} from './common';
 
 // we are not testing all curves because PTAU is only available for bn128
 forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number]) => {
@@ -20,6 +20,7 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
   it('should instantiate circuit', () => {
     const path = circomkit.instantiate(CIRCUIT_NAME, CIRCUIT_CONFIG);
     expect(existsSync(path)).to.be.true;
+    rmSync(path); // remove it to see if compile command creates it too
   });
 
   it('should compile circuit', async () => {
@@ -90,3 +91,40 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
     }
   });
 });
+
+forEach(FIBONACCI_CASES).describe(
+  'circomkit with explicit config & input',
+  (customCase: (typeof FIBONACCI_CASES)[0]) => {
+    let circomkit: Circomkit;
+
+    before(() => {
+      circomkit = new Circomkit({
+        protocol: 'groth16',
+        verbose: false,
+        logLevel: 'silent',
+      });
+    });
+
+    it('should compile with custom config', async () => {
+      await circomkit.compile(customCase.circuit, {
+        file: customCase.file,
+        template: 'Fibonacci',
+        params: [7],
+      });
+
+      await circomkit.info(customCase.circuit);
+    });
+
+    it('should prove with custom input data', async () => {
+      const path = await circomkit.prove(customCase.circuit, customCase.input, {
+        in: [1, 1],
+      });
+      expect(existsSync(path)).to.be.true;
+    });
+
+    it('should verify the proof', async () => {
+      const isVerified = await circomkit.verify(customCase.circuit, customCase.input);
+      expect(isVerified).to.be.true;
+    });
+  }
+);

@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 import {Circomkit} from '../src';
 
-describe('config overrides', () => {
+describe('circomkit config overrides', () => {
   it('should override default configs', () => {
     const circomkit = new Circomkit({
       prime: 'goldilocks',

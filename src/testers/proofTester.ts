@@ -11,7 +11,11 @@ export default class ProofTester<IN extends string[] = []> {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public readonly verificationKey: any;
 
-  constructor(readonly wasmPath: string, readonly pkeyPath: string, readonly vkeyPath: string) {
+  constructor(
+    readonly wasmPath: string,
+    readonly pkeyPath: string,
+    readonly vkeyPath: string
+  ) {
     this.verificationKey = JSON.parse(readFileSync(vkeyPath).toString()) as typeof this.verificationKey;
     this.protocol = this.verificationKey.protocol;
   }

@@ -196,13 +196,15 @@ export class Circomkit {
   }
 
   /** Compile the circuit.
+   *
+   * A circuit configuration can be passed optionally; if not, the
+   * config will be read from `circuits.json` at the working directory.
+   *
    * @returns path of the build directory
    */
-  async compile(circuit: string) {
-    // instantiate main component
-    const targetPath = this.path(circuit, 'target');
-    const path = this.instantiate(circuit);
-    this.log('Main component created at: ' + path, 'debug');
+  async compile(circuit: string, config?: CircuitConfig) {
+    const targetPath = this.instantiate(circuit, config);
+    this.log('Main component created at: ' + targetPath, 'debug');
 
     const outDir = this.path(circuit, 'dir');
     mkdirSync(outDir, {recursive: true});
@@ -302,9 +304,12 @@ export class Circomkit {
   }
 
   /** Generate a proof.
+   *
+   * If `data` is not passed, the input data will be read from `inputs/<circuit>/<input>.json`.
+   *
    * @returns path of the directory where public signals and proof are created
    */
-  async prove(circuit: string, input: string): Promise<string> {
+  async prove(circuit: string, input: string, data?: CircuitSignals): Promise<string> {
     // create WASM if needed
     const wasmPath = this.path(circuit, 'wasm');
     if (!existsSync(wasmPath)) {
@@ -319,12 +324,7 @@ export class Circomkit {
       await this.setup(circuit);
     }
 
-    // check input path
-    const inputPath = this.pathWithInput(circuit, input, 'in');
-    if (!existsSync(inputPath)) {
-      throw new Error('Input does not exist at: ' + inputPath);
-    }
-    const jsonInput = JSON.parse(readFileSync(inputPath, 'utf-8'));
+    const jsonInput = data || JSON.parse(readFileSync(this.pathWithInput(circuit, input, 'in'), 'utf-8'));
 
     const {proof, publicSignals} = await snarkjs[this.config.protocol].fullProve(
       jsonInput,
@@ -432,13 +432,16 @@ export class Circomkit {
   }
 
   /** Calculates the witness for the given circuit and input.
+   *
+   * If `data` is not passed, the input data will be read from `inputs/<circuit>/<input>.json`.
+   *
    * @returns path of the created witness
    */
-  async witness(circuit: string, input: string): Promise<string> {
+  async witness(circuit: string, input: string, data?: CircuitSignals): Promise<string> {
     const wasmPath = this.path(circuit, 'wasm');
     const wtnsPath = this.pathWithInput(circuit, input, 'wtns');
     const outDir = this.pathWithInput(circuit, input, 'dir');
-    const jsonInput = JSON.parse(readFileSync(this.pathWithInput(circuit, input, 'in'), 'utf-8'));
+    const jsonInput = data || JSON.parse(readFileSync(this.pathWithInput(circuit, input, 'in'), 'utf-8'));
 
     mkdirSync(outDir, {recursive: true});
     await snarkjs.wtns.calculate(jsonInput, wasmPath, wtnsPath, this._logger);
