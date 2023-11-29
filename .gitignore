@@ -111,7 +111,7 @@ dist
 .DS_Store
 
 # ignore auto generated test circuits
-circuits/test
+**/test/*.circom
 
 # for init tests
 tmptest

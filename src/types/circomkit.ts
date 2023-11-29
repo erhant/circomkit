@@ -40,7 +40,7 @@ export type CircomkitConfig = {
 };
 
 /** Shorthand notations for which path to build in Circomkit. These paths require a circuit name. */
-export type CircuitPathBuilders = 'target' | 'sym' | 'pkey' | 'vkey' | 'wasm' | 'sol' | 'dir' | 'r1cs';
+export type CircuitPathBuilders = 'main' | 'sym' | 'pkey' | 'vkey' | 'wasm' | 'sol' | 'dir' | 'r1cs';
 
 /** Shorthand notations for which path to build in Circomkit. These paths require a circuit name and input name. */
 export type CircuitInputPathBuilders = 'pubs' | 'proof' | 'wtns' | 'in' | 'dir';

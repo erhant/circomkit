@@ -84,7 +84,7 @@ export class Circomkit {
     switch (type) {
       case 'dir':
         return dir;
-      case 'target':
+      case 'main':
         return `${this.config.dirCircuits}/main/${circuit}.circom`;
       case 'r1cs':
         return `${dir}/${circuit}.r1cs`;
@@ -147,7 +147,7 @@ export class Circomkit {
   async clean(circuit: string): Promise<void> {
     await Promise.all([
       rm(this.path(circuit, 'dir'), {recursive: true, force: true}),
-      rm(this.path(circuit, 'target'), {force: true}),
+      rm(this.path(circuit, 'main'), {force: true}),
     ]);
   }
 

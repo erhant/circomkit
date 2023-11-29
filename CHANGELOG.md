@@ -8,6 +8,7 @@
 - Update typescript to `^5.3.2` (note that TS doesnt use semver).
 - Removed `gts` and downloaded `eslint` & `prettier` manually.
 - `circomkit.instantiate` now respects existing `dir` and `version` in circuit config.
+- Added NPM publish workflow.
 
 ## [0.0.18] - 2023-08-30
 
