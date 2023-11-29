@@ -6,7 +6,7 @@ const PTAU_URL_BASE = 'https://hermez.s3-eu-west-1.amazonaws.com';
 
 /**
  * Returns the name of PTAU file for a given number of constraints.
- * @see {@link https://github.com/iden3/snarkjs#7-prepare-phase-2}
+ * @see https://github.com/iden3/snarkjs#7-prepare-phase-2
  * @param n number of constraints
  * @returns name of the PTAU file
  */
@@ -31,6 +31,7 @@ export function getPtauName(n: number): string {
 
 /**
  * Downloads phase-1 powers of tau from Polygon Hermez.
+ * @see https://github.com/iden3/snarkjs#7-prepare-phase-2
  * @param ptauName name of PTAU file
  * @param ptauDir directory to download to
  * @returns path to downloaded PTAU file

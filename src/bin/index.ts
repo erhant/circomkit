@@ -20,8 +20,8 @@ async function cli(): Promise<number> {
   const titleLog = (title: string) => circomkit.log(`===| ${title} |===`, 'title');
 
   // execute command
-  type Commands = keyof Circomkit | 'init' | 'config';
-  switch (process.argv[2] as unknown as Commands) {
+  const command = process.argv[2] as keyof Circomkit | 'init' | 'config';
+  switch (command) {
     case 'compile': {
       titleLog('Compiling the circuit');
       const path = await circomkit.compile(process.argv[3]);
@@ -154,6 +154,7 @@ async function cli(): Promise<number> {
     }
 
     default:
+      // command satisfies never; // CLI cases are not that well-typed yet
       console.log(usageString);
       return 1;
   }

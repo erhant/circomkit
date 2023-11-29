@@ -45,11 +45,4 @@ export type CircuitPathBuilders = 'target' | 'sym' | 'pkey' | 'vkey' | 'wasm' | 
 /** Shorthand notations for which path to build in Circomkit. These paths require a circuit name and input name. */
 export type CircuitInputPathBuilders = 'pubs' | 'proof' | 'wtns' | 'in' | 'dir';
 
-type RecursivePartial<T> = {
-  [P in keyof T]?: T[P] extends (infer U)[]
-    ? RecursivePartial<U>[]
-    : T[P] extends object | undefined
-    ? RecursivePartial<T[P]>
-    : T[P];
-};
-export type CircomkitConfigOverrides = RecursivePartial<CircomkitConfig>;
+export type CircomkitConfigOverrides = Partial<CircomkitConfig>;
