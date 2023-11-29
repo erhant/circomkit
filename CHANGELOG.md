@@ -1,6 +1,16 @@
 # Changelog
 
-## [0.0.18] - TBD
+## [0.0.19] - 2023-XX-XX
+
+- Fixes [#33](https://github.com/erhant/circomkit/issues/33), now `instantiate` respect the custom `dirCircuits` configuration. The function is moved within the Circomkit class, instead of being at its own file under `utils/instantiate.ts`.
+- Fixes [#31](https://github.com/erhant/circomkit/issues/31).
+- Slight refactor on the CLI switch-case condition.
+- Update typescript to `^5.3.2` (note that TS doesnt use semver).
+- Removed `gts` and downloaded `eslint` & `prettier` manually.
+- `circomkit.instantiate` now respects existing `dir` and `version` in circuit config.
+- Added NPM publish workflow.
+
+## [0.0.18] - 2023-08-30
 
 - Removed linting & styling from tests, GTS broke something regarding prettier perhaps? Lints pass locally but not at the workflow.
 - Changed `init` logic to be a git clone instead.

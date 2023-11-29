@@ -1,18 +1,21 @@
 {
-  "extends": "./node_modules/gts/tsconfig-google.json",
+  // Google's TS Config
   "compilerOptions": {
-    "target": "ES2020",
-    "module": "commonjs",
-    "strict": true,
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
-    "rootDir": ".",
-    "pretty": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
     "declaration": true,
+    "forceConsistentCasingInFileNames": true,
+    "lib": ["ES2020"],
+    "module": "commonjs",
+    "noEmitOnError": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitReturns": true,
+    "noImplicitOverride": true,
+    "esModuleInterop": true,
+    "pretty": true,
     "sourceMap": true,
-    "noEmit": true
-  }
+    "strict": true,
+    "target": "ES2020"
+  },
+  "exclude": ["node_modules"]
 }

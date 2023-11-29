@@ -1,6 +1,6 @@
 after(async () => {
   // SnarkJS may attach curve_bn128 to global, but does not terminate it.
-  // we have to do it manually
+  // We have to do it manually (see https://github.com/iden3/snarkjs/issues/152)
 
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   //@ts-ignore

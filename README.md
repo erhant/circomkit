@@ -6,20 +6,14 @@
 </p>
 
 <p align="center">
-    <a href="https://opensource.org/licenses/MIT" target="_blank">
-        <img src="https://img.shields.io/badge/license-MIT-yellow.svg">
-    </a>
-     <a href="https://www.npmjs.com/package/circomkit" target="_blank">
+  <a href="https://www.npmjs.com/package/circomkit" target="_blank">
         <img alt="NPM" src="https://img.shields.io/npm/v/circomkit?logo=npm&color=CB3837">
     </a>
     <a href="./.github/workflows/tests.yml" target="_blank">
         <img alt="Workflow: Tests" src="https://github.com/erhant/circomkit/actions/workflows/tests.yml/badge.svg?branch=main">
     </a>
-    <a href="https://github.com/iden3/snarkjs" target="_blank">
-        <img alt="GitHub: SnarkJS" src="https://img.shields.io/badge/github-snarkjs-lightgray?logo=github">
-    </a>
-    <a href="https://github.com/iden3/circom" target="_blank">
-        <img alt="GitHub: Circom" src="https://img.shields.io/badge/github-circom-lightgray?logo=github">
+    <a href="https://opensource.org/licenses/MIT" target="_blank">
+        <img src="https://img.shields.io/badge/license-MIT-blue.svg">
     </a>
 </p>
 
@@ -99,7 +93,11 @@ Everything used by Circomkit can be optionally overridden by providing the selec
 npx circomkit config
 ```
 
-You can edit any of the fields there to fit your needs. Most importantly, you can change the protocol to be `groth16`, `plonk` or `fflonk`; and you can change the underlying prime field to `bn128`, `bls12381` and `goldilocks`. Note that using a prime other than `bn128` makes things a bit harder in circuit-specific setup, as you will have to find the PTAU files yourself, whereas in `bn128` we can use [Perpetual Powers of Tau](https://github.com/privacy-scaling-explorations/perpetualpowersoftau).
+You can edit any of the fields there to fit your needs. Most importantly, you can change the protocol to be `groth16`, `plonk` or `fflonk`; and you can change the underlying prime field to `bn128`, `bls12381` and `goldilocks`.
+
+> [!NOTE]
+>
+> Using a prime other than `bn128` makes things a bit harder in circuit-specific setup, as you will have to find the PTAU files yourself, whereas in `bn128` we can use [Perpetual Powers of Tau](https://github.com/privacy-scaling-explorations/perpetualpowersoftau).
 
 ### Circuit Configurations
 
@@ -111,10 +109,12 @@ sudoku_9x9: {
   template: 'Sudoku',
   pubs:     ['puzzle'],
   params:   [3], // sqrt(9)
-},
+}
 ```
 
-You can omit `pubs` and `params` options, they default to `[]`.
+> [!TIP]
+>
+> The `pubs` and `params` options can be omitted, in which case they will default to `[]`.
 
 ### Using Circomkit in Code
 
@@ -207,24 +207,28 @@ Finally, you can run tests on the witnesses too. This is most useful when you wo
 - `expectConstraintPass(witness)` checks if constraints are passing for a witness
 - `expectConstraintFail(witness)` checks if constraints are failing
 
-You can compute the witness via the `calculateWitness(input)` function. To test for soundness errors, you may edit the witness and see if constraints are failing. Circomkit provides a nice utility for this purpose, called `editWitness(witness, symbols)`. You simply provide a dictionary of symbols to their new values, and it will edit the witness accordingly. See the example below:
+You can compute the witness via the `calculateWitness(input)` function. To test for soundness errors, you may edit the witness and see if constraints are failing.
 
-```ts
-it('should pass on correct witness', async () => {
-  const witness = await circuit.calculateWitness(INPUT);
-  await circuit.expectConstraintPass(witness);
-});
-
-it('should fail on fake witness', async () => {
-  const witness = await circuit.calculateWitness(INPUT);
-  const badWitness = await circuit.editWitness(witness, {
-    'main.signal': BigInt(1234),
-    'main.component.signal': BigInt('0xCAFE'),
-    'main.foo.bar[0]': BigInt('0b0101'),
-  });
-  await circuit.expectConstraintFail(badWitness);
-});
-```
+> [!TIP]
+>
+> Circomkit provides a nice utility for this purpose, called `editWitness(witness, symbols)`. You simply provide a dictionary of symbols to their new values, and it will edit the witness accordingly. See the example below:
+>
+> ```ts
+> it('should pass on correct witness', async () => {
+>   const witness = await circuit.calculateWitness(INPUT);
+>   await circuit.expectConstraintPass(witness);
+> });
+>
+> it('should fail on fake witness', async () => {
+>   const witness = await circuit.calculateWitness(INPUT);
+>   const badWitness = await circuit.editWitness(witness, {
+>     'main.signal': BigInt(1234),
+>     'main.component.signal': BigInt('0xCAFE'),
+>     'main.foo.bar[0]': BigInt('0b0101'),
+>   });
+>   await circuit.expectConstraintFail(badWitness);
+> });
+> ```
 
 ### Proof Tester
 
