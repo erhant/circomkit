@@ -27,6 +27,22 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
     await circomkit.compile(CIRCUIT_NAME);
   });
 
+  it('should compile the circuits and not generate the c witness calculator files', async () => {
+    const outPath = await circomkit.compile(CIRCUIT_NAME);
+    expect(existsSync(`${outPath}/${CIRCUIT_NAME}_cpp`)).to.be.false;
+  });
+
+  it('should compile circuit and generate the c witness calculator files', async () => {
+    const circomKitCWitness = new Circomkit({
+      protocol,
+      verbose: false,
+      logLevel: 'silent',
+      cWitness: true,
+    });
+    const outPath = await circomKitCWitness.compile(CIRCUIT_NAME);
+    expect(existsSync(`${outPath}/${CIRCUIT_NAME}_cpp`)).to.be.true;
+  });
+
   it('should export circuit information', async () => {
     await circomkit.info(CIRCUIT_NAME);
   });

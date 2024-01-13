@@ -26,6 +26,7 @@ export const defaultConfig: Readonly<CircomkitConfig> = Object.seal({
   // logger
   logLevel: 'INFO',
   verbose: true,
+  cWitness: false,
 });
 
 /** Colors used by the logger. */

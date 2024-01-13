@@ -37,6 +37,8 @@ export type CircomkitConfig = {
   verbose: boolean;
   /** Log level used by the internal logger */
   logLevel: LogLevelDesc;
+  /** Whether to generate the c witness calculator */
+  cWitness: boolean;
 };
 
 /** Shorthand notations for which path to build in Circomkit. These paths require a circuit name. */

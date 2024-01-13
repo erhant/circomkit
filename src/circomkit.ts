@@ -214,6 +214,7 @@ export class Circomkit {
     if (this.config.include.length > 0) flags += ' ' + this.config.include.map(path => `-l ${path}`).join(' ');
     if (this.config.verbose) flags += ' --verbose';
     if (this.config.inspect) flags += ' --inspect';
+    if (this.config.cWitness) flags += ' --c';
     if (this.config.optimization > 2) {
       // --O2round <value>
       flags += ` --O2round ${this.config.optimization}`;
