@@ -33,11 +33,11 @@ export type CircomkitConfig = {
   inspect: boolean;
   /** Include paths as libraries during compilation. */
   include: string[];
-  /** Pass logger to SnarkJS to see its logs in addition to Circomkit */
+  /** Pass logger to SnarkJS to see its logs in addition to Circomkit. */
   verbose: boolean;
-  /** Log level used by the internal logger */
+  /** Log level used by the internal logger. */
   logLevel: LogLevelDesc;
-  /** Whether to generate the c witness calculator */
+  /** Whether to generate the C witness calculator. */
   cWitness: boolean;
 };
 
