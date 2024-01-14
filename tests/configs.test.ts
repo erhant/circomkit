@@ -45,7 +45,7 @@ forEach([
     circuit: 'fibo_recursive',
     input: 'recursive',
   },
-] as const).describe('circomkit with explicit config & input', testcase => {
+] as const).describe('circomkit with explicit config & input (%(circuit)s)', testcase => {
   let circomkit: Circomkit;
 
   before(() => {
@@ -106,5 +106,27 @@ describe('circomkit with custom circuits dir', () => {
 
     await circomkit.info(testcase.circuit);
     expect(existsSync(dirCircuits + '/test/' + testcase.circuit + '.circom')).to.be.true;
+  });
+});
+
+describe('generating C witness', () => {
+  const CONFIG = {
+    verbose: false,
+    logLevel: 'silent',
+  } as const;
+  const CIRCUIT_NAME = 'multiplier_3';
+
+  it('should not generate the C witness calculators by default', async () => {
+    const circomkit = new Circomkit({...CONFIG});
+    expect(circomkit.config.cWitness).to.be.false;
+
+    const outPath = await circomkit.compile(CIRCUIT_NAME);
+    expect(existsSync(`${outPath}/${CIRCUIT_NAME}_cpp`)).to.be.false;
+  });
+
+  it('should generate the C witness calculators if specified', async () => {
+    const circomKitCWitness = new Circomkit({...CONFIG, cWitness: true});
+    const outPath = await circomKitCWitness.compile(CIRCUIT_NAME);
+    expect(existsSync(`${outPath}/${CIRCUIT_NAME}_cpp`)).to.be.true;
   });
 });

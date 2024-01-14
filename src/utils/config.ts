@@ -20,6 +20,7 @@ export const defaultConfig: Readonly<CircomkitConfig> = Object.seal({
   optimization: 1,
   inspect: true,
   include: ['./node_modules'],
+  cWitness: false,
   // groth16 phase-2 settings
   groth16numContributions: 1,
   groth16askForEntropy: false,
