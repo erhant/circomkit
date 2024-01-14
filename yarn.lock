@@ -198,6 +198,11 @@
   resolved "https://registry.yarnpkg.com/@types/semver/-/semver-7.5.6.tgz#c65b2bfce1bec346582c07724e3f8c1017a20339"
   integrity sha512-dn1l8LaMea/IjDoHNd9J52uBbInB796CDffS6VdIxvqYCPSG0V0DzHp76GpaWnlhg88uYyPbXCDIowa86ybd5A==
 
+"@types/snarkjs@^0.7.7":
+  version "0.7.7"
+  resolved "https://registry.yarnpkg.com/@types/snarkjs/-/snarkjs-0.7.7.tgz#2613bd56466497d4e4df0000c59f06b8bc2cfcea"
+  integrity sha512-t/fYLdqUDM7W/XP+CKh4kvo9SS2ejtqHJz/2LQf/UsrrCsDYRjQ85DQFdvIJ6FvJjUvtEEPpTSCPk9gDDjcBWQ==
+
 "@typescript-eslint/eslint-plugin@^6.13.1":
   version "6.13.1"
   resolved "https://registry.yarnpkg.com/@typescript-eslint/eslint-plugin/-/eslint-plugin-6.13.1.tgz#f98bd887bf95551203c917e734d113bf8d527a0c"

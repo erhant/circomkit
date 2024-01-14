@@ -20,7 +20,7 @@ async function cli(): Promise<number> {
   const titleLog = (title: string) => circomkit.log(`===| ${title} |===`, 'title');
 
   // execute command
-  const command = process.argv[2] as keyof Circomkit | 'init' | 'config';
+  const command = process.argv[2] as keyof Circomkit | 'init' | 'config' | 'help';
   switch (command) {
     case 'compile': {
       titleLog('Compiling the circuit');
@@ -59,7 +59,7 @@ async function cli(): Promise<number> {
       titleLog('Circuit information');
       const info = await circomkit.info(process.argv[3]);
       circomkit.log(`Prime Field: ${info.primeName}`);
-      circomkit.log(`Number of of Wires: ${info.variables}`);
+      circomkit.log(`Number of Wires: ${info.variables}`);
       circomkit.log(`Number of Constraints: ${info.constraints}`);
       circomkit.log(`Number of Private Inputs: ${info.privateInputs}`);
       circomkit.log(`Number of Public Inputs: ${info.publicInputs}`);
@@ -153,8 +153,13 @@ async function cli(): Promise<number> {
       break;
     }
 
+    case 'help':
+      // help should return with a normal exit code, no need to pass-through to `default` case
+      console.log(usageString);
+      break;
+
     default:
-      // command satisfies never; // CLI cases are not that well-typed yet
+      // command satisfies never; // TODO: CLI cases are not that well-typed yet
       console.log(usageString);
       return 1;
   }
