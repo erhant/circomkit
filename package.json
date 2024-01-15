@@ -8,10 +8,9 @@
     "node": ">=12.0.0"
   },
   "files": [
-    "dist",
+    "dist/",
     "LICENSE",
-    "README.md",
-    "package.json"
+    "README.md"
   ],
   "bin": "dist/bin/index.js",
   "main": "dist/index.js",
@@ -27,20 +26,20 @@
   "scripts": {
     "build": "npx tsc -p tsconfig.build.json",
     "prebuild": "rimraf dist/",
-    "prepublish": "yarn build",
     "cli": "yarn build && node ./dist/bin",
     "test": "npx mocha",
     "pretest": "rimraf build/",
     "check": "npx tsc --noEmit",
     "style": "yarn format && yarn lint",
-    "lint": "npx eslint '**/*.ts'",
-    "format": "npx prettier --check ./**/*.ts"
+    "lint": "npx eslint '**/*.ts' && echo 'All good!'",
+    "format": "npx prettier --check ./src/**/*.ts ./tests/**/*.ts"
   },
   "devDependencies": {
     "@types/chai": "^4.3.4",
     "@types/mocha": "^10.0.1",
     "@types/mocha-each": "^2.0.0",
     "@types/node": "^18.11.18",
+    "@types/snarkjs": "^0.7.7",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
     "eslint": "^8.54.0",
@@ -59,6 +58,13 @@
     "circom_tester": "^0.0.19",
     "loglevel": "^1.8.1",
     "snarkjs": "^0.7.0"
+  },
+  "prettier": {
+    "bracketSpacing": false,
+    "singleQuote": true,
+    "trailingComma": "es5",
+    "arrowParens": "avoid",
+    "printWidth": 120
   },
   "keywords": [
     "circom",
