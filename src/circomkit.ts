@@ -1,4 +1,4 @@
-const snarkjs = require('snarkjs');
+import * as snarkjs from 'snarkjs';
 const wasm_tester = require('circom_tester').wasm;
 import {writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, renameSync} from 'fs';
 import {readFile, rm, writeFile} from 'fs/promises';
@@ -155,15 +155,17 @@ export class Circomkit {
   async info(circuit: string): Promise<R1CSInfoType> {
     // we do not pass `this.snarkjsLogger` here on purpose
     const r1csinfo = await snarkjs.r1cs.info(this.path(circuit, 'r1cs'), undefined);
+
     return {
       variables: r1csinfo.nVars,
       constraints: r1csinfo.nConstraints,
       privateInputs: r1csinfo.nPrvInputs,
       publicInputs: r1csinfo.nPubInputs,
+      useCustomGates: r1csinfo.useCustomGates,
       labels: r1csinfo.nLabels,
       outputs: r1csinfo.nOutputs,
       prime: r1csinfo.prime,
-      primeName: primeToName[r1csinfo.prime],
+      primeName: primeToName[r1csinfo.prime.toString(10) as `${number}`],
     };
   }
 
@@ -279,7 +281,7 @@ export class Circomkit {
           .map(path => readFile(path, 'utf-8'))
       )
     ).map(content => JSON.parse(content));
-    return await snarkjs[this.config.protocol].exportSolidityCallData(proof, pubs, this.snarkjsLogger);
+    return await snarkjs[this.config.protocol].exportSolidityCallData(proof, pubs);
   }
 
   /** Instantiate the `main` component.
@@ -481,7 +483,7 @@ export class Circomkit {
     const jsonInput = data || JSON.parse(readFileSync(this.pathWithInput(circuit, input, 'in'), 'utf-8'));
 
     mkdirSync(outDir, {recursive: true});
-    await snarkjs.wtns.calculate(jsonInput, wasmPath, wtnsPath, this.snarkjsLogger);
+    await snarkjs.wtns.calculate(jsonInput, wasmPath, wtnsPath);
     return wtnsPath;
   }
 
@@ -524,14 +526,14 @@ export class Circomkit {
         }
 
         path = this.path(circuit, 'pkey');
-        json = await snarkjs.zKey.exportJson(path, undefined); // does not take logger
+        json = await snarkjs.zKey.exportJson(path);
         break;
       }
       // Witness
       case 'wtns': {
         if (!input) throw new Error('Expected input');
         path = this.pathWithInput(circuit, input, 'wtns');
-        json = await snarkjs.wtns.exportJson(path, undefined); // does not take logger
+        json = await snarkjs.wtns.exportJson(path);
         break;
       }
       default:

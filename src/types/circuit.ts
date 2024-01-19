@@ -54,6 +54,7 @@ export type R1CSInfoType = {
   constraints: number;
   privateInputs: number;
   publicInputs: number;
+  useCustomGates: boolean;
   labels: number;
   outputs: number;
   prime: bigint;

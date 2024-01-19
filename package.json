@@ -39,7 +39,7 @@
     "@types/mocha": "^10.0.1",
     "@types/mocha-each": "^2.0.0",
     "@types/node": "^18.11.18",
-    "@types/snarkjs": "^0.7.7",
+    "@types/snarkjs": "^0.7.8",
     "@typescript-eslint/eslint-plugin": "^6.13.1",
     "@typescript-eslint/parser": "^6.13.1",
     "eslint": "^8.54.0",
