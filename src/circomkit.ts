@@ -151,7 +151,7 @@ export class Circomkit {
     ]);
   }
 
-  /** Export a verification key (vKey) from a zKey */
+  /** Export a verification key (vKey) from a proving key (zKey). */
   async vkey(circuit: string, pkeyPath?: string): Promise<string> {
     const vkeyPath = this.path(circuit, 'vkey');
 
@@ -425,16 +425,15 @@ export class Circomkit {
     this.log('Checking for PTAU file...', 'debug');
 
     if (ptauPath === undefined) {
+      // if no ptau is given, we can download it
       if (this.config.prime !== 'bn128') {
         throw new Error('Please provide PTAU file when using a prime field other than bn128');
       }
       ptauPath = await this.ptau(circuit);
-    } else {
-      // if the provided path does not exist, we can just download it
-      if (!existsSync(ptauPath)) {
-        // we can download it
-        ptauPath = await this.ptau(circuit);
-      }
+    } else if (!existsSync(ptauPath)) {
+      // if the provided path does not exist, we can download it anyways
+      this.log('PTAU path was given but no PTAU exists there, downloading it anyways.', 'warn');
+      ptauPath = await this.ptau(circuit);
     }
 
     // circuit specific setup

@@ -63,11 +63,14 @@ npx circomkit clean <circuit>
 # Circuit-specific setup
 npx circomkit setup <circuit> [ptau-path]
 
+# Create verification key
+npx circomkit vkey <circuit> [ptau-path]
+
 # Automatically download PTAU (for BN128)
 npx circomkit ptau <circuit>
 ```
 
-Circuit-specific setup optionally takes the path to a PTAU file as argument. If not provided, it will automatically decide the PTAU to use with respect to constraint count, and download it for you! This feature only works for `bn128` prime.
+Circuit-specific setup & verification key generation optionally takes the path to a PTAU file as argument. If not provided, it will automatically decide the PTAU to use with respect to constraint count, and download it for you! This feature only works for `bn128` prime.
 
 Some actions such as generating a witness, generating a proof and verifying a proof require JSON inputs to provide the signal values. For that, we specifically create our input files under the `inputs` folder, and under the target circuit name there. For example, an input named `foo` for some circuit named `bar` would be at `inputs/bar/foo.json`.
 
@@ -209,7 +212,10 @@ Finally, you can run tests on the witnesses too. This is most useful when you wo
 
 You can compute the witness via the `calculateWitness(input)` function. To test for soundness errors, you may edit the witness and see if constraints are failing.
 
-> [!TIP]
+> <picture>
+>   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/light-theme/tip.svg">
+>   <img alt="Warning" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/tip.svg">
+> </picture><br>
 >
 > Circomkit provides a nice utility for this purpose, called `editWitness(witness, symbols)`. You simply provide a dictionary of symbols to their new values, and it will edit the witness accordingly. See the example below:
 >
@@ -290,21 +296,21 @@ circomkit
 │
 └── build
     └── sudoku_9x9
-        │── sudoku_9x9_js
+        ├── sudoku_9x9_js
         │   │── generate_witness.js
         │   │── witness_calculator.js
         │   └── sudoku_9x9.wasm
         │
-        │── my_solution
+        ├── my_solution
         │   │── proof.json
         │   │── public.json
         │   └── witness.wtns
         │
-        │── sudoku_9x9.r1cs
-        │── sudoku_9x9.sym
+        ├── sudoku_9x9.r1cs
+        ├── sudoku_9x9.sym
         │
-        │── groth16_pkey.zkey
-        │── groth16_vkey.json
+        ├── groth16_pkey.zkey
+        ├── groth16_vkey.json
         └── groth16_verifier.sol
 
 ```
@@ -317,7 +323,9 @@ Run all tests via:
 yarn test
 ```
 
-You can also use the CLI in the repo by `yarn cli` as if you are using `npx circomkit`. This is useful for hands-on testing stuff.
+> [!TIP]
+>
+> You can also use the CLI while developing Circomkit locally via `yarn cli` as if you are using `npx circomkit`. This is useful for hands-on testing stuff.
 
 ## Styling
 

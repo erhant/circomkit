@@ -123,7 +123,7 @@ async function cli(): Promise<number> {
 
     case 'setup': {
       titleLog('Circuit-specific setup');
-      const paths = await circomkit.setup(process.argv[3]);
+      const paths = await circomkit.setup(process.argv[3], process.argv[4]);
       circomkit.log('Prover key created: ' + paths.proverKeyPath, 'success');
       circomkit.log('Verifier key created: ' + paths.verifierKeyPath, 'success');
       break;
@@ -180,7 +180,7 @@ async function cli(): Promise<number> {
  * succesfull ones returning 0. If an error is thrown,
  * that error is logged and process is exited with error code 1.
  *
- * See line 312 in snarkjs/circomkit.js
+ * See https://github.com/iden3/snarkjs/blob/master/cli.js#L348
  */
 function exit(code: number) {
   // eslint-disable-next-line no-process-exit
@@ -188,7 +188,7 @@ function exit(code: number) {
 }
 
 cli()
-  .then(exit)
+  .then(code => exit(code))
   .catch(err => {
     console.error(err);
     exit(1);
