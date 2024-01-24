@@ -1,5 +1,5 @@
 import {Circomkit, ProofTester, WitnessTester} from '../src';
-import {BAD_INPUT, CIRCUIT_CONFIG, CIRCUIT_NAME, INPUT, N, OUTPUT} from './common';
+import {BAD_INPUT, CIRCUIT_CONFIG, CIRCUIT_NAME, INPUT, N, OUTPUT, PTAU_PATH} from './common';
 import {expect} from 'chai';
 
 describe('witness tester', () => {
@@ -69,7 +69,7 @@ describe('proof tester', () => {
       protocol: 'plonk',
     });
     circomkit.instantiate(CIRCUIT_NAME, CIRCUIT_CONFIG);
-    await circomkit.setup(CIRCUIT_NAME, './ptau/powersOfTau28_hez_final_08.ptau');
+    await circomkit.setup(CIRCUIT_NAME, PTAU_PATH);
     circuit = await circomkit.ProofTester(CIRCUIT_NAME);
   });
 

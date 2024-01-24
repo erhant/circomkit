@@ -27,6 +27,24 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
     await circomkit.compile(CIRCUIT_NAME);
   });
 
+  it('should compile the circuits and not generate the c witness calculator files', async () => {
+    const outPath = await circomkit.compile(CIRCUIT_NAME);
+    expect(existsSync(`${outPath}/${CIRCUIT_NAME}_cpp`)).to.be.false;
+  });
+
+  it('should compile circuit and generate the c witness calculator files', async () => {
+    const circomKitCWitness = new Circomkit({
+      protocol,
+      verbose: false,
+      logLevel: 'silent',
+      cWitness: true,
+    });
+    const outPath = await circomKitCWitness.compile(CIRCUIT_NAME);
+    expect(existsSync(`${outPath}/${CIRCUIT_NAME}_cpp`)).to.be.true;
+    // remove it to prevent the next proof system run to fail
+    rmSync(`${outPath}/${CIRCUIT_NAME}_cpp`, {recursive: true});
+  });
+
   it('should export circuit information', async () => {
     await circomkit.info(CIRCUIT_NAME);
   });
@@ -35,6 +53,27 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
     const {proverKeyPath, verifierKeyPath} = await circomkit.setup(CIRCUIT_NAME, PTAU_PATH);
     expect(existsSync(proverKeyPath)).to.be.true;
     expect(existsSync(verifierKeyPath)).to.be.true;
+  });
+
+  it('should export a verification key given a circuit name and a prover key path', async () => {
+    const {proverKeyPath} = await circomkit.setup(CIRCUIT_NAME, PTAU_PATH);
+    const vkeyPath = await circomkit.vkey(CIRCUIT_NAME, proverKeyPath);
+    expect(existsSync(vkeyPath)).to.be.true;
+  });
+
+  it('should export a verification key given a circuit name', async () => {
+    const vkeyPath = await circomkit.vkey(CIRCUIT_NAME);
+    expect(existsSync(vkeyPath)).to.be.true;
+  });
+
+  it('should throw when exporting a verification key given an invalid prover key path', async () => {
+    try {
+      await circomkit.vkey(CIRCUIT_NAME, 'non-existent-path');
+    } catch (err) {
+      expect((err as Error).message).to.eq(
+        'There must be a prover key for this circuit to extract a verification key.'
+      );
+    }
   });
 
   it('should create an input', async () => {
