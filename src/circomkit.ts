@@ -445,7 +445,6 @@ export class Circomkit {
       // generate genesis zKey
       let curZkey = this.pathZkey(circuit, 0);
       await snarkjs.zKey.newZKey(r1csPath, ptauPath, curZkey, this.snarkjsLogger);
-      rmSync(ptauPath);
 
       // make contributions
       for (let contrib = 1; contrib <= this.config.groth16numContributions; contrib++) {
