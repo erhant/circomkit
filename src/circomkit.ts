@@ -151,6 +151,26 @@ export class Circomkit {
     ]);
   }
 
+  /** Export a verification key (vKey) from a zKey */
+  async vkey(circuit: string, pkeyPath?: string): Promise<string> {
+    const vkeyPath = this.path(circuit, 'vkey');
+
+    // check if it exists
+    if (pkeyPath === undefined) {
+      pkeyPath = this.path(circuit, 'pkey');
+    }
+
+    if (!existsSync(pkeyPath)) {
+      throw new Error('There must be a prover key for this circuit to extract a verification key.');
+    }
+
+    // extract it
+    const vkey = await snarkjs.zKey.exportVerificationKey(pkeyPath, this.snarkjsLogger);
+    writeFileSync(vkeyPath, prettyStringify(vkey));
+
+    return vkeyPath;
+  }
+
   /** Information about circuit. */
   async info(circuit: string): Promise<R1CSInfoType> {
     // we do not pass `this.snarkjsLogger` here on purpose
@@ -182,6 +202,8 @@ export class Circomkit {
     if (this.config.prime !== 'bn128') {
       throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
     }
+
+    // @todo check for performance gains when larger PTAUs are found instead of the target PTAU
     const {constraints} = await this.info(circuit);
     const ptauName = getPtauName(constraints);
 
@@ -400,26 +422,29 @@ export class Circomkit {
     }
 
     // get ptau path
+    this.log('Checking for PTAU file...', 'debug');
+
     if (ptauPath === undefined) {
       if (this.config.prime !== 'bn128') {
         throw new Error('Please provide PTAU file when using a prime field other than bn128');
       }
-      this.log('Checking for PTAU file...', 'debug');
       ptauPath = await this.ptau(circuit);
+    } else {
+      // if the provided path does not exist, we can just download it
+      if (!existsSync(ptauPath)) {
+        // we can download it
+        ptauPath = await this.ptau(circuit);
+      }
     }
 
     // circuit specific setup
     this.log('Beginning setup phase!', 'info');
     if (this.config.protocol === 'groth16') {
-      // Groth16 needs a specific setup with its own PTAU ceremony
-      // initialize phase 2
-      const ptau2Init = this.pathPtau(`${circuit}_init.zkey`);
-      await snarkjs.powersOfTau.preparePhase2(ptauPath, ptau2Init, this.snarkjsLogger);
+      // Groth16 needs a circuit specific setup
 
-      // start PTAU generation
+      // generate genesis zKey
       let curZkey = this.pathZkey(circuit, 0);
-      await snarkjs.zKey.newZKey(r1csPath, ptau2Init, curZkey, this.snarkjsLogger);
-      rmSync(ptau2Init);
+      await snarkjs.zKey.newZKey(r1csPath, ptauPath, curZkey, this.snarkjsLogger);
 
       // make contributions
       for (let contrib = 1; contrib <= this.config.groth16numContributions; contrib++) {

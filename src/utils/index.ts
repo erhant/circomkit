@@ -27,6 +27,9 @@ export const usageString = `Usage:
   Clean build artifacts & main component.
   > clean circuit
 
+  Export Verification Key (vKey.json).
+  > vkey circuit zKeyPath
+
   Export Solidity verifier.
   > contract circuit
   

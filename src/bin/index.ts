@@ -82,6 +82,13 @@ async function cli(): Promise<number> {
       break;
     }
 
+    case 'vkey': {
+      titleLog('Extracting verification key');
+      const path = await circomkit.vkey(process.argv[3], process.argv[4]);
+      circomkit.log('Created at: ' + path, 'success');
+      break;
+    }
+
     case 'prove': {
       titleLog('Generating proof');
       const path = await circomkit.prove(process.argv[3], process.argv[4] || DEFAULT_INPUT);

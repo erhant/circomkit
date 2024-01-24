@@ -2,7 +2,7 @@ import {createWriteStream} from 'fs';
 import {get} from 'https';
 
 /** Base PTAU URL as seen in [SnarkJS docs](https://github.com/iden3/snarkjs#7-prepare-phase-2). */
-const PTAU_URL_BASE = 'https://hermez.s3-eu-west-1.amazonaws.com';
+const PTAU_URL_BASE = 'https://storage.googleapis.com/zkevm/ptau';
 
 /**
  * Returns the name of PTAU file for a given number of constraints.
