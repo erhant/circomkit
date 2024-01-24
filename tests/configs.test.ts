@@ -1,7 +1,7 @@
 import {expect} from 'chai';
 import {Circomkit} from '../src';
 import forEach from 'mocha-each';
-import {existsSync} from 'fs';
+import {existsSync, rmSync} from 'fs';
 
 describe('circomkit config overrides', () => {
   it('should override default configs', () => {
@@ -128,5 +128,7 @@ describe('generating C witness', () => {
     const circomKitCWitness = new Circomkit({...CONFIG, cWitness: true});
     const outPath = await circomKitCWitness.compile(CIRCUIT_NAME);
     expect(existsSync(`${outPath}/${CIRCUIT_NAME}_cpp`)).to.be.true;
+
+    rmSync(`${outPath}/${CIRCUIT_NAME}_cpp`, {recursive: true});
   });
 });
