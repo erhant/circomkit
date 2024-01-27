@@ -1,8 +1,14 @@
-import type {CircomkitConfig} from '../types/circomkit';
-import type {CircuitConfig} from '../types/circuit';
+import type {CircomkitConfig, CircuitConfig} from '../types/';
 
-/** A mapping from prime (decimals) to prime name. */
-export const primeToName: Record<`${number}`, CircomkitConfig['prime']> = {
+/** A mapping from prime names to prime value as supported by Circom's `-p` option. */
+export const primes: Record<CircomkitConfig['prime'], bigint> = {
+  bn128: 21888242871839275222246405745257275088548364400416034343698204186575808495617n,
+  bls12381: 52435875175126190479447740508185965837690552500527637822603658699938581184513n,
+  goldilocks: 18446744069414584321n,
+};
+
+/** A mapping from prime (decimals) to prime name as supported by Circom's `-p` option. */
+export const primeToName: Record<`${bigint}`, CircomkitConfig['prime']> = {
   '21888242871839275222246405745257275088548364400416034343698204186575808495617': 'bn128',
   '52435875175126190479447740508185965837690552500527637822603658699938581184513': 'bls12381',
   '18446744069414584321': 'goldilocks',

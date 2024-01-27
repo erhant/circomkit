@@ -3,5 +3,5 @@
   "require": "ts-node/register",
   "spec": "tests/**/*.test.ts",
   "timeout": 100000,
-  "file": ["tests/common/teardown.ts"]
+  "file": ["tests/hooks/preload.ts"]
 }

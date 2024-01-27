@@ -19,16 +19,18 @@
 
 - [x] Simple CLI, abstracting away all paths with a simple config.
 - [x] Provides type-safe testing utilities to check for circuit computations & soundness errors, with minimal boilerplate code!
-- [x] Supports all protocols: `groth16`, `plonk` and `fflonk`.
-- [x] Automatically downloads the Phase-1 PTAU file when using `bn128`.
-- [x] Supports multiple exports such as exporting Solidity verifier, calldata, and JSON for R1CS and Witness.
+- [x] Supports all protocols: `groth16`, `plonk`, and `fflonk`.
+- [x] Automatically downloads phase-1 PTAU when using `bn128`.
+- [x] Supports multiple exports such as a Solidity verifier contract and its calldata for some input, or JSON exports for R1CS and the witness file.
 
 ## Installation
 
 Circomkit can be installed via:
 
 ```sh
-npm install circomkit
+npm  install circomkit
+pnpm install circomkit
+yarn add     circomkit
 ```
 
 You will also need [Circom](https://docs.circom.io), which can be installed following the instructions [here](https://docs.circom.io/getting-started/installation/).
