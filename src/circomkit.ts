@@ -2,23 +2,24 @@ import * as snarkjs from 'snarkjs';
 const wasm_tester = require('circom_tester').wasm;
 import {writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, renameSync} from 'fs';
 import {readFile, rm, writeFile} from 'fs/promises';
+import {randomBytes} from 'crypto';
+import {Logger, getLogger} from 'loglevel';
+import {exec} from 'child_process';
 import {makeCircuit} from './utils/';
 import {downloadPtau, getPtauName} from './utils/ptau';
-import type {CircuitConfig, CircuitSignals, R1CSInfoType} from './types/circuit';
-import {Logger, getLogger} from 'loglevel';
 import type {
+  CircuitConfig,
+  CircuitSignals,
+  R1CSInfoType,
   CircomkitConfig,
   CircomkitConfigOverrides,
   CircuitInputPathBuilders,
   CircuitPathBuilders,
-} from './types/circomkit';
-import {randomBytes} from 'crypto';
-import {CircomWasmTester} from './types/circomTester';
-import WitnessTester from './testers/witnessTester';
-import ProofTester from './testers/proofTester';
+  CircomWasmTester,
+} from './types/';
+import {WitnessTester, ProofTester} from './testers/';
 import {prettyStringify, primeToName} from './utils';
 import {defaultConfig, colors, CURVES, PROTOCOLS} from './utils/config';
-import {exec} from 'child_process';
 
 /**
  * Circomkit is an opinionated wrapper around many SnarkJS functions.
@@ -576,11 +577,11 @@ export class Circomkit {
   /** Compiles the circuit and returns a witness tester instance. */
   async WitnessTester<IN extends string[] = [], OUT extends string[] = []>(
     circuit: string,
-    config: CircuitConfig & {recompile?: boolean}
+    circuitConfig: CircuitConfig & {recompile?: boolean}
   ) {
-    config.dir ||= 'test'; // defaults to test directory
+    circuitConfig.dir ||= 'test'; // defaults to test directory
 
-    const targetPath = this.instantiate(circuit, config);
+    const targetPath = this.instantiate(circuit, circuitConfig);
     const circomWasmTester: CircomWasmTester = await wasm_tester(targetPath, {
       output: undefined, // this makes tests to be created under /tmp
       prime: this.config.prime,
@@ -590,7 +591,7 @@ export class Circomkit {
       include: this.config.include,
       wasm: true,
       sym: true,
-      recompile: config.recompile ?? true,
+      recompile: circuitConfig.recompile ?? true,
     });
 
     return new WitnessTester<IN, OUT>(circomWasmTester);

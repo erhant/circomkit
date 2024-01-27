@@ -1,12 +1,11 @@
 const snarkjs = require('snarkjs');
 import {expect} from 'chai';
 import {readFileSync} from 'fs';
-import type {CircuitSignals} from '../types/circuit';
-import type {CircomkitConfig} from '../types/circomkit';
+import type {CircuitSignals, CircomkitConfig} from '../types/';
 
 /** A tester that is able to generate proofs & verify them.
  * Use `expectFail` and `expectPass` to test out evaluations. */
-export default class ProofTester<IN extends string[] = []> {
+export class ProofTester<IN extends string[] = []> {
   public readonly protocol: CircomkitConfig['protocol'];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public readonly verificationKey: any;

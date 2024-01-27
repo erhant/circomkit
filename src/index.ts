@@ -1,7 +1,6 @@
-import {Circomkit} from './circomkit';
-import ProofTester from './testers/proofTester';
-import WitnessTester from './testers/witnessTester';
+export {Circomkit} from './circomkit';
 
-export {Circomkit, ProofTester, WitnessTester};
+// TODO: make these type exports only on next minor version
+export {ProofTester, WitnessTester} from './testers/';
 export type {CircuitSignals, CircuitConfig} from './types/circuit';
 export type {CircomkitConfig} from './types/circomkit';

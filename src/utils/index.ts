@@ -1,5 +1,4 @@
-import type {CircomkitConfig} from '../types/circomkit';
-import type {CircuitConfig} from '../types/circuit';
+import type {CircomkitConfig, CircuitConfig} from '../types/';
 
 /** A mapping from prime names to prime value as supported by Circom's `-p` option. */
 export const primes: Record<CircomkitConfig['prime'], bigint> = {

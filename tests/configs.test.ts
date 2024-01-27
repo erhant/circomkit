@@ -68,20 +68,20 @@ describe('configuring the C witness generator', () => {
   });
 });
 
-const cases = [
-  {
-    file: 'fibonacci/vanilla',
-    circuit: 'fibo_vanilla',
-    input: 'vanilla',
-  },
-  {
-    file: 'fibonacci/recursive',
-    circuit: 'fibo_recursive',
-    input: 'recursive',
-  },
-] as const;
-
 describe('compiling under different directories', () => {
+  const cases = [
+    {
+      file: 'fibonacci/vanilla',
+      circuit: 'fibo_vanilla',
+      input: 'vanilla',
+    },
+    {
+      file: 'fibonacci/recursive',
+      circuit: 'fibo_recursive',
+      input: 'recursive',
+    },
+  ] as const;
+
   forEach(cases).describe('circomkit with explicit config & input (%(circuit)s)', testcase => {
     let circomkit: Circomkit;
 

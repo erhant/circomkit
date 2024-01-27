@@ -1,3 +1,4 @@
+import {expect} from 'chai';
 import {Circomkit, ProofTester} from '../src';
 import {PTAU_PATH, prepareMultiplier} from './common';
 
@@ -22,6 +23,7 @@ describe('proof tester', () => {
   it('should verify a proof correctly', async () => {
     const {proof, publicSignals} = await circuit.prove(input);
     await circuit.expectPass(proof, publicSignals);
+    expect(await circuit.verify(proof, publicSignals)).to.be.true;
   });
 
   it('should NOT verify a proof with invalid public signals', async () => {

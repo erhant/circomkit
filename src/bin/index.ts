@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import {existsSync, readFileSync, writeFileSync} from 'fs';
 import {Circomkit} from '../circomkit';
-import {usageString} from '../utils';
-import {prettyStringify} from '../utils';
+import {prettyStringify, usageString} from '../utils';
 import {exec} from 'child_process';
 
 const CONFIG_PATH = './circomkit.json';
@@ -10,11 +9,7 @@ const DEFAULT_INPUT = 'default';
 
 async function cli(): Promise<number> {
   // read user configs & override if there are any
-  let config = {};
-  if (existsSync(CONFIG_PATH)) {
-    config = JSON.parse(readFileSync(CONFIG_PATH, 'utf-8'));
-  }
-  const circomkit = new Circomkit(config);
+  const circomkit = new Circomkit(existsSync(CONFIG_PATH) ? JSON.parse(readFileSync(CONFIG_PATH, 'utf-8')) : {});
 
   // smol utility function to print pretty titles in the same format
   const titleLog = (title: string) => circomkit.log(`===| ${title} |===`, 'title');
