@@ -70,7 +70,9 @@ npx circomkit vkey <circuit> [pkey-path]
 npx circomkit ptau <circuit>
 ```
 
-Circuit-specific setup & verification key generation optionally takes the path to a PTAU file as argument. If not provided, it will automatically decide the PTAU to use with respect to constraint count, and download it for you! This feature only works for `bn128` prime.
+> [!NOTE]
+>
+> Circuit-specific setup optionally takes the path to a PTAU file as argument. If not provided, it will automatically decide the PTAU to use with respect to constraint count, and download that for you! This feature only works for `bn128` prime, and has an upper-limit of at most $2^{28}$ constraints.
 
 Some actions such as generating a witness, generating a proof and verifying a proof require JSON inputs to provide the signal values. For that, we specifically create our input files under the `inputs` folder, and under the target circuit name there. For example, an input named `foo` for some circuit named `bar` would be at `inputs/bar/foo.json`.
 
