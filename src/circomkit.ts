@@ -185,7 +185,7 @@ export class Circomkit {
       labels: r1csinfo.nLabels,
       outputs: r1csinfo.nOutputs,
       prime: r1csinfo.prime,
-      primeName: primeToName[r1csinfo.prime.toString(10) as `${number}`],
+      primeName: primeToName[r1csinfo.prime.toString(10) as `${bigint}`],
     };
   }
 
@@ -520,6 +520,9 @@ export class Circomkit {
    */
   input(circuit: string, input: string, data: CircuitSignals): string {
     const inputPath = this.pathWithInput(circuit, input, 'in');
+    if (existsSync(inputPath)) {
+      this.log('Input file exists already, overwriting it.', 'warn');
+    }
     writeFileSync(inputPath, prettyStringify(data));
     return inputPath;
   }
@@ -571,8 +574,11 @@ export class Circomkit {
   }
 
   /** Compiles the circuit and returns a witness tester instance. */
-  async WitnessTester<IN extends string[] = [], OUT extends string[] = []>(circuit: string, config: CircuitConfig) {
-    config.dir ||= 'test'; // default to test directory
+  async WitnessTester<IN extends string[] = [], OUT extends string[] = []>(
+    circuit: string,
+    config: CircuitConfig & {recompile?: boolean}
+  ) {
+    config.dir ||= 'test'; // defaults to test directory
 
     const targetPath = this.instantiate(circuit, config);
     const circomWasmTester: CircomWasmTester = await wasm_tester(targetPath, {
@@ -584,7 +590,7 @@ export class Circomkit {
       include: this.config.include,
       wasm: true,
       sym: true,
-      recompile: true, // TODO: take this as an option
+      recompile: config.recompile ?? true,
     });
 
     return new WitnessTester<IN, OUT>(circomWasmTester);

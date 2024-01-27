@@ -25,7 +25,7 @@ export default class ProofTester<IN extends string[] = []> {
     proof: object;
     publicSignals: string[];
   }> {
-    return await snarkjs[this.protocol].fullProve(input, this.wasmPath, this.pkeyPath);
+    return await snarkjs[this.protocol].fullProve(input, this.wasmPath, this.pkeyPath, undefined);
   }
 
   /** Returns the verification result of a proof for some public signals. */
