@@ -64,7 +64,7 @@ npx circomkit clean <circuit>
 npx circomkit setup <circuit> [ptau-path]
 
 # Create verification key
-npx circomkit vkey <circuit> [ptau-path]
+npx circomkit vkey <circuit> [pkey-path]
 
 # Automatically download PTAU (for BN128)
 npx circomkit ptau <circuit>
