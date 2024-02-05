@@ -1,4 +1,6 @@
 {
   "version": "2.1.4",
-  "verbose": true
+  "verbose": true,
+  "prime": "bn128",
+  "protocol": "groth16"
 }

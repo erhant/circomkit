@@ -1,10 +1,18 @@
 import type {LogLevelDesc} from 'loglevel';
 
+/**
+ * Primes supported by Circom, as described for the `-p` option.
+ * @see https://github.com/iden3/circom/blob/master/program_structure/src/utils/constants.rs
+ */
+export type CircomkitPrimes = 'bn128' | 'bls12381' | 'goldilocks' | 'grumpkin' | 'pallas' | 'vesta' | 'secq256r1';
+
+export type CircomkitProtocol = 'groth16' | 'plonk' | 'fflonk';
+
 export type CircomkitConfig = {
   /** Protocol to be used. */
-  protocol: 'groth16' | 'plonk' | 'fflonk';
+  protocol: CircomkitProtocol;
   /** Underlying prime field. */
-  prime: 'bn128' | 'bls12381' | 'goldilocks';
+  prime: CircomkitPrimes;
   /** Circuit configurations path. */
   circuits: string;
   /** Directory to read circuits from. */
@@ -39,6 +47,8 @@ export type CircomkitConfig = {
   logLevel: LogLevelDesc;
   /** Whether to generate the C witness calculator. */
   cWitness: boolean;
+  /** Whether to print Solidity copy-pasteable calldata. */
+  prettyCalldata: false;
 };
 
 /** Shorthand notations for which path to build in Circomkit. These paths require a circuit name. */
