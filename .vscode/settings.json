@@ -11,6 +11,9 @@
   // https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/images/fileIcons.png
   "material-icon-theme.files.associations": {
     "*.circom": "Verilog",
-    "*.wtns": "Authors"
+    "*.wtns": "Authors",
+    "*.zkey": "Lock",
+    "*.r1cs": "Diff",
+    "*.sym": "Edge"
   }
 }

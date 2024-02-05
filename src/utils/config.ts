@@ -2,7 +2,7 @@ import type {LogLevelNames} from 'loglevel';
 import type {CircomkitConfig} from '../types/';
 
 export const PROTOCOLS = ['groth16', 'plonk', 'fflonk'] as const;
-export const CURVES = ['bn128', 'bls12381', 'goldilocks'] as const;
+export const PRIMES = ['bn128', 'bls12381', 'goldilocks', 'grumpkin', 'pallas', 'vesta', 'secq256r1'] as const;
 
 /** Default configurations */
 export const defaultConfig: Readonly<CircomkitConfig> = Object.seal({
@@ -24,6 +24,8 @@ export const defaultConfig: Readonly<CircomkitConfig> = Object.seal({
   // groth16 phase-2 settings
   groth16numContributions: 1,
   groth16askForEntropy: false,
+  // solidity & calldata
+  prettyCalldata: false,
   // logger
   logLevel: 'INFO',
   verbose: true,
