@@ -20,6 +20,7 @@ import type {
 import {WitnessTester, ProofTester} from './testers/';
 import {prettyStringify, primeToName} from './utils';
 import {defaultConfig, colors, PRIMES, PROTOCOLS} from './utils/config';
+import {getCalldata} from './utils/calldata';
 
 /**
  * Circomkit is an opinionated wrapper around many SnarkJS functions.
@@ -293,19 +294,13 @@ export class Circomkit {
    * @returns calldata
    */
   async calldata(circuit: string, input: string): Promise<string> {
-    // fflonk gives error (tested at snarkjs v0.7.0)
-    if (this.config.protocol === 'fflonk') {
-      throw new Error('Exporting calldata is not supported for fflonk yet.');
-    }
-
     const pubs: snarkjs.PublicSignals = JSON.parse(await readFile(this.pathWithInput(circuit, input, 'pubs'), 'utf-8'));
     const proof: snarkjs.Groth16Proof & snarkjs.PlonkProof & snarkjs.FflonkProof = JSON.parse(
       await readFile(this.pathWithInput(circuit, input, 'proof'), 'utf-8')
     );
-    // TODO: we can write this ourselves by simply parsing the proof object, now that we know its type!
-    // this way, we may be able to fix the calldata issue as well for fflonk
-    const res = await snarkjs[this.config.protocol].exportSolidityCallData(proof, pubs);
-    // prettyCalldata(this.config.protocol, res);
+
+    // const res = await snarkjs[this.config.protocol].exportSolidityCallData(proof as any, pubs as any);
+    const res = getCalldata(proof, pubs, this.config.prettyCalldata);
     return res;
   }
 

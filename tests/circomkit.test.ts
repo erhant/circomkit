@@ -83,16 +83,7 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
   });
 
   it('should export contract calldata', async () => {
-    try {
-      await circomkit.calldata(circuit.name, inputName);
-
-      // fflonk should fail for `calldata`
-      if (protocol === 'fflonk') {
-        throw new Error('Should have thrown an error before this.');
-      }
-    } catch (err) {
-      expect((err as Error).message).to.eq('Exporting calldata is not supported for fflonk yet.');
-    }
+    await circomkit.calldata(circuit.name, inputName);
   });
 
   it('should export JSON files', async () => {
