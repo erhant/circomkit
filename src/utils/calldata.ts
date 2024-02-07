@@ -2,14 +2,24 @@
 
 import type {FflonkProof, Groth16Proof, PlonkProof, PublicSignals} from 'snarkjs';
 
+/** Makes each value 32-bytes long hexadecimal. Does not check for overflows! */
 function valuesToPaddedUint256s(vals: string[]) {
   return vals.map(val => '0x' + BigInt(val).toString(16).padStart(64, '0'));
 }
 
+/** Wraps a string with double quotes. */
 function withQuotes(vals: string[]) {
   return vals.map(val => `"${val}"`);
 }
 
+/**
+ * Returns a calldata for the given proof & public signals, with regards to a Solidity verifier contract.
+ *
+ * @param proof a SnarkJS proof, the protocol is derived from `protocol` field within the proof.
+ * @param pubs public signals
+ * @param pretty whether to print Solidity compatible output
+ * @returns calldata as a string
+ */
 export function getCalldata(
   proof: FflonkProof & Groth16Proof & PlonkProof,
   pubs: PublicSignals,

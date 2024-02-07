@@ -3,6 +3,5 @@
   "verbose": true,
   "prime": "bn128",
   "optimization": 1,
-  "prettyCalldata": true,
   "protocol": "groth16"
 }
