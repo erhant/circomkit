@@ -37,7 +37,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
   /** Compute witness given the input signals. */
   async calculateWitness(input: CircuitSignals<IN>): Promise<WitnessType> {
-    return this.circomWasmTester.calculateWitness(input, true);
+    return this.circomWasmTester.calculateWitness(input, false);
   }
 
   /** Returns the number of constraints. */
@@ -72,8 +72,18 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     await this.calculateWitness(input).then(
       () => assert.fail('Expected witness calculation to fail.'),
       err => {
-        // console.log(err.message);
-        expect(err.message.startsWith('Error: Assert Failed.')).to.be.true;
+        const isExpectedError = [
+          'Error: Assert Failed.', // a constraint failure (most common)
+          'Not enough values for input signal', // few inputs than expected for a signal
+          'Too many values for input signal', // more inputs than expected for a signal
+        ].some(msg => (err as Error).message.startsWith(msg));
+        if (isExpectedError) {
+          // we expected this failure, register it as an expect call
+          expect(isExpectedError).to.be.true;
+        } else {
+          // we did not expect this failure, throw it anyways
+          throw err;
+        }
       }
     );
   }
