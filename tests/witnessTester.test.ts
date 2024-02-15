@@ -7,7 +7,7 @@ describe('witness tester', () => {
   const {
     circuit: {name, config, size, exact},
     signals,
-  } = prepareMultiplier(10);
+  } = prepareMultiplier(4);
 
   before(async () => {
     const circomkit = new Circomkit({verbose: false, logLevel: 'silent'});
@@ -16,13 +16,25 @@ describe('witness tester', () => {
 
   it('should have correct number of constraints', async () => {
     await circuit.expectConstraintCount(size!, exact);
+
+    // should also work for non-exact too, where we expect at least some amount
+    await circuit.expectConstraintCount(size!);
+    await circuit.expectConstraintCount(size! - 1);
   });
 
   it('should assert correctly', async () => {
     await circuit.expectPass(signals.input, signals.output);
   });
 
-  it('should fail for bad inupt', async () => {
+  it('should fail for fewer inputs than expected', async () => {
+    await circuit.expectFail({in: signals.input.in.slice(1)});
+  });
+
+  it('should fail for more inputs than expected', async () => {
+    await circuit.expectFail({in: [0, ...signals.input.in]});
+  });
+
+  it('should fail for bad witness', async () => {
     await circuit.expectFail(signals.badInput);
   });
 

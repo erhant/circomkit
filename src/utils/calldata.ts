@@ -1,5 +1,3 @@
-// import {CircomkitProtocol} from '../types';
-
 import type {FflonkProof, Groth16Proof, PlonkProof, PublicSignals} from 'snarkjs';
 
 /** Makes each value 32-bytes long hexadecimal. Does not check for overflows! */
@@ -103,7 +101,7 @@ function groth16Calldata(proof: Groth16Proof, pretty: boolean) {
 
   if (pretty) {
     return [
-      `uint[2] pA = [${pA.join(', ')}]`,
+      `uint[2] pA = [${pA.join(', ')}];`,
       `uint[2][2] pB = [[${pB0.join(', ')}], [${pB1.join(', ')}]];`,
       `uint[2] pC = [${pC.join(', ')}];`,
     ].join('\n');
