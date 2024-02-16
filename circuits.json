@@ -4,9 +4,9 @@
     "template": "Multiplier",
     "params": [3]
   },
-  "someArrays_2_3": {
-    "file": "someArrays",
-    "template": "SomeArrays",
+  "arrays_2_3": {
+    "file": "arrays",
+    "template": "Arrays",
     "params": [2, 3],
     "pubs": ["in1D", "in2D"]
   }

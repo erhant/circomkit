@@ -67,7 +67,12 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     }
   }
 
-  /** Expect an input to fail an assertion in the circuit. */
+  /** Expect a witness computation to fail in the circuit.
+   *
+   * See [here](https://github.com/iden3/circom/blob/master/code_producers/src/wasm_elements/common/witness_calculator.js#L21)
+   * for the list of errors that may occur during witness calculation.
+   * Most of the time, you will be expecting an assertion error.
+   */
   async expectFail(input: CircuitSignals<IN>) {
     await this.calculateWitness(input).then(
       () => assert.fail('Expected witness calculation to fail.'),

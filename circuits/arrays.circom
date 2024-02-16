@@ -1,6 +1,6 @@
 pragma circom 2.0.0;
 
-template SomeArrays(N, M) {
+template Arrays(N, M) {
   signal input in; 
   signal input in1D[N]; 
   signal input in2D[N][M]; 
