@@ -45,7 +45,7 @@ export function getCalldata(
 function publicSignalsCalldata(pubs: PublicSignals, pretty: boolean): string {
   const pubs256 = valuesToPaddedUint256s(pubs);
   if (pretty) {
-    return `uint[${pubs.length}] pubs = [\n    ${pubs256.join(',\n    ')}\n];`;
+    return `uint[${pubs.length}] memory pubs = [\n    ${pubs256.join(',\n    ')}\n];`;
   } else {
     return `[${pubs256.map(s => `"${s}"`).join(',')}]`;
   }
@@ -67,7 +67,7 @@ function fflonkCalldata(proof: FflonkProof, pretty: boolean): string {
   ]);
 
   if (pretty) {
-    return `uint256[24] proof = [\n    ${vals.join(',\n    ')}\n];`;
+    return `uint256[24] memory proof = [\n    ${vals.join(',\n    ')}\n];`;
   } else {
     return `[${withQuotes(vals).join(',')}]`;
   }
@@ -87,7 +87,7 @@ function plonkCalldata(proof: PlonkProof, pretty: boolean = false) {
   ]);
 
   if (pretty) {
-    return `uint[24] proof = [\n    ${vals.join(',\n    ')}\n];`;
+    return `uint[24] memory proof = [\n    ${vals.join(',\n    ')}\n];`;
   } else {
     return `[${withQuotes(vals).join(',')}]`;
   }
@@ -95,15 +95,18 @@ function plonkCalldata(proof: PlonkProof, pretty: boolean = false) {
 
 function groth16Calldata(proof: Groth16Proof, pretty: boolean) {
   const pA = valuesToPaddedUint256s([proof.pi_a[0], proof.pi_a[1]]);
-  const pB0 = valuesToPaddedUint256s([proof.pi_b[0][1], proof.pi_b[0][1]]);
-  const pB1 = valuesToPaddedUint256s([proof.pi_b[1][1], proof.pi_b[1][1]]);
   const pC = valuesToPaddedUint256s([proof.pi_c[0], proof.pi_c[1]]);
 
+  // note that pB are reversed, notice the indexing is [1] and [0] instead of [0] and [1].
+  const pB0 = valuesToPaddedUint256s([proof.pi_b[0][1], proof.pi_b[0][0]]);
+  const pB1 = valuesToPaddedUint256s([proof.pi_b[1][1], proof.pi_b[1][0]]);
+
   if (pretty) {
+    // the eternal struggle between "should i use a template literal" or "join with \n"
     return [
-      `uint[2] pA = [${pA.join(', ')}];`,
-      `uint[2][2] pB = [[${pB0.join(', ')}], [${pB1.join(', ')}]];`,
-      `uint[2] pC = [${pC.join(', ')}];`,
+      `uint[2] memory pA = [\n  ${pA.join(',\n  ')}\n];`,
+      `uint[2][2] memory pB = [\n  [\n    ${pB0.join(',\n    ')}\n  ],\n  [\n    ${pB1.join(',\n    ')}\n  ]\n];`,
+      `uint[2] memory pC = [\n  ${pC.join(',\n  ')}\n];`,
     ].join('\n');
   } else {
     return [
