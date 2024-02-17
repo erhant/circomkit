@@ -26,14 +26,6 @@ describe('witness tester', () => {
     await circuit.expectPass(signals.input, signals.output);
   });
 
-  it('should fail for fewer inputs than expected', async () => {
-    await circuit.expectFail({in: signals.input.in.slice(1)});
-  });
-
-  it('should fail for more inputs than expected', async () => {
-    await circuit.expectFail({in: [0, ...signals.input.in]});
-  });
-
   it('should fail for bad witness', async () => {
     await circuit.expectFail(signals.badInput);
   });

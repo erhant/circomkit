@@ -576,7 +576,7 @@ export class Circomkit {
     circuit: string,
     circuitConfig: CircuitConfig & {recompile?: boolean}
   ) {
-    circuitConfig.dir ||= 'test'; // defaults to test directory
+    circuitConfig.dir ??= 'test'; // defaults to test directory
 
     const targetPath = this.instantiate(circuit, circuitConfig);
     const circomWasmTester: CircomWasmTester = await wasm_tester(targetPath, {
