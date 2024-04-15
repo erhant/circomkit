@@ -35,6 +35,15 @@
     "format": "npx prettier --check ./src/**/*.ts ./tests/**/*.ts"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@nomicfoundation/hardhat-ignition": "^0.15.0",
+    "@nomicfoundation/hardhat-ignition-ethers": "^0.15.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.0",
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.0.0",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "^9.0.0",
     "@types/chai": "^4.3.4",
     "@types/mocha": "^10.0.1",
     "@types/mocha-each": "^2.0.0",
@@ -46,11 +55,17 @@
     "eslint-config-prettier": "^9.0.0",
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-prettier": "^5.0.1",
+    "ethers": "^6.4.0",
+    "hardhat": "^2.14.0",
+    "hardhat-gas-reporter": "^1.0.8",
     "mocha": "^10.2.0",
     "mocha-each": "^2.0.1",
     "prettier": "^3.1.0",
     "rimraf": "^5.0.1",
+    "solc": "^0.8.25",
+    "solidity-coverage": "^0.8.0",
     "ts-node": "^10.9.1",
+    "typechain": "^8.3.0",
     "typescript": "^5.3.2"
   },
   "dependencies": {

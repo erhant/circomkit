@@ -59,6 +59,7 @@ function fflonkCalldata(proof: FflonkProof, pretty: boolean): string {
     proof.polynomials.W1[0], proof.polynomials.W1[1],
     proof.polynomials.W2[0], proof.polynomials.W2[1],
     proof.evaluations.ql, proof.evaluations.qr, proof.evaluations.qm,
+    proof.evaluations.qo, proof.evaluations.qc,
     proof.evaluations.s1, proof.evaluations.s2, proof.evaluations.s3,
     proof.evaluations.a, proof.evaluations.b, proof.evaluations.c,
     proof.evaluations.z, proof.evaluations.zw,

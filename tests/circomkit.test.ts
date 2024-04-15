@@ -1,8 +1,12 @@
 import forEach from 'mocha-each';
+//@ts-ignore
+import { ethers } from "hardhat";
+//@ts-ignore
+import solc from "solc";
 import {PROTOCOLS} from '../src/utils/config';
 import {Circomkit} from '../src';
 import {expect} from 'chai';
-import {existsSync, rmSync} from 'fs';
+import {existsSync, rmSync, readFileSync} from 'fs';
 import {PTAU_PATH, prepareMultiplier} from './common';
 
 // we are not testing all curves because PTAU is only available for bn128
@@ -77,13 +81,46 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
     expect(isVerified).to.be.true;
   });
 
-  it('should export verifier contract', async () => {
+  it('should export verifier contract and valid calldata', async () => {
     const path = await circomkit.contract(circuit.name);
     expect(existsSync(path)).to.be.true;
-  });
+    const source = readFileSync(path, {encoding: 'utf-8'})
+      // XXX: snarkjs plonk template has an erroneous hardhat import
+      //      See https://github.com/iden3/snarkjs/pull/464
+      .replace('import "hardhat/console.sol";\n', '');
 
-  it('should export contract calldata', async () => {
-    await circomkit.calldata(circuit.name, inputName);
+    // Compile the contract
+    const input = {
+      language: 'Solidity',
+      sources: {
+        'TestVerifier.sol': {
+          content: source
+        }
+      },
+      settings: {
+        outputSelection: {
+          '*': {
+            '*': ['abi', 'evm.bytecode.object']
+          }
+        }
+      }
+    };
+
+    const output = JSON.parse(solc.compile(JSON.stringify(input)));
+    const contractName = Object.keys(output.contracts['TestVerifier.sol'])[0];
+    const bytecode = output.contracts['TestVerifier.sol'][contractName].evm.bytecode.object;
+    const abi = output.contracts['TestVerifier.sol'][contractName].abi;
+
+    // Deploy the contract using ethers
+    const ContractFactory = new ethers.ContractFactory(abi, bytecode, (await ethers.getSigners())[0]);
+    const contract = await ContractFactory.deploy();
+    await contract.waitForDeployment();
+
+    // Interaction with the contract
+    const calldata = await circomkit.calldata(circuit.name, inputName);
+    const args = calldata.split('\n').filter(x=>!!x).map(x=>JSON.parse(x));
+    //@ts-ignore
+    expect(await contract.verifyProof(...args)).to.equal(true);
   });
 
   it('should export JSON files', async () => {
