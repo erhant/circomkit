@@ -67,7 +67,17 @@ export class Circomkit {
       throw new Error('Invalid protocol in configuration.');
     }
     if (this.config.optimization < 0) {
+      this.log('Optimization level must be at least 0, setting it to 0.', 'warn');
       this.config.optimization = 0;
+    }
+
+    // PLONK protocol requires optimization level to be 1
+    if (this.config.protocol === 'plonk' && this.config.optimization !== 1) {
+      this.log(
+        'Optimization level for PLONK must be 1.\nSee: https://docs.circom.io/circom-language/circom-insight/simplification/',
+        'warn'
+      );
+      this.config.optimization = 1;
     }
   }
 

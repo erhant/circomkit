@@ -1,8 +1,10 @@
 import forEach from 'mocha-each';
-//@ts-ignore
-import { ethers } from "hardhat";
-//@ts-ignore
-import solc from "solc";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import {ethers} from 'hardhat';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import solc from 'solc';
 import {PROTOCOLS} from '../src/utils/config';
 import {Circomkit} from '../src';
 import {expect} from 'chai';
@@ -87,23 +89,24 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
     const source = readFileSync(path, {encoding: 'utf-8'})
       // XXX: snarkjs plonk template has an erroneous hardhat import
       //      See https://github.com/iden3/snarkjs/pull/464
+      //      TODO: Remove this fix when the PR is merged
       .replace('import "hardhat/console.sol";\n', '');
 
-    // Compile the contract
+    // compile the contract
     const input = {
       language: 'Solidity',
       sources: {
         'TestVerifier.sol': {
-          content: source
-        }
+          content: source,
+        },
       },
       settings: {
         outputSelection: {
           '*': {
-            '*': ['abi', 'evm.bytecode.object']
-          }
-        }
-      }
+            '*': ['abi', 'evm.bytecode.object'],
+          },
+        },
+      },
     };
 
     const output = JSON.parse(solc.compile(JSON.stringify(input)));
@@ -111,15 +114,18 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
     const bytecode = output.contracts['TestVerifier.sol'][contractName].evm.bytecode.object;
     const abi = output.contracts['TestVerifier.sol'][contractName].abi;
 
-    // Deploy the contract using ethers
+    // deploy the contract using ethers
     const ContractFactory = new ethers.ContractFactory(abi, bytecode, (await ethers.getSigners())[0]);
     const contract = await ContractFactory.deploy();
     await contract.waitForDeployment();
 
-    // Interaction with the contract
+    // interaction with the contract
     const calldata = await circomkit.calldata(circuit.name, inputName);
-    const args = calldata.split('\n').filter(x=>!!x).map(x=>JSON.parse(x));
-    //@ts-ignore
+    const args = calldata
+      .split('\n')
+      .filter(x => !!x)
+      .map(x => JSON.parse(x));
+
     expect(await contract.verifyProof(...args)).to.equal(true);
   });
 
