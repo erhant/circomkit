@@ -116,3 +116,7 @@ dist
 # for init tests
 tmptest
 inputs/multiplier_3/test-input.json
+
+# Hardhat files
+/cache
+/artifacts
