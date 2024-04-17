@@ -262,7 +262,7 @@ export class Circomkit {
     // call `circom` as a sub-process
     try {
       const result = await new Promise<{stdout: string; stderr: string}>((resolve, reject) => {
-        exec(`circom ${flags} ${targetPath}`, (error, stdout, stderr) => {
+        exec(`${this.config.circomPath} ${flags} ${targetPath}`, (error, stdout, stderr) => {
           if (error === null) {
             resolve({stdout, stderr});
           } else {

@@ -23,6 +23,8 @@ export type CircomkitConfig = {
   dirPtau: string;
   /** Directory to output circuit build files. */
   dirBuild: string;
+  /** Path to circom executable */
+  circomPath: string;
   /** Number of contributions */
   groth16numContributions: number;
   /** Ask user input to create entropy */
