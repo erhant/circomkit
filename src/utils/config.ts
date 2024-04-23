@@ -16,6 +16,7 @@ export const defaultConfig: Readonly<CircomkitConfig> = Object.seal({
   dirCircuits: './circuits',
   dirInputs: './inputs',
   dirBuild: './build',
+  circomPath: 'circom',
   // compiler-specific
   optimization: 1,
   inspect: true,
