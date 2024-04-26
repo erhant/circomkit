@@ -1,7 +1,7 @@
 {
   "name": "circomkit",
-  "version": "0.0.25",
-  "description": "A Circom development environment",
+  "version": "0.1.0",
+  "description": "A Circom testing & development environment",
   "author": "erhant",
   "license": "MIT",
   "engines": {

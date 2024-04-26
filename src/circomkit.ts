@@ -92,7 +92,7 @@ export class Circomkit {
   }
 
   /** Computes a path that requires a circuit name. */
-  private path(circuit: string, type: CircuitPathBuilders): string {
+  path(circuit: string, type: CircuitPathBuilders): string {
     const dir = `${this.config.dirBuild}/${circuit}`;
     switch (type) {
       case 'dir':
@@ -117,17 +117,17 @@ export class Circomkit {
   }
 
   /** Computes a path that requires a circuit and an input name. */
-  private pathWithInput(circuit: string, input: string, type: CircuitInputPathBuilders): string {
+  pathWithInput(circuit: string, input: string, type: CircuitInputPathBuilders): string {
     const dir = `${this.config.dirBuild}/${circuit}/${input}`;
     switch (type) {
       case 'dir':
         return dir;
+      case 'wtns':
+        return `${dir}/witness.wtns`;
       case 'pubs':
         return `${dir}/public.json`;
       case 'proof':
-        return `${dir}/proof.json`;
-      case 'wtns':
-        return `${dir}/witness.wtns`;
+        return `${dir}/${this.config.protocol}_proof.json`;
       case 'in':
         return `${this.config.dirInputs}/${circuit}/${input}.json`;
       default:
@@ -136,13 +136,13 @@ export class Circomkit {
   }
 
   /** Given a PTAU name, returns the relative path. */
-  private pathPtau(ptauName: string): string {
+  pathPtau(ptauName: string): string {
     return `${this.config.dirPtau}/${ptauName}`;
   }
 
   /** Given a circuit & id name, returns the relative path of the phase-2 PTAU.
    * This is used in particular by Groth16's circuit-specific setup phase. */
-  private pathZkey(circuit: string, id: number): string {
+  pathZkey(circuit: string, id: number): string {
     return `${this.config.dirBuild}/${circuit}/${circuit}_${id}.zkey`;
   }
 
