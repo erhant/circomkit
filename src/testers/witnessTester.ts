@@ -72,23 +72,29 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * See [here](https://github.com/iden3/circom/blob/master/code_producers/src/wasm_elements/common/witness_calculator.js#L21)
    * for the list of errors that may occur during witness calculation.
    * Most of the time, you will be expecting an assertion error.
+   *
+   * @returns the error message.
    */
-  async expectFail(input: CircuitSignals<IN>) {
-    await this.calculateWitness(input).then(
+  async expectFail(input: CircuitSignals<IN>): Promise<string> {
+    return await this.calculateWitness(input).then(
       () => assert.fail('Expected witness calculation to fail.'),
       err => {
+        const errorMessage = (err as Error).message;
+
         const isExpectedError = [
           'Error: Assert Failed.', // a constraint failure (most common)
           'Not enough values for input signal', // few inputs than expected for a signal
           'Too many values for input signal', // more inputs than expected for a signal
-        ].some(msg => (err as Error).message.startsWith(msg));
-        if (isExpectedError) {
-          // we expected this failure, register it as an expect call
-          expect(isExpectedError).to.be.true;
-        } else {
-          // we did not expect this failure, throw it anyways
-          throw err;
-        }
+          'Not all inputs have been set.', // few inputs than expected for many signals
+        ].some(msg => errorMessage.startsWith(msg));
+
+        // we did not expect this failure, throw it anyways
+        if (!isExpectedError) throw err;
+
+        // we expected this failure, register it as an expect call
+        expect(isExpectedError).to.be.true;
+
+        return errorMessage;
       }
     );
   }

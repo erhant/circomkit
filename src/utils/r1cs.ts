@@ -1,7 +1,6 @@
 import {readSync, ReadPosition} from 'fs';
 
-/** Reads a specified number of bytes from a file and converts them to a BigInt.
- */
+/** Reads a specified number of bytes from a file and converts them to a `BigInt`. */
 export function readBytesFromFile(fd: number, offset: number, length: number, position: ReadPosition): BigInt {
   const buffer = Buffer.alloc(length);
 
