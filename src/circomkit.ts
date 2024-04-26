@@ -185,8 +185,10 @@ export class Circomkit {
   }
 
   /** Read the information about the circuit by extracting it from the R1CS file.
-   * This implementation follows the specs at
-   * https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md.
+   *
+   * This implementation follows the specs at [iden3/r1csfile](https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md)
+   * and is inspired from the work by [PSE's `p0tion`](https://github.com/privacy-scaling-explorations/p0tion/blob/f88bcee5d499dce975d0592ed10b21aa8d73bbd2/packages/actions/src/helpers/utils.ts#L413)
+   * and by [Weijiekoh's `circom-helper`](https://github.com/weijiekoh/circom-helper/blob/master/ts/read_num_inputs.ts#L5).
    */
   async info(circuit: string): Promise<R1CSInfoType> {
     let pointer = 0;
