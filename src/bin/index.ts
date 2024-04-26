@@ -54,12 +54,12 @@ async function cli(): Promise<number> {
       titleLog('Circuit information');
       const info = await circomkit.info(process.argv[3]);
       circomkit.log(`Prime Field: ${info.primeName}`);
-      circomkit.log(`Number of Wires: ${info.variables}`);
+      circomkit.log(`Number of Wires: ${info.wires}`);
       circomkit.log(`Number of Constraints: ${info.constraints}`);
       circomkit.log(`Number of Private Inputs: ${info.privateInputs}`);
       circomkit.log(`Number of Public Inputs: ${info.publicInputs}`);
+      circomkit.log(`Number of Public Outputs: ${info.publicOutputs}`);
       circomkit.log(`Number of Labels: ${info.labels}`);
-      circomkit.log(`Number of Outputs: ${info.outputs}`);
       break;
     }
 
