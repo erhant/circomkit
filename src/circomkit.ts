@@ -1,6 +1,6 @@
 import * as snarkjs from 'snarkjs';
 const wasm_tester = require('circom_tester').wasm;
-import {writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, renameSync} from 'fs';
+import {writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, renameSync, openSync} from 'fs';
 import {readFile, rm, writeFile} from 'fs/promises';
 import {randomBytes} from 'crypto';
 import {Logger, getLogger} from 'loglevel';
@@ -21,6 +21,7 @@ import {WitnessTester, ProofTester} from './testers/';
 import {prettyStringify, primeToName} from './utils';
 import {defaultConfig, colors, PRIMES, PROTOCOLS} from './utils/config';
 import {getCalldata} from './utils/calldata';
+import {readBytesFromFile} from './utils/r1cs';
 
 /**
  * Circomkit is an opinionated wrapper around many SnarkJS functions.
@@ -183,22 +184,80 @@ export class Circomkit {
     return vkeyPath;
   }
 
-  /** Information about circuit. */
+  /** Read the information about the circuit by extracting it from the R1CS file.
+   * This implementation follows the specs at
+   * https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md.
+   */
   async info(circuit: string): Promise<R1CSInfoType> {
-    // we do not pass `this.snarkjsLogger` here on purpose
-    const r1csinfo = await snarkjs.r1cs.info(this.path(circuit, 'r1cs'), undefined);
+    let pointer = 0;
 
-    return {
-      variables: r1csinfo.nVars,
-      constraints: r1csinfo.nConstraints,
-      privateInputs: r1csinfo.nPrvInputs,
-      publicInputs: r1csinfo.nPubInputs,
-      useCustomGates: r1csinfo.useCustomGates,
-      labels: r1csinfo.nLabels,
-      outputs: r1csinfo.nOutputs,
-      prime: r1csinfo.prime,
-      primeName: primeToName[r1csinfo.prime.toString(10) as `${bigint}`],
+    const r1csInfoType: R1CSInfoType = {
+      wires: 0,
+      constraints: 0,
+      privateInputs: 0,
+      publicInputs: 0,
+      publicOutputs: 0,
+      useCustomGates: false,
+      labels: 0,
+      prime: BigInt(0),
+      primeName: '',
     };
+
+    // Open the file (read mode).
+    const fd = openSync(this.path(circuit, 'r1cs'), 'r');
+
+    // Get 'number of section' (jump magic r1cs and version1 data).
+    const numberOfSections = readBytesFromFile(fd, 0, 4, 8);
+    pointer = 12;
+
+    for (let i = Number(numberOfSections); i >= 0; i--) {
+      const sectionType = Number(readBytesFromFile(fd, 0, 4, pointer));
+      pointer += 4;
+
+      const sectionSize = Number(readBytesFromFile(fd, 0, 8, pointer));
+      pointer += 8;
+
+      switch (sectionType) {
+        // Header section.
+        case 1:
+          // Field size (skip).
+          pointer += 4;
+
+          r1csInfoType.prime = readBytesFromFile(fd, 0, 32, pointer).toString() as unknown as bigint;
+          pointer += 32;
+
+          r1csInfoType.wires = Number(readBytesFromFile(fd, 0, 4, pointer));
+          pointer += 4;
+
+          r1csInfoType.publicOutputs = Number(readBytesFromFile(fd, 0, 4, pointer));
+          pointer += 4;
+
+          r1csInfoType.publicInputs = Number(readBytesFromFile(fd, 0, 4, pointer));
+          pointer += 4;
+
+          r1csInfoType.privateInputs = Number(readBytesFromFile(fd, 0, 4, pointer));
+          pointer += 4;
+
+          r1csInfoType.labels = Number(readBytesFromFile(fd, 0, 8, pointer));
+          pointer += 8;
+
+          r1csInfoType.constraints = Number(readBytesFromFile(fd, 0, 4, pointer));
+          pointer += 4;
+          break;
+        // Custom gates list section (plonk only).
+        case 4:
+          r1csInfoType.useCustomGates = Number(readBytesFromFile(fd, 0, 4, pointer)) > 0 ? true : false;
+
+          pointer += Number(sectionSize);
+          break;
+        default:
+          pointer += Number(sectionSize);
+          break;
+      }
+    }
+
+    r1csInfoType.primeName = primeToName[r1csInfoType.prime.toString() as `${bigint}`];
+    return r1csInfoType;
   }
 
   /** Downloads the phase-1 setup PTAU file for a circuit based on it's number of constraints.
