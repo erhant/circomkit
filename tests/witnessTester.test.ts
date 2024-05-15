@@ -10,7 +10,15 @@ describe('witness tester', () => {
   } = prepareMultiplier(4);
 
   before(async () => {
-    const circomkit = new Circomkit({verbose: false, logLevel: 'silent'});
+    const circomkit = new Circomkit({
+      verbose: false,
+      logLevel: 'silent',
+      circuits: './tests/circuits.json',
+      dirPtau: './tests/ptau',
+      dirCircuits: './tests/circuits',
+      dirInputs: './tests/inputs',
+      dirBuild: './tests/build',
+    });
     circuit = await circomkit.WitnessTester(name, config);
   });
 

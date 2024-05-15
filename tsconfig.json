@@ -18,5 +18,5 @@
     "target": "ES2020"
   },
   "include": ["src/types/**/*.*", "src/**/*.*", "tests/**/*.ts"],
-  "exclude": ["node_modules", "build", "dist", "ptau"]
+  "exclude": ["node_modules", "tests/build", "dist", "ptau"]
 }

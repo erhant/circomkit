@@ -23,7 +23,7 @@ describe('overriding configurations', () => {
 
 describe('circomkit with custom circuits dir', () => {
   let circomkit: Circomkit;
-  const dirCircuits = './circuits/fibonacci';
+  const dirCircuits = './tests/circuits/fibonacci';
   const testcase = {file: 'vanilla', circuit: 'fibo_vanilla', input: 'vanilla'};
 
   before(() => {
@@ -31,6 +31,10 @@ describe('circomkit with custom circuits dir', () => {
       protocol: 'groth16',
       verbose: false,
       logLevel: 'silent',
+      circuits: './tests/circuits.json',
+      dirPtau: './tests/ptau',
+      dirInputs: './tests/inputs',
+      dirBuild: './tests/build',
       dirCircuits,
     });
   });
@@ -48,7 +52,15 @@ describe('circomkit with custom circuits dir', () => {
 });
 
 describe('configuring the C witness generator', () => {
-  const CONFIG = {verbose: false, logLevel: 'silent'} as const;
+  const CONFIG = {
+    verbose: false,
+    logLevel: 'silent',
+    dirPtau: './tests/ptau',
+    dirInputs: './tests/inputs',
+    dirBuild: './tests/build',
+    dirCircuits: './tests/circuits',
+    circuits: './tests/circuits.json',
+  } as const;
   const CIRCUIT_NAME = 'multiplier_3';
 
   it('should not generate the C witness calculators by default', async () => {
@@ -90,6 +102,11 @@ describe('compiling under different directories', () => {
         protocol: 'groth16',
         verbose: false,
         logLevel: 'silent',
+        circuits: './tests/circuits.json',
+        dirPtau: './tests/ptau',
+        dirCircuits: './tests/circuits',
+        dirInputs: './tests/inputs',
+        dirBuild: './tests/build',
       });
     });
 

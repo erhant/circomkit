@@ -3,5 +3,10 @@
   "verbose": true,
   "prime": "bn128",
   "optimization": 1,
-  "protocol": "groth16"
+  "protocol": "groth16",
+  "circuits": "./tests/circuits.json",
+  "dirPtau": "./tests/ptau",
+  "dirCircuits": "./tests/circuits",
+  "dirInputs": "./tests/inputs",
+  "dirBuild": "./tests/build"
 }

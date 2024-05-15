@@ -345,3 +345,7 @@ yarn lint
 # do both at once
 yarn style
 ```
+
+## Acknowledgements
+
+We wholeheartedly thank [BuidlGuild](https://buidlguidl.com/) & [Austin Griffith](https://twitter.com/austingriffith) for providing Circomkit with an [Ecosystem Impact Grant](https://grants.buidlguidl.com/)!

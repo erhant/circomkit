@@ -17,7 +17,16 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
   const {circuit, signals, inputName} = prepareMultiplier(3);
 
   before(() => {
-    circomkit = new Circomkit({protocol, verbose: false, logLevel: 'silent'});
+    circomkit = new Circomkit({
+      protocol,
+      verbose: false,
+      logLevel: 'silent',
+      circuits: './tests/circuits.json',
+      dirPtau: './tests/ptau',
+      dirCircuits: './tests/circuits',
+      dirInputs: './tests/inputs',
+      dirBuild: './tests/build',
+    });
   });
 
   it('should instantiate circuit', () => {

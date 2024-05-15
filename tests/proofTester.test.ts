@@ -14,6 +14,11 @@ describe('proof tester', () => {
       verbose: false,
       logLevel: 'silent',
       protocol: 'plonk',
+      circuits: './tests/circuits.json',
+      dirPtau: './tests/ptau',
+      dirCircuits: './tests/circuits',
+      dirInputs: './tests/inputs',
+      dirBuild: './tests/build',
     });
     circomkit.instantiate(name, config);
     await circomkit.setup(name, PTAU_PATH);

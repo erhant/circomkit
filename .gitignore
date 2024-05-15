@@ -110,13 +110,6 @@ dist
 # is this still a thing lol
 .DS_Store
 
-# ignore auto generated test circuits
-**/test/*.circom
-
-# for init tests
-tmptest
-inputs/multiplier_3/test-input.json
-
 # Hardhat files
 /cache
 /artifacts
