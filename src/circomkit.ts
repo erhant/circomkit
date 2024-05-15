@@ -1,10 +1,9 @@
 import * as snarkjs from 'snarkjs';
 const wasm_tester = require('circom_tester').wasm;
-import {writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, renameSync, openSync} from 'fs';
+import {writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, renameSync} from 'fs';
 import {readFile, rm, writeFile} from 'fs/promises';
 import {randomBytes} from 'crypto';
 import {Logger, getLogger} from 'loglevel';
-import {exec} from 'child_process';
 import {makeCircuit} from './utils/';
 import {downloadPtau, getPtauName} from './utils/ptau';
 import type {
@@ -18,10 +17,10 @@ import type {
   CircomWasmTester,
 } from './types/';
 import {WitnessTester, ProofTester} from './testers/';
-import {prettyStringify, primeToName} from './utils';
+import {prettyStringify} from './utils';
 import {defaultConfig, colors, PRIMES, PROTOCOLS} from './utils/config';
 import {getCalldata} from './utils/calldata';
-import {readBytesFromFile} from './utils/r1cs';
+import {compileCircuit, readR1CSInfo} from './functions';
 
 /**
  * Circomkit is an opinionated wrapper around many SnarkJS functions.
@@ -148,7 +147,7 @@ export class Circomkit {
 
   /** Colorful logging using the internal logger */
   log(message: string, type: keyof typeof colors = 'info') {
-    // TODO: this is very smelly code, find a better way
+    // @todo this is very smelly code, find a better way
     if (type === 'title' || type === 'success') {
       this.logger.info(`${colors[type]}${message}\x1b[0m`);
     } else {
@@ -184,82 +183,9 @@ export class Circomkit {
     return vkeyPath;
   }
 
-  /** Read the information about the circuit by extracting it from the R1CS file.
-   *
-   * This implementation follows the specs at [iden3/r1csfile](https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md)
-   * and is inspired from the work by [PSE's `p0tion`](https://github.com/privacy-scaling-explorations/p0tion/blob/f88bcee5d499dce975d0592ed10b21aa8d73bbd2/packages/actions/src/helpers/utils.ts#L413)
-   * and by [Weijiekoh's `circom-helper`](https://github.com/weijiekoh/circom-helper/blob/master/ts/read_num_inputs.ts#L5).
-   */
+  /** Returns circuit information. */
   async info(circuit: string): Promise<R1CSInfoType> {
-    let pointer = 0;
-
-    const r1csInfoType: R1CSInfoType = {
-      wires: 0,
-      constraints: 0,
-      privateInputs: 0,
-      publicInputs: 0,
-      publicOutputs: 0,
-      useCustomGates: false,
-      labels: 0,
-      prime: BigInt(0),
-      primeName: '',
-    };
-
-    // Open the file (read mode).
-    const fd = openSync(this.path(circuit, 'r1cs'), 'r');
-
-    // Get 'number of section' (jump magic r1cs and version1 data).
-    const numberOfSections = readBytesFromFile(fd, 0, 4, 8);
-    pointer = 12;
-
-    for (let i = Number(numberOfSections); i >= 0; i--) {
-      const sectionType = Number(readBytesFromFile(fd, 0, 4, pointer));
-      pointer += 4;
-
-      const sectionSize = Number(readBytesFromFile(fd, 0, 8, pointer));
-      pointer += 8;
-
-      switch (sectionType) {
-        // Header section.
-        case 1:
-          // Field size (skip).
-          pointer += 4;
-
-          r1csInfoType.prime = readBytesFromFile(fd, 0, 32, pointer).toString() as unknown as bigint;
-          pointer += 32;
-
-          r1csInfoType.wires = Number(readBytesFromFile(fd, 0, 4, pointer));
-          pointer += 4;
-
-          r1csInfoType.publicOutputs = Number(readBytesFromFile(fd, 0, 4, pointer));
-          pointer += 4;
-
-          r1csInfoType.publicInputs = Number(readBytesFromFile(fd, 0, 4, pointer));
-          pointer += 4;
-
-          r1csInfoType.privateInputs = Number(readBytesFromFile(fd, 0, 4, pointer));
-          pointer += 4;
-
-          r1csInfoType.labels = Number(readBytesFromFile(fd, 0, 8, pointer));
-          pointer += 8;
-
-          r1csInfoType.constraints = Number(readBytesFromFile(fd, 0, 4, pointer));
-          pointer += 4;
-          break;
-        // Custom gates list section (plonk only).
-        case 4:
-          r1csInfoType.useCustomGates = Number(readBytesFromFile(fd, 0, 4, pointer)) > 0 ? true : false;
-
-          pointer += Number(sectionSize);
-          break;
-        default:
-          pointer += Number(sectionSize);
-          break;
-      }
-    }
-
-    r1csInfoType.primeName = primeToName[r1csInfoType.prime.toString() as `${bigint}`];
-    return r1csInfoType;
+    return await readR1CSInfo(this.path(circuit, 'r1cs'));
   }
 
   /** Downloads the phase-1 setup PTAU file for a circuit based on it's number of constraints.
@@ -272,19 +198,20 @@ export class Circomkit {
    * @returns path of the downloaded PTAU file
    */
   async ptau(circuit: string): Promise<string> {
-    if (this.config.prime !== 'bn128') {
-      throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
-    }
-
     // @todo check for performance gains when larger PTAUs are found instead of the target PTAU
     const {constraints} = await this.info(circuit);
     const ptauName = getPtauName(constraints);
-
-    // return if ptau exists already
     const ptauPath = this.pathPtau(ptauName);
+
     if (existsSync(ptauPath)) {
+      // return if ptau exists already
       return ptauPath;
     } else {
+      /// otherwise download it
+      if (this.config.prime !== 'bn128') {
+        throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
+      }
+
       mkdirSync(this.config.dirPtau, {recursive: true});
 
       this.log('Downloading ' + ptauName + '...');
@@ -304,43 +231,14 @@ export class Circomkit {
     this.log('Main component created at: ' + targetPath, 'debug');
 
     const outDir = this.path(circuit, 'dir');
-    mkdirSync(outDir, {recursive: true});
 
-    // prettier-ignore
-    let flags = `--sym --wasm --r1cs -p ${this.config.prime} -o ${outDir}`;
-    if (this.config.include.length > 0) flags += ' ' + this.config.include.map(path => `-l ${path}`).join(' ');
-    if (this.config.verbose) flags += ' --verbose';
-    if (this.config.inspect) flags += ' --inspect';
-    if (this.config.cWitness) flags += ' --c';
-    if (this.config.optimization > 2) {
-      // --O2round <value>
-      flags += ` --O2round ${this.config.optimization}`;
-    } else {
-      // --O0, --O1 or --O2
-      flags += ` --O${this.config.optimization}`;
+    const {stdout, stderr} = await compileCircuit(this.config, targetPath, outDir);
+    if (this.config.verbose) {
+      this.log(stdout);
     }
-
-    // call `circom` as a sub-process
-    try {
-      const result = await new Promise<{stdout: string; stderr: string}>((resolve, reject) => {
-        exec(`${this.config.circomPath} ${flags} ${targetPath}`, (error, stdout, stderr) => {
-          if (error === null) {
-            resolve({stdout, stderr});
-          } else {
-            reject(error);
-          }
-        });
-      });
-      if (this.config.verbose) {
-        this.log(result.stdout);
-      }
-      if (result.stderr) {
-        this.log(result.stderr, 'error');
-      }
-    } catch (e) {
-      throw new Error('Compiler error:\n' + e);
+    if (stderr) {
+      this.log(stderr, 'error');
     }
-
     return outDir;
   }
 

@@ -1,12 +1,13 @@
 import type {LogLevelDesc} from 'loglevel';
+import {PRIMES, PROTOCOLS} from '../utils/config';
 
 /**
  * Primes supported by Circom, as described for the `-p` option.
  * @see https://github.com/iden3/circom/blob/master/program_structure/src/utils/constants.rs
  */
-export type CircomkitPrimes = 'bn128' | 'bls12381' | 'goldilocks' | 'grumpkin' | 'pallas' | 'vesta' | 'secq256r1';
+export type CircomkitPrimes = (typeof PRIMES)[number];
 
-export type CircomkitProtocol = 'groth16' | 'plonk' | 'fflonk';
+export type CircomkitProtocol = (typeof PROTOCOLS)[number];
 
 export type CircomkitConfig = {
   /** Protocol to be used. */
@@ -53,10 +54,10 @@ export type CircomkitConfig = {
   prettyCalldata: false;
 };
 
-/** Shorthand notations for which path to build in Circomkit. These paths require a circuit name. */
+/** Shorthand notations for which path to build in Circomkit. These paths require a **circuit** name. */
 export type CircuitPathBuilders = 'main' | 'sym' | 'pkey' | 'vkey' | 'wasm' | 'sol' | 'dir' | 'r1cs';
 
-/** Shorthand notations for which path to build in Circomkit. These paths require a circuit name and input name. */
+/** Shorthand notations for which path to build in Circomkit. These paths require a **circuit** name and **input** name. */
 export type CircuitInputPathBuilders = 'pubs' | 'proof' | 'wtns' | 'in' | 'dir';
 
 export type CircomkitConfigOverrides = Partial<CircomkitConfig>;

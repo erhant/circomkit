@@ -7,6 +7,9 @@ import {exec} from 'child_process';
 const CONFIG_PATH = './circomkit.json';
 const DEFAULT_INPUT = 'default';
 
+/** We have a CLI command for each Circomkit command, along with some helpers. */
+type CommandTypes = keyof Circomkit | 'init' | 'config' | 'help';
+
 async function cli(): Promise<number> {
   // read user configs & override if there are any
   const circomkit = new Circomkit(existsSync(CONFIG_PATH) ? JSON.parse(readFileSync(CONFIG_PATH, 'utf-8')) : {});
@@ -15,7 +18,7 @@ async function cli(): Promise<number> {
   const titleLog = (title: string) => circomkit.log(`===| ${title} |===`, 'title');
 
   // execute command
-  const command = process.argv[2] as keyof Circomkit | 'init' | 'config' | 'help';
+  const command = process.argv[2] as CommandTypes;
   switch (command) {
     case 'compile': {
       titleLog('Compiling the circuit');

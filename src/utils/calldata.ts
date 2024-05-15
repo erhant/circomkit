@@ -1,8 +1,12 @@
 import type {FflonkProof, Groth16Proof, PlonkProof, PublicSignals} from 'snarkjs';
 
 /** Makes each value 32-bytes long hexadecimal. Does not check for overflows! */
-function valuesToPaddedUint256s(vals: string[]) {
-  return vals.map(val => '0x' + BigInt(val).toString(16).padStart(64, '0'));
+function valuesToPaddedUint256s(values: string[]) {
+  return values.map(hexStr => {
+    const ans = '0x' + BigInt(hexStr).toString(16).padStart(64, '0');
+    if (ans.length !== 66) throw new Error('uint256 overflow: ' + hexStr);
+    return ans;
+  });
 }
 
 /** Wraps a string with double quotes. */

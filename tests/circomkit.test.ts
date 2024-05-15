@@ -98,7 +98,7 @@ forEach(PROTOCOLS).describe('protocol: %s', (protocol: (typeof PROTOCOLS)[number
     const source = readFileSync(path, {encoding: 'utf-8'})
       // XXX: snarkjs plonk template has an erroneous hardhat import
       //      See https://github.com/iden3/snarkjs/pull/464
-      //      TODO: Remove this fix when the PR is merged
+      //      @todo Remove this fix when the PR is merged
       .replace('import "hardhat/console.sol";\n', '');
 
     // compile the contract
