@@ -1,6 +1,8 @@
 import type {CircomWasmTester, WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/';
 import {assert, expect} from 'chai';
 
+// @todo detect optimized symbols https://github.com/erhant/circomkit/issues/80
+
 /** A utility class to test your circuits. Use `expectFail` and `expectPass` to test out evaluations. */
 export class WitnessTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
   /** The underlying `circom_tester` object */
