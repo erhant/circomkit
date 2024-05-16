@@ -155,8 +155,8 @@ export class Circomkit {
     }
   }
 
-  /** Clean build files and the `main` component of a circuit. */
-  async clean(circuit: string): Promise<void> {
+  /** Clear build files and the `main` component of a circuit. */
+  async clear(circuit: string): Promise<void> {
     await Promise.all([
       rm(this.path(circuit, 'dir'), {recursive: true, force: true}),
       rm(this.path(circuit, 'main'), {force: true}),
@@ -501,6 +501,9 @@ export class Circomkit {
    *
    * @returns a JSON object or the path that it would be exported to.
    */
+
+  async json(type: 'r1cs' | 'zkey', circuit: string): Promise<{json: object; path: string}>;
+  async json(type: 'wtns', circuit: string, input: string): Promise<{json: object; path: string}>;
   async json(type: 'r1cs' | 'zkey' | 'wtns', circuit: string, input?: string): Promise<{json: object; path: string}> {
     let json: object;
     let path: string;

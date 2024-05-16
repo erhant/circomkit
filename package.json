@@ -29,7 +29,8 @@
   "scripts": {
     "build": "pkgroll",
     "prebuild": "rimraf dist/",
-    "cli": "yarn build && node ./dist/bin",
+    "cli:nb": "node ./dist/cli",
+    "cli": "yarn build && node ./dist/cli",
     "test": "npx mocha",
     "check": "npx tsc --noEmit",
     "style": "yarn format && yarn lint",

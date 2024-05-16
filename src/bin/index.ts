@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import {existsSync, readFileSync, writeFileSync} from 'fs';
+import {existsSync, readFileSync} from 'fs';
 import {Circomkit} from '../circomkit';
-import {prettyStringify, usageString} from '../utils';
+import {usageString} from '../utils';
 import {exec} from 'child_process';
 
 const CONFIG_PATH = './circomkit.json';
@@ -34,22 +34,22 @@ async function cli(): Promise<number> {
       break;
     }
 
-    case 'clean': {
+    case 'clear': {
       titleLog('Cleaning artifacts');
-      await circomkit.clean(process.argv[3]);
+      await circomkit.clear(process.argv[3]);
       circomkit.log('Cleaned.', 'success');
       break;
     }
 
     case 'json': {
       titleLog('Exporting JSON file');
-      const {json, path} = await circomkit.json(
-        process.argv[3] as 'r1cs' | 'zkey' | 'wtns',
-        process.argv[4],
-        process.argv[5]
-      );
-      writeFileSync(path, prettyStringify(json));
-      circomkit.log('Exported at: ' + path, 'success');
+      // const {json, path} = await circomkit.json(
+      //   process.argv[3] as 'r1cs' | 'zkey' | 'wtns',
+      //   process.argv[4],
+      //   process.argv[5]
+      // );
+      // writeFileSync(path, prettyStringify(json));
+      circomkit.log('DEPRACATE');
       break;
     }
 
