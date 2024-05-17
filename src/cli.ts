@@ -1,7 +1,9 @@
+#!/usr/bin/env node
 import {Command} from '@commander-js/extra-typings';
 import {Circomkit} from './circomkit';
 import {existsSync, readFileSync, writeFileSync} from 'fs';
 import {prettyStringify} from './utils';
+import {exec} from 'child_process';
 
 // TODO: update bin commands
 
@@ -52,6 +54,26 @@ const clear = new Command('clear')
   .action(async circuit => {
     await circomkit.clear(circuit);
     circomkit.log('Cleaned.', 'success');
+  });
+
+///////////////////////////////////////////////////////////////////////////////
+const init = new Command('init')
+  .description('initialize a new Circomkit project')
+  .argument('[dir]', 'Directory')
+  .action(async dir => {
+    const cmd = `git clone https://github.com/erhant/circomkit-examples.git ${dir ?? '.'}`;
+    circomkit.log(cmd);
+
+    const result = await new Promise<{stdout: string; stderr: string}>((resolve, reject) =>
+      exec(cmd, (error, stdout, stderr) => (error ? reject(error) : resolve({stdout, stderr})))
+    );
+
+    circomkit.log(result.stdout);
+    if (result.stderr) {
+      circomkit.log(result.stderr);
+    }
+
+    circomkit.log('Circomkit project initialized! ✨', 'success');
   });
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -178,9 +200,6 @@ const ptau = new Command('ptau')
 const config = new Command('config').description('print configuration').action(() => console.log(circomkit.config));
 
 ///////////////////////////////////////////////////////////////////////////////
-// TODO: init command
-
-///////////////////////////////////////////////////////////////////////////////
 // TODO: list command, to list built circuits (artifacts) and such
 // see: https://github.com/erhant/circomkit/issues/68
 
@@ -192,6 +211,7 @@ new Command()
   .addCommand(instantiate)
   .addCommand(info)
   .addCommand(clear)
+  .addCommand(init)
   .addCommand(vkey)
   .addCommand(prove)
   .addCommand(json)
@@ -203,3 +223,24 @@ new Command()
   .addCommand(ptau)
   .addCommand(config)
   .parse(process.argv);
+
+// TODO: test graceful exits
+/**
+ * We have to exit forcefully, as SnarkJS CLI does too.
+ * In their code, each function returns a code, with the
+ * succesfull ones returning 0. If an error is thrown,
+ * that error is logged and process is exited with error code 1.
+ *
+ * See https://github.com/iden3/snarkjs/blob/master/cli.js#L348
+ */
+// function exit(code: number) {
+//   // eslint-disable-next-line no-process-exit
+//   process.exit(code);
+// }
+
+// cli()
+//   .then(code => exit(code))
+//   .catch(err => {
+//     console.error(err);
+//     exit(1);
+//   });

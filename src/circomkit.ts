@@ -567,7 +567,10 @@ export class Circomkit {
   }
 
   /** Returns a proof tester. */
-  async ProofTester<IN extends string[] = []>(circuit: string) {
+  async ProofTester<IN extends string[] = [], P extends CircomkitConfig['protocol'] = 'groth16'>(
+    circuit: string,
+    protocol: P
+  ) {
     const wasmPath = this.path(circuit, 'wasm');
     const pkeyPath = this.path(circuit, 'pkey');
     const vkeyPath = this.path(circuit, 'vkey');
@@ -578,6 +581,6 @@ export class Circomkit {
       throw new Error('Missing files: ' + missingPaths.join(', '));
     }
 
-    return new ProofTester<IN>(wasmPath, pkeyPath, vkeyPath);
+    return new ProofTester<IN, P>(wasmPath, pkeyPath, vkeyPath, protocol);
   }
 }

@@ -26,10 +26,10 @@ export async function readR1CSInfo(r1csPath: string): Promise<R1CSInfoType> {
     primeName: '',
   };
 
-  // Open the file (read mode).
+  // open the file (read mode).
   const fd = openSync(r1csPath, 'r');
 
-  // Get 'number of section' (jump magic r1cs and version1 data).
+  // get 'number of section' (jump magic r1cs and version1 data).
   const numberOfSections = readBytesFromFile(fd, 0, 4, 8);
   pointer = 12;
 
@@ -44,9 +44,9 @@ export async function readR1CSInfo(r1csPath: string): Promise<R1CSInfoType> {
     // we may actually use that instead of adding to point as done below
 
     switch (sectionType) {
-      // Header section.
+      // header section.
       case 1:
-        // Field size (skip).
+        // field size (skip).
         pointer += 4;
 
         r1csInfoType.prime = readBytesFromFile(fd, 0, 32, pointer).toString() as unknown as bigint;
@@ -70,9 +70,9 @@ export async function readR1CSInfo(r1csPath: string): Promise<R1CSInfoType> {
         r1csInfoType.constraints = Number(readBytesFromFile(fd, 0, 4, pointer));
         pointer += 4;
         break;
-      // Custom gates list section (plonk only).
+      // custom gates list section (plonk only).
       case 4:
-        r1csInfoType.useCustomGates = Number(readBytesFromFile(fd, 0, 4, pointer)) > 0 ? true : false;
+        r1csInfoType.useCustomGates = Number(readBytesFromFile(fd, 0, 4, pointer)) > 0;
 
         pointer += Number(sectionSize);
         break;

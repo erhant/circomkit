@@ -3,7 +3,8 @@ import {Circomkit, ProofTester} from '../src';
 import {PTAU_PATH, prepareMultiplier} from './common';
 
 describe('proof tester', () => {
-  let circuit: ProofTester<['in']>;
+  const protocol = 'groth16';
+  let circuit: ProofTester<['in'], typeof protocol>;
   const {
     circuit: {name, config},
     signals: {input},
@@ -13,7 +14,7 @@ describe('proof tester', () => {
     const circomkit = new Circomkit({
       verbose: false,
       logLevel: 'silent',
-      protocol: 'plonk',
+      protocol,
       circuits: './tests/circuits.json',
       dirPtau: './tests/ptau',
       dirCircuits: './tests/circuits',
@@ -22,7 +23,7 @@ describe('proof tester', () => {
     });
     circomkit.instantiate(name, config);
     await circomkit.setup(name, PTAU_PATH);
-    circuit = await circomkit.ProofTester(name);
+    circuit = await circomkit.ProofTester(name, protocol);
   });
 
   it('should verify a proof correctly', async () => {
