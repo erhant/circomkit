@@ -81,9 +81,14 @@ export class Circomkit {
     }
   }
 
-  /** Parse circuit config from `circuits.json`. */
-  private readCircuitConfig(circuit: string): CircuitConfig {
-    const circuits = JSON.parse(readFileSync(this.config.circuits, 'utf-8'));
+  /** Returns the contents of `circuits.json`. */
+  readCircuits(): Record<string, CircuitConfig> {
+    return JSON.parse(readFileSync(this.config.circuits, 'utf-8'));
+  }
+
+  /** Returns a single circuit config from `circuits.json`. */
+  readCircuitConfig(circuit: string): CircuitConfig {
+    const circuits = this.readCircuits();
     if (!(circuit in circuits)) {
       throw new Error('No such circuit in ' + this.config.circuits);
     }

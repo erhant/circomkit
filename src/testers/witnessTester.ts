@@ -137,9 +137,9 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * - `main.component.signal`
    * - `main.component.signal[n][m]`
    *
-   * You will likely call `checkConstraints` on the resulting fake witness to see if it can indeed fool
+   * You will likely call `expectConstraintPass` on the resulting fake witness to see if it can indeed fool
    * a verifier.
-   * @see {@link checkConstraints}
+   * @see {@link expectConstraintPass}
    */
   async editWitness(
     witness: Readonly<WitnessType>,

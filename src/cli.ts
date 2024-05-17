@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {Command} from '@commander-js/extra-typings';
 import {Circomkit} from './circomkit';
-import {existsSync, readFileSync, writeFileSync} from 'fs';
+import {existsSync, readFileSync, readdirSync, writeFileSync} from 'fs';
 import {prettyStringify} from './utils';
 import {exec} from 'child_process';
 
@@ -197,11 +197,25 @@ const ptau = new Command('ptau')
   });
 
 ///////////////////////////////////////////////////////////////////////////////
-const config = new Command('config').description('print configuration').action(() => console.log(circomkit.config));
+const list = new Command('list').description('list circuits & instances').action(async () => {
+  const templates = readdirSync(circomkit.config.dirCircuits)
+    .filter(path => path.endsWith('.circom'))
+    .map(path => path.slice(0, -'.circom'.length));
+  circomkit.log(
+    `Template Files (${circomkit.config.dirCircuits}):\n` + templates.map((c, i) => `  ${i + 1}. ${c}`).join('\n')
+  );
+
+  const circuits = circomkit.readCircuits();
+  circomkit.log(
+    `\nCircuit Names (${circomkit.config.circuits}):\n` +
+      Object.keys(circuits)
+        .map((c, i) => `  ${i + 1}. ${c}`)
+        .join('\n')
+  );
+});
 
 ///////////////////////////////////////////////////////////////////////////////
-// TODO: list command, to list built circuits (artifacts) and such
-// see: https://github.com/erhant/circomkit/issues/68
+const config = new Command('config').description('print configuration').action(() => console.log(circomkit.config));
 
 ///////////////////////////////////////////////////////////////////////////////
 new Command()
@@ -222,6 +236,7 @@ new Command()
   .addCommand(setup)
   .addCommand(ptau)
   .addCommand(config)
+  .addCommand(list)
   .parse(process.argv);
 
 // TODO: test graceful exits
