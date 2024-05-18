@@ -1,23 +1,21 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
-import {expect} from 'chai';
 import {Circomkit} from '../src';
 import {existsSync, rmSync} from 'fs';
-import forEach from 'mocha-each';
 
 describe('overriding configurations', () => {
   it('should override default configs', () => {
     const circomkit = new Circomkit({prime: 'goldilocks'});
-    expect(circomkit.config.prime).to.eq('goldilocks');
+    expect(circomkit.config.prime).toEqual('goldilocks');
   });
 
   it('should NOT allow an invalid prime', () => {
     // @ts-expect-error
-    expect(() => new Circomkit({prime: 'fhdskfhjdk'})).to.throw('Invalid prime in configuration.');
+    expect(() => new Circomkit({prime: 'fhdskfhjdk'})).toThrow('Invalid prime in configuration.');
   });
 
   it('should NOT allow an invalid protocol', () => {
     // @ts-expect-error
-    expect(() => new Circomkit({protocol: 'fhdskfhjdk'})).to.throw('Invalid protocol in configuration.');
+    expect(() => new Circomkit({protocol: 'fhdskfhjdk'})).toThrow('Invalid protocol in configuration.');
   });
 });
 
@@ -26,7 +24,7 @@ describe('circomkit with custom circuits dir', () => {
   const dirCircuits = './tests/circuits/fibonacci';
   const testcase = {file: 'vanilla', circuit: 'fibo_vanilla', input: 'vanilla'};
 
-  before(() => {
+  beforeAll(() => {
     circomkit = new Circomkit({
       protocol: 'groth16',
       verbose: false,
@@ -47,7 +45,7 @@ describe('circomkit with custom circuits dir', () => {
     });
 
     await circomkit.info(testcase.circuit);
-    expect(existsSync(dirCircuits + '/test/' + testcase.circuit + '.circom')).to.be.true;
+    expect(existsSync(dirCircuits + '/test/' + testcase.circuit + '.circom')).toBe(true);
   });
 });
 
@@ -65,16 +63,16 @@ describe('configuring the C witness generator', () => {
 
   it('should not generate the C witness calculators by default', async () => {
     const circomkit = new Circomkit({...CONFIG});
-    expect(circomkit.config.cWitness).to.be.false;
+    expect(circomkit.config.cWitness).toBe(false);
 
     const outPath = await circomkit.compile(CIRCUIT_NAME);
-    expect(existsSync(`${outPath}/${CIRCUIT_NAME}_cpp`)).to.be.false;
+    expect(existsSync(`${outPath}/${CIRCUIT_NAME}_cpp`)).toBe(false);
   });
 
   it('should generate the C witness calculators if specified', async () => {
     const circomKitCWitness = new Circomkit({...CONFIG, cWitness: true});
     const outPath = await circomKitCWitness.compile(CIRCUIT_NAME);
-    expect(existsSync(`${outPath}/${CIRCUIT_NAME}_cpp`)).to.be.true;
+    expect(existsSync(`${outPath}/${CIRCUIT_NAME}_cpp`)).toBe(true);
 
     rmSync(`${outPath}/${CIRCUIT_NAME}_cpp`, {recursive: true});
   });
@@ -94,40 +92,42 @@ describe('compiling under different directories', () => {
     },
   ] as const;
 
-  forEach(cases).describe('circomkit with explicit config & input (%(circuit)s)', testcase => {
-    let circomkit: Circomkit;
+  cases.map(testcase =>
+    describe(`circomkit with explicit config & input (${testcase.circuit})`, () => {
+      let circomkit: Circomkit;
 
-    before(() => {
-      circomkit = new Circomkit({
-        protocol: 'groth16',
-        verbose: false,
-        logLevel: 'silent',
-        circuits: './tests/circuits.json',
-        dirPtau: './tests/ptau',
-        dirCircuits: './tests/circuits',
-        dirInputs: './tests/inputs',
-        dirBuild: './tests/build',
-      });
-    });
-
-    it('should compile with custom config', async () => {
-      await circomkit.compile(testcase.circuit, {
-        file: testcase.file,
-        template: 'Fibonacci',
-        params: [7],
+      beforeAll(() => {
+        circomkit = new Circomkit({
+          protocol: 'groth16',
+          verbose: false,
+          logLevel: 'silent',
+          circuits: './tests/circuits.json',
+          dirPtau: './tests/ptau',
+          dirCircuits: './tests/circuits',
+          dirInputs: './tests/inputs',
+          dirBuild: './tests/build',
+        });
       });
 
-      await circomkit.info(testcase.circuit);
-    });
+      it('should compile with custom config', async () => {
+        await circomkit.compile(testcase.circuit, {
+          file: testcase.file,
+          template: 'Fibonacci',
+          params: [7],
+        });
 
-    it('should prove with custom input data', async () => {
-      const path = await circomkit.prove(testcase.circuit, testcase.input, {in: [1, 1]});
-      expect(existsSync(path)).to.be.true;
-    });
+        await circomkit.info(testcase.circuit);
+      });
 
-    it('should verify the proof', async () => {
-      const isVerified = await circomkit.verify(testcase.circuit, testcase.input);
-      expect(isVerified).to.be.true;
-    });
-  });
+      it('should prove with custom input data', async () => {
+        const path = await circomkit.prove(testcase.circuit, testcase.input, {in: [1, 1]});
+        expect(existsSync(path)).toBe(true);
+      });
+
+      it('should verify the proof', async () => {
+        const isVerified = await circomkit.verify(testcase.circuit, testcase.input);
+        expect(isVerified).toBe(true);
+      });
+    })
+  );
 });

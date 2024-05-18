@@ -3,7 +3,7 @@ import {Circomkit, WitnessTester} from '../src';
 describe('errors', () => {
   let circuit: WitnessTester<['in', 'inin'], ['out']>;
 
-  before(async () => {
+  beforeAll(async () => {
     const circomkit = new Circomkit({
       verbose: false,
       logLevel: 'silent',

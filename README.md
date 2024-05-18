@@ -169,7 +169,7 @@ describe('witness tester', () => {
   // this makes all functions type-safe!
   let circuit: WitnessTester<['in'], ['out']>;
 
-  before(async () => {
+  beforeAll(async () => {
     const circomkit = new Circomkit();
     circuit = await circomkit.WitnessTester(CIRCUIT_NAME, CIRCUIT_CONFIG);
   });
@@ -250,7 +250,7 @@ describe('proof tester', () => {
   // this makes all functions type-safe!
   let circuit: ProofTester<['in']>;
 
-  before(async () => {
+  beforeAll(async () => {
     const circomkit = new Circomkit({
       protocol: 'plonk',
     });

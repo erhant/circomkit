@@ -1,6 +1,20 @@
 import {ReadPosition, openSync, readSync} from 'fs';
-import {R1CSInfoType} from '../types';
 import {primeToName} from '../utils';
+
+/**
+ * Some fields for the R1CS information, many other fields are omitted in this type.
+ */
+export type R1CSInfoType = {
+  wires: number;
+  constraints: number;
+  privateInputs: number;
+  publicInputs: number;
+  publicOutputs: number;
+  useCustomGates: boolean;
+  labels: number;
+  prime: bigint;
+  primeName: string;
+};
 
 /** Read the information about the circuit by extracting it from the R1CS file.
  *

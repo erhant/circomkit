@@ -1,7 +1,9 @@
+import type {FflonkProof, Groth16Proof, PlonkProof, PublicSignals} from 'snarkjs';
 import * as snarkjs from 'snarkjs';
-import {expect} from 'chai';
 import {readFileSync} from 'fs';
-import type {CircuitSignals, CircomkitConfig} from '../types/';
+import type {CircuitSignals} from '../types/';
+import type {CircomkitConfig} from '../configs';
+import {AssertionError} from 'node:assert';
 
 /** A tester that is able to generate proofs & verify them.
  * Use `expectFail` and `expectPass` to test out evaluations. */
@@ -22,59 +24,58 @@ export class ProofTester<IN extends string[] = [], P extends CircomkitConfig['pr
   }
 
   /** Generate a proof for the witness computed from the given input signals. */
-  async prove(input: CircuitSignals<IN>): Promise<{proof: snarkjs.Groth16Proof; publicSignals: snarkjs.PublicSignals}>;
-  async prove(input: CircuitSignals<IN>): Promise<{proof: snarkjs.PlonkProof; publicSignals: snarkjs.PublicSignals}>;
-  async prove(input: CircuitSignals<IN>): Promise<{proof: snarkjs.FflonkProof; publicSignals: snarkjs.PublicSignals}>;
+  async prove(input: CircuitSignals<IN>): Promise<{proof: Groth16Proof; publicSignals: PublicSignals}>;
+  async prove(input: CircuitSignals<IN>): Promise<{proof: PlonkProof; publicSignals: PublicSignals}>;
+  async prove(input: CircuitSignals<IN>): Promise<{proof: FflonkProof; publicSignals: PublicSignals}>;
   async prove(
     input: CircuitSignals<IN>
   ): Promise<
-    | {proof: snarkjs.Groth16Proof; publicSignals: snarkjs.PublicSignals}
-    | {proof: snarkjs.PlonkProof; publicSignals: snarkjs.PublicSignals}
-    | {proof: snarkjs.FflonkProof; publicSignals: snarkjs.PublicSignals}
+    | {proof: Groth16Proof; publicSignals: PublicSignals}
+    | {proof: PlonkProof; publicSignals: PublicSignals}
+    | {proof: FflonkProof; publicSignals: PublicSignals}
   > {
     return snarkjs[this.protocol].fullProve(input, this.wasmPath, this.pkeyPath, undefined);
   }
 
   /** Returns the verification result of a proof for some public signals. */
-  async verify(proof: snarkjs.Groth16Proof, publicSignals: snarkjs.PublicSignals): Promise<boolean>;
-  async verify(proof: snarkjs.PlonkProof, publicSignals: snarkjs.PublicSignals): Promise<boolean>;
-  async verify(proof: snarkjs.FflonkProof, publicSignals: snarkjs.PublicSignals): Promise<boolean>;
-  async verify(
-    proof: snarkjs.Groth16Proof | snarkjs.PlonkProof | snarkjs.FflonkProof,
-    publicSignals: string[]
-  ): Promise<boolean> {
+  async verify(proof: Groth16Proof, publicSignals: PublicSignals): Promise<boolean>;
+  async verify(proof: PlonkProof, publicSignals: PublicSignals): Promise<boolean>;
+  async verify(proof: FflonkProof, publicSignals: PublicSignals): Promise<boolean>;
+  async verify(proof: Groth16Proof | PlonkProof | FflonkProof, publicSignals: PublicSignals): Promise<boolean> {
     return await snarkjs[this.protocol].verify(
       this.verificationKey,
       publicSignals,
-      proof as snarkjs.Groth16Proof & snarkjs.PlonkProof & snarkjs.FflonkProof
+      proof as Groth16Proof & PlonkProof & FflonkProof
     );
   }
 
   /** Expects a verification to pass for this proof and public signals. */
-  async expectPass(proof: snarkjs.Groth16Proof, publicSignals: snarkjs.PublicSignals): Promise<void>;
-  async expectPass(proof: snarkjs.PlonkProof, publicSignals: snarkjs.PublicSignals): Promise<void>;
-  async expectPass(proof: snarkjs.FflonkProof, publicSignals: snarkjs.PublicSignals): Promise<void>;
-  async expectPass(
-    proof: snarkjs.Groth16Proof | snarkjs.PlonkProof | snarkjs.FflonkProof,
-    publicSignals: snarkjs.PublicSignals
-  ): Promise<void> {
-    expect(
-      await this.verify(proof as snarkjs.Groth16Proof & snarkjs.PlonkProof & snarkjs.FflonkProof, publicSignals),
-      'Expected proof to be verified.'
-    ).to.be.true;
+  async expectPass(proof: Groth16Proof, publicSignals: PublicSignals): Promise<void>;
+  async expectPass(proof: PlonkProof, publicSignals: PublicSignals): Promise<void>;
+  async expectPass(proof: FflonkProof, publicSignals: PublicSignals): Promise<void>;
+  async expectPass(proof: Groth16Proof | PlonkProof | FflonkProof, publicSignals: PublicSignals): Promise<void> {
+    const ok = await this.verify(proof as Groth16Proof & PlonkProof & FflonkProof, publicSignals);
+    if (!ok) {
+      throw new AssertionError({
+        message: 'Expected proof to be verified.',
+        expected: true,
+        actual: false,
+      });
+    }
   }
 
   /** Expects a verification to fail for this proof and public signals. */
-  async expectFail(proof: snarkjs.Groth16Proof, publicSignals: snarkjs.PublicSignals): Promise<void>;
-  async expectFail(proof: snarkjs.PlonkProof, publicSignals: snarkjs.PublicSignals): Promise<void>;
-  async expectFail(proof: snarkjs.FflonkProof, publicSignals: snarkjs.PublicSignals): Promise<void>;
-  async expectFail(
-    proof: snarkjs.Groth16Proof | snarkjs.PlonkProof | snarkjs.FflonkProof,
-    publicSignals: snarkjs.PublicSignals
-  ): Promise<void> {
-    expect(
-      await this.verify(proof as snarkjs.Groth16Proof & snarkjs.PlonkProof & snarkjs.FflonkProof, publicSignals),
-      'Expected proof to be not verified.'
-    ).to.be.false;
+  async expectFail(proof: Groth16Proof, publicSignals: PublicSignals): Promise<void>;
+  async expectFail(proof: PlonkProof, publicSignals: PublicSignals): Promise<void>;
+  async expectFail(proof: FflonkProof, publicSignals: PublicSignals): Promise<void>;
+  async expectFail(proof: Groth16Proof | PlonkProof | FflonkProof, publicSignals: PublicSignals): Promise<void> {
+    const ok = await this.verify(proof as Groth16Proof & PlonkProof & FflonkProof, publicSignals);
+    if (ok) {
+      throw new AssertionError({
+        message: 'Expected proof to be not verified.',
+        expected: false,
+        actual: true,
+      });
+    }
   }
 }

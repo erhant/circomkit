@@ -1,20 +1,19 @@
+import {AssertionError} from 'node:assert';
 import type {CircomWasmTester, WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/';
-import {assert, expect} from 'chai';
 
 // @todo detect optimized symbols https://github.com/erhant/circomkit/issues/80
 
 /** A utility class to test your circuits. Use `expectFail` and `expectPass` to test out evaluations. */
 export class WitnessTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
-  /** The underlying `circom_tester` object */
-  private readonly circomWasmTester: CircomWasmTester;
   /** A dictionary of symbols, see {@link loadSymbols} */
   private symbols: SymbolsType | undefined;
   /** List of constraints, see {@link loadConstraints} */
   private constraints: unknown[] | undefined;
 
-  constructor(circomWasmTester: CircomWasmTester) {
-    this.circomWasmTester = circomWasmTester;
-  }
+  constructor(
+    /** The underlying `circom_tester` object */
+    private readonly circomWasmTester: CircomWasmTester
+  ) {}
 
   /** Assert that constraints are valid for a given witness. */
   async expectConstraintPass(witness: WitnessType): Promise<void> {
@@ -29,10 +28,13 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    */
   async expectConstraintFail(witness: WitnessType): Promise<void> {
     await this.expectConstraintPass(witness).then(
-      () => assert.fail('Expected constraints to not match.'),
+      () => {
+        throw new AssertionError({message: 'Expected constraints to not match.'});
+      },
       err => {
-        // console.log(err.message);
-        expect(err.message).to.eq("Constraint doesn't match");
+        if (err.message !== "Constraint doesn't match") {
+          throw new AssertionError({message: err.message});
+        }
       }
     );
   }
@@ -62,10 +64,20 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    */
   async expectConstraintCount(expected: number, exact?: boolean) {
     const count = await this.getConstraintCount();
-    expect(count, 'Circuit is under-constrained').to.be.greaterThanOrEqual(expected);
+    if (count < expected) {
+      throw new AssertionError({
+        message: 'Circuit is under-constrained',
+        expected,
+        actual: count,
+      });
+    }
 
-    if (exact) {
-      expect(count, 'Circuit is over-constrained').to.eq(expected);
+    if (exact && count !== expected) {
+      throw new AssertionError({
+        message: 'Circuit is over-constrained',
+        expected,
+        actual: count,
+      });
     }
   }
 
@@ -79,7 +91,11 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    */
   async expectFail(input: CircuitSignals<IN>): Promise<string> {
     return await this.calculateWitness(input).then(
-      () => assert.fail('Expected witness calculation to fail.'),
+      () => {
+        throw new AssertionError({
+          message: 'Expected witness calculation to fail.',
+        });
+      },
       err => {
         const errorMessage = (err as Error).message;
 
@@ -90,11 +106,8 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
           'Not all inputs have been set.', // few inputs than expected for many signals
         ].some(msg => errorMessage.startsWith(msg));
 
-        // we did not expect this failure, throw it anyways
+        // throw unhandled error anyways
         if (!isExpectedError) throw err;
-
-        // we expected this failure, register it as an expect call
-        expect(isExpectedError).to.be.true;
 
         return errorMessage;
       }

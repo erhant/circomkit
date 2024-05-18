@@ -1,22 +1,20 @@
 {
-  // Google's TS Config
   "compilerOptions": {
-    "allowUnreachableCode": false,
-    "allowUnusedLabels": false,
     "declaration": true,
-    "forceConsistentCasingInFileNames": true,
-    "lib": ["ES2020"],
-    "module": "commonjs",
     "noEmitOnError": true,
     "noFallthroughCasesInSwitch": true,
     "noImplicitReturns": true,
     "noImplicitOverride": true,
     "esModuleInterop": true,
     "pretty": true,
-    "sourceMap": true,
     "strict": true,
-    "target": "ES2020"
+    "skipLibCheck": true,
+    "target": "ES6",
+    // to be used with bundler: pkgroll
+    "moduleResolution": "Bundler",
+    "module": "Preserve",
+    "types": ["jest", "node"]
   },
-  "include": ["src/types/**/*.*", "src/**/*.*", "tests/**/*.ts"],
-  "exclude": ["node_modules", "tests/build", "dist", "ptau"]
+  "include": ["src/**/*.*", "tests/**/*.ts"],
+  "exclude": ["node_modules", "tests"]
 }

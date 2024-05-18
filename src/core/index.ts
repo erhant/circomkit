@@ -3,24 +3,14 @@ const wasm_tester = require('circom_tester').wasm;
 import {writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, renameSync} from 'fs';
 import {readFile, rm, writeFile} from 'fs/promises';
 import {randomBytes} from 'crypto';
-import {Logger, getLogger} from 'loglevel';
-import {makeCircuit} from './utils/';
-import {downloadPtau, getPtauName} from './utils/ptau';
-import type {
-  CircuitConfig,
-  CircuitSignals,
-  R1CSInfoType,
-  CircomkitConfig,
-  CircomkitConfigOverrides,
-  CircuitInputPathBuilders,
-  CircuitPathBuilders,
-  CircomWasmTester,
-} from './types/';
-import {WitnessTester, ProofTester} from './testers/';
-import {prettyStringify} from './utils';
-import {defaultConfig, colors, PRIMES, PROTOCOLS} from './utils/config';
-import {getCalldata} from './utils/calldata';
-import {compileCircuit, readR1CSInfo} from './functions';
+import loglevel from 'loglevel';
+import {downloadPtau, getPtauName} from '../utils/ptau';
+import type {CircuitConfig, CircuitSignals, CircomWasmTester} from '../types';
+import {WitnessTester, ProofTester} from '../testers';
+import {prettyStringify} from '../utils';
+import {CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
+import {compileCircuit, instantiateCircuit, readR1CSInfo, getCalldata} from '../functions';
+import {CircomkitPath} from './pathing';
 
 /**
  * Circomkit is an opinionated wrapper around many SnarkJS functions.
@@ -41,23 +31,26 @@ import {compileCircuit, readR1CSInfo} from './functions';
  */
 export class Circomkit {
   public readonly config: CircomkitConfig;
-  public readonly logger: Logger;
-  private readonly snarkjsLogger: Logger | undefined;
+  public readonly log: loglevel.Logger;
+  public readonly path: CircomkitPath;
 
-  constructor(overrides: CircomkitConfigOverrides = {}) {
+  /** A logger reference to be passed into SnarkJS functions. If `verbose` is set to `false`, this logger will be undefined. */
+  private readonly snarkjsLogger: loglevel.Logger | undefined;
+
+  constructor(overrides: Partial<CircomkitConfig> = {}) {
     // override default options with the user-provided ones
     // we can do this via two simple spreads because both objects are single depth
     const config: CircomkitConfig = {
-      ...defaultConfig,
+      ...DEFAULT,
       ...overrides,
     };
 
     this.config = JSON.parse(JSON.stringify(config)) as CircomkitConfig;
-    this.logger = getLogger('Circomkit');
-    this.logger.setLevel(this.config.logLevel);
+    this.log = loglevel.getLogger('Circomkit');
+    this.log.setLevel(this.config.logLevel);
 
     // logger for SnarkJS, accepted as an optional argument within their functions
-    this.snarkjsLogger = this.config.verbose ? this.logger : undefined;
+    this.snarkjsLogger = this.config.verbose ? this.log : undefined;
 
     // sanity checks
     if (!PRIMES.includes(this.config.prime)) {
@@ -67,18 +60,20 @@ export class Circomkit {
       throw new Error('Invalid protocol in configuration.');
     }
     if (this.config.optimization < 0) {
-      this.log('Optimization level must be at least 0, setting it to 0.', 'warn');
+      this.log.warn('Optimization level must be at least 0, setting it to 0.');
       this.config.optimization = 0;
     }
 
     // PLONK protocol requires optimization level to be 1
     if (this.config.protocol === 'plonk' && this.config.optimization !== 1) {
-      this.log(
-        'Optimization level for PLONK must be 1.\nSee: https://docs.circom.io/circom-language/circom-insight/simplification/',
-        'warn'
+      this.log.warn(
+        'Optimization level for PLONK must be 1.\n',
+        'See: https://docs.circom.io/circom-language/circom-insight/simplification/'
       );
       this.config.optimization = 1;
     }
+
+    this.path = new CircomkitPath(this.config);
   }
 
   /** Returns the contents of `circuits.json`. */
@@ -95,86 +90,21 @@ export class Circomkit {
     return circuits[circuit] as CircuitConfig;
   }
 
-  /** Computes a path that requires a circuit name. */
-  path(circuit: string, type: CircuitPathBuilders): string {
-    const dir = `${this.config.dirBuild}/${circuit}`;
-    switch (type) {
-      case 'dir':
-        return dir;
-      case 'main':
-        return `${this.config.dirCircuits}/main/${circuit}.circom`;
-      case 'r1cs':
-        return `${dir}/${circuit}.r1cs`;
-      case 'sym':
-        return `${dir}/${circuit}.sym`;
-      case 'wasm':
-        return `${dir}/${circuit}_js/${circuit}.wasm`;
-      case 'pkey':
-        return `${dir}/${this.config.protocol}_pkey.zkey`;
-      case 'vkey':
-        return `${dir}/${this.config.protocol}_vkey.json`;
-      case 'sol':
-        return `${dir}/${this.config.protocol}_verifier.sol`;
-      default:
-        throw new Error('Invalid type: ' + type);
-    }
-  }
-
-  /** Computes a path that requires a circuit and an input name. */
-  pathWithInput(circuit: string, input: string, type: CircuitInputPathBuilders): string {
-    const dir = `${this.config.dirBuild}/${circuit}/${input}`;
-    switch (type) {
-      case 'dir':
-        return dir;
-      case 'wtns':
-        return `${dir}/witness.wtns`;
-      case 'pubs':
-        return `${dir}/public.json`;
-      case 'proof':
-        return `${dir}/${this.config.protocol}_proof.json`;
-      case 'in':
-        return `${this.config.dirInputs}/${circuit}/${input}.json`;
-      default:
-        throw new Error('Invalid type: ' + type);
-    }
-  }
-
-  /** Given a PTAU name, returns the relative path. */
-  pathPtau(ptauName: string): string {
-    return `${this.config.dirPtau}/${ptauName}`;
-  }
-
-  /** Given a circuit & id name, returns the relative path of the phase-2 PTAU.
-   * This is used in particular by Groth16's circuit-specific setup phase. */
-  pathZkey(circuit: string, id: number): string {
-    return `${this.config.dirBuild}/${circuit}/${circuit}_${id}.zkey`;
-  }
-
-  /** Colorful logging using the internal logger */
-  log(message: string, type: keyof typeof colors = 'info') {
-    // @todo this is very smelly code, find a better way
-    if (type === 'title' || type === 'success') {
-      this.logger.info(`${colors[type]}${message}\x1b[0m`);
-    } else {
-      this.logger[type](`${colors[type]}${message}\x1b[0m`);
-    }
-  }
-
   /** Clear build files and the `main` component of a circuit. */
   async clear(circuit: string): Promise<void> {
     await Promise.all([
-      rm(this.path(circuit, 'dir'), {recursive: true, force: true}),
-      rm(this.path(circuit, 'main'), {force: true}),
+      rm(this.path.ofCircuit(circuit, 'dir'), {recursive: true, force: true}),
+      rm(this.path.ofCircuit(circuit, 'main'), {force: true}),
     ]);
   }
 
   /** Export a verification key (vKey) from a proving key (zKey). */
   async vkey(circuit: string, pkeyPath?: string): Promise<string> {
-    const vkeyPath = this.path(circuit, 'vkey');
+    const vkeyPath = this.path.ofCircuit(circuit, 'vkey');
 
     // check if it exists
     if (pkeyPath === undefined) {
-      pkeyPath = this.path(circuit, 'pkey');
+      pkeyPath = this.path.ofCircuit(circuit, 'pkey');
     }
 
     if (!existsSync(pkeyPath)) {
@@ -189,8 +119,8 @@ export class Circomkit {
   }
 
   /** Returns circuit information. */
-  async info(circuit: string): Promise<R1CSInfoType> {
-    return await readR1CSInfo(this.path(circuit, 'r1cs'));
+  async info(circuit: string) {
+    return await readR1CSInfo(this.path.ofCircuit(circuit, 'r1cs'));
   }
 
   /** Downloads the phase-1 setup PTAU file for a circuit based on it's number of constraints.
@@ -206,7 +136,7 @@ export class Circomkit {
     // @todo check for performance gains when larger PTAUs are found instead of the target PTAU
     const {constraints} = await this.info(circuit);
     const ptauName = getPtauName(constraints);
-    const ptauPath = this.pathPtau(ptauName);
+    const ptauPath = this.path.ofPtau(ptauName);
 
     if (existsSync(ptauPath)) {
       // return if ptau exists already
@@ -219,7 +149,7 @@ export class Circomkit {
 
       mkdirSync(this.config.dirPtau, {recursive: true});
 
-      this.log('Downloading ' + ptauName + '...');
+      this.log.info(`Downloading ${ptauName}, this may take a while.`);
       return await downloadPtau(ptauName, this.config.dirPtau);
     }
   }
@@ -233,16 +163,16 @@ export class Circomkit {
    */
   async compile(circuit: string, config?: CircuitConfig) {
     const targetPath = this.instantiate(circuit, config);
-    this.log('Main component created at: ' + targetPath, 'debug');
+    this.log.debug('Main component created at: ' + targetPath);
 
-    const outDir = this.path(circuit, 'dir');
+    const outDir = this.path.ofCircuit(circuit, 'dir');
 
     const {stdout, stderr} = await compileCircuit(this.config, targetPath, outDir);
     if (this.config.verbose) {
-      this.log(stdout);
+      this.log.info(stdout);
     }
     if (stderr) {
-      this.log(stderr, 'error');
+      this.log.error(stderr);
     }
     return outDir;
   }
@@ -251,7 +181,7 @@ export class Circomkit {
    * @returns path of the exported Solidity contract
    */
   async contract(circuit: string) {
-    const pkey = this.path(circuit, 'pkey');
+    const pkey = this.path.ofCircuit(circuit, 'pkey');
     const template = readFileSync(`./node_modules/snarkjs/templates/verifier_${this.config.protocol}.sol.ejs`, 'utf-8');
     const contractCode = await snarkjs.zKey.exportSolidityVerifier(
       pkey,
@@ -259,7 +189,7 @@ export class Circomkit {
       this.snarkjsLogger
     );
 
-    const contractPath = this.path(circuit, 'sol');
+    const contractPath = this.path.ofCircuit(circuit, 'sol');
     writeFileSync(contractPath, contractCode);
     return contractPath;
   }
@@ -268,12 +198,13 @@ export class Circomkit {
    * @returns calldata
    */
   async calldata(circuit: string, input: string): Promise<string> {
-    const pubs: snarkjs.PublicSignals = JSON.parse(await readFile(this.pathWithInput(circuit, input, 'pubs'), 'utf-8'));
+    const pubs: snarkjs.PublicSignals = JSON.parse(
+      await readFile(this.path.ofCircuitWithInput(circuit, input, 'pubs'), 'utf-8')
+    );
     const proof: snarkjs.Groth16Proof & snarkjs.PlonkProof & snarkjs.FflonkProof = JSON.parse(
-      await readFile(this.pathWithInput(circuit, input, 'proof'), 'utf-8')
+      await readFile(this.path.ofCircuitWithInput(circuit, input, 'proof'), 'utf-8')
     );
 
-    // const res = await snarkjs[this.config.protocol].exportSolidityCallData(proof as any, pubs as any);
     const res = getCalldata(proof, pubs, this.config.prettyCalldata);
     return res;
   }
@@ -311,27 +242,19 @@ export class Circomkit {
       file = '../'.repeat(filePrefixMatches.length) + file;
     }
 
-    // generate the code for `main` component
-    const circuitCode = makeCircuit({
+    const config = {
       file: file,
       template: circuitConfig.template,
       version: circuitConfig.version || '2.0.0',
       dir: directory,
       pubs: circuitConfig.pubs || [],
       params: circuitConfig.params || [],
-    });
+    };
 
-    // check the target directory
     const targetDir = `${this.config.dirCircuits}/${directory}`;
-    if (!existsSync(targetDir)) {
-      mkdirSync(targetDir, {
-        recursive: true,
-      });
-    }
-
-    // write main component to file
     const targetPath = `${targetDir}/${circuit}.circom`;
-    writeFileSync(targetPath, circuitCode);
+
+    instantiateCircuit(config, targetDir, targetPath);
 
     return targetPath;
   }
@@ -344,20 +267,20 @@ export class Circomkit {
    */
   async prove(circuit: string, input: string, data?: CircuitSignals): Promise<string> {
     // create WASM if needed
-    const wasmPath = this.path(circuit, 'wasm');
+    const wasmPath = this.path.ofCircuit(circuit, 'wasm');
     if (!existsSync(wasmPath)) {
-      this.log('WASM file does not exist, creating it now...', 'warn');
+      this.log.warn('WASM file does not exist, creating it now...');
       await this.compile(circuit);
     }
 
     // create PKEY if needed
-    const pkeyPath = this.path(circuit, 'pkey');
+    const pkeyPath = this.path.ofCircuit(circuit, 'pkey');
     if (!existsSync(pkeyPath)) {
-      this.log('Prover key does not exist, creating it now...', 'warn');
+      this.log.warn('Prover key does not exist, creating it now...');
       await this.setup(circuit);
     }
 
-    const jsonInput = data || JSON.parse(readFileSync(this.pathWithInput(circuit, input, 'in'), 'utf-8'));
+    const jsonInput = data ?? JSON.parse(readFileSync(this.path.ofCircuitWithInput(circuit, input, 'in'), 'utf-8'));
 
     const {proof, publicSignals} = await snarkjs[this.config.protocol].fullProve(
       jsonInput,
@@ -366,11 +289,11 @@ export class Circomkit {
       this.snarkjsLogger
     );
 
-    const dir = this.pathWithInput(circuit, input, 'dir');
+    const dir = this.path.ofCircuitWithInput(circuit, input, 'dir');
     mkdirSync(dir, {recursive: true});
     await Promise.all([
-      writeFile(this.pathWithInput(circuit, input, 'pubs'), prettyStringify(publicSignals)),
-      writeFile(this.pathWithInput(circuit, input, 'proof'), prettyStringify(proof)),
+      writeFile(this.path.ofCircuitWithInput(circuit, input, 'pubs'), prettyStringify(publicSignals)),
+      writeFile(this.path.ofCircuitWithInput(circuit, input, 'proof'), prettyStringify(proof)),
     ]);
     return dir;
   }
@@ -383,46 +306,45 @@ export class Circomkit {
    * @returns path of the verifier key and prover key
    */
   async setup(circuit: string, ptauPath?: string): Promise<{proverKeyPath: string; verifierKeyPath: string}> {
-    const r1csPath = this.path(circuit, 'r1cs');
-    const pkeyPath = this.path(circuit, 'pkey');
-    const vkeyPath = this.path(circuit, 'vkey');
+    const r1csPath = this.path.ofCircuit(circuit, 'r1cs');
+    const pkeyPath = this.path.ofCircuit(circuit, 'pkey');
+    const vkeyPath = this.path.ofCircuit(circuit, 'vkey');
 
     // create R1CS if needed
     if (!existsSync(r1csPath)) {
-      this.log('R1CS does not exist, creating it now...', 'warn');
+      this.log.warn('R1CS does not exist, creating it now.');
       await this.compile(circuit);
     }
 
     // get ptau path
-    this.log('Checking for PTAU file...', 'debug');
-
     if (ptauPath === undefined) {
+      this.log.info('No PTAU was provided, downloading it.');
       // if no ptau is given, we can download it
       if (this.config.prime !== 'bn128') {
-        throw new Error('Please provide PTAU file when using a prime field other than bn128');
+        throw new Error('Can not download PTAU file when using a prime field other than bn128');
       }
       ptauPath = await this.ptau(circuit);
     } else if (!existsSync(ptauPath)) {
       // if the provided path does not exist, we can download it anyways
-      this.log('PTAU path was given but no PTAU exists there, downloading it anyways.', 'warn');
+      this.log.warn('PTAU path was given but no PTAU exists there, downloading it anyways.');
       ptauPath = await this.ptau(circuit);
     }
 
     // circuit specific setup
-    this.log('Beginning setup phase!', 'info');
+    this.log.info('Beginning setup phase!');
     if (this.config.protocol === 'groth16') {
       // Groth16 needs a circuit specific setup
 
       // generate genesis zKey
-      let curZkey = this.pathZkey(circuit, 0);
+      let curZkey = this.path.ofZkey(circuit, 0);
       await snarkjs.zKey.newZKey(r1csPath, ptauPath, curZkey, this.snarkjsLogger);
 
       // make contributions
       for (let contrib = 1; contrib <= this.config.groth16numContributions; contrib++) {
-        const nextZkey = this.pathZkey(circuit, contrib);
+        const nextZkey = this.path.ofZkey(circuit, contrib);
 
         // entropy, if user wants to prompt give undefined
-        this.log(`Making contribution: ${contrib}`, 'info');
+        this.log.info(`Making contribution: ${contrib}`);
         await snarkjs.zKey.contribute(
           curZkey,
           nextZkey,
@@ -456,9 +378,9 @@ export class Circomkit {
     const [vkey, pubs, proof] = (
       await Promise.all(
         [
-          this.path(circuit, 'vkey'),
-          this.pathWithInput(circuit, input, 'pubs'),
-          this.pathWithInput(circuit, input, 'proof'),
+          this.path.ofCircuit(circuit, 'vkey'),
+          this.path.ofCircuitWithInput(circuit, input, 'pubs'),
+          this.path.ofCircuitWithInput(circuit, input, 'proof'),
         ].map(path => readFile(path, 'utf-8'))
       )
     ).map(content => JSON.parse(content));
@@ -473,10 +395,10 @@ export class Circomkit {
    * @returns path of the created witness
    */
   async witness(circuit: string, input: string, data?: CircuitSignals): Promise<string> {
-    const wasmPath = this.path(circuit, 'wasm');
-    const wtnsPath = this.pathWithInput(circuit, input, 'wtns');
-    const outDir = this.pathWithInput(circuit, input, 'dir');
-    const jsonInput = data || JSON.parse(readFileSync(this.pathWithInput(circuit, input, 'in'), 'utf-8'));
+    const wasmPath = this.path.ofCircuit(circuit, 'wasm');
+    const wtnsPath = this.path.ofCircuitWithInput(circuit, input, 'wtns');
+    const outDir = this.path.ofCircuitWithInput(circuit, input, 'dir');
+    const jsonInput = data ?? JSON.parse(readFileSync(this.path.ofCircuitWithInput(circuit, input, 'in'), 'utf-8'));
 
     mkdirSync(outDir, {recursive: true});
     await snarkjs.wtns.calculate(jsonInput, wasmPath, wtnsPath);
@@ -491,9 +413,9 @@ export class Circomkit {
    * @returns path of the created input file
    */
   input(circuit: string, input: string, data: CircuitSignals): string {
-    const inputPath = this.pathWithInput(circuit, input, 'in');
+    const inputPath = this.path.ofCircuitWithInput(circuit, input, 'in');
     if (existsSync(inputPath)) {
-      this.log('Input file exists already, overwriting it.', 'warn');
+      this.log.warn('Input file exists already, overwriting it.');
     }
     writeFileSync(inputPath, prettyStringify(data));
     return inputPath;
@@ -506,7 +428,6 @@ export class Circomkit {
    *
    * @returns a JSON object or the path that it would be exported to.
    */
-
   async json(type: 'r1cs' | 'zkey', circuit: string): Promise<{json: object; path: string}>;
   async json(type: 'wtns', circuit: string, input: string): Promise<{json: object; path: string}>;
   async json(type: 'r1cs' | 'zkey' | 'wtns', circuit: string, input?: string): Promise<{json: object; path: string}> {
@@ -516,7 +437,7 @@ export class Circomkit {
     switch (type) {
       // R1CS
       case 'r1cs': {
-        path = this.path(circuit, 'r1cs');
+        path = this.path.ofCircuit(circuit, 'r1cs');
         json = await snarkjs.r1cs.exportJson(path, undefined); // internal log didnt make sense
         break;
       }
@@ -527,14 +448,14 @@ export class Circomkit {
           throw new Error('Exporting zKey to JSON is only supported for Groth16 at the moment.');
         }
 
-        path = this.path(circuit, 'pkey');
+        path = this.path.ofCircuit(circuit, 'pkey');
         json = await snarkjs.zKey.exportJson(path);
         break;
       }
       // Witness
       case 'wtns': {
         if (!input) throw new Error('Expected input');
-        path = this.pathWithInput(circuit, input, 'wtns');
+        path = this.path.ofCircuitWithInput(circuit, input, 'wtns');
         json = await snarkjs.wtns.exportJson(path);
         break;
       }
@@ -576,11 +497,10 @@ export class Circomkit {
     circuit: string,
     protocol: P
   ) {
-    const wasmPath = this.path(circuit, 'wasm');
-    const pkeyPath = this.path(circuit, 'pkey');
-    const vkeyPath = this.path(circuit, 'vkey');
+    const wasmPath = this.path.ofCircuit(circuit, 'wasm');
+    const pkeyPath = this.path.ofCircuit(circuit, 'pkey');
+    const vkeyPath = this.path.ofCircuit(circuit, 'vkey');
 
-    // check if all files are present
     const missingPaths = [wasmPath, pkeyPath, vkeyPath].filter(p => !existsSync(p));
     if (missingPaths.length !== 0) {
       throw new Error('Missing files: ' + missingPaths.join(', '));
