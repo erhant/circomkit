@@ -1,6 +1,5 @@
-export {Circomkit} from './circomkit';
+export {Circomkit} from './core';
 
-// TODO: make these type exports only on next minor version
-export {ProofTester, WitnessTester} from './testers/';
-export type {CircuitSignals, CircuitConfig} from './types/circuit';
-export type {CircomkitConfig} from './types/circomkit';
+export type {ProofTester, WitnessTester} from './testers/';
+export type {CircuitSignals, CircuitConfig} from './types';
+export type {CircomkitConfig} from './configs';

@@ -3,8 +3,16 @@ import {Circomkit, WitnessTester} from '../src';
 describe('errors', () => {
   let circuit: WitnessTester<['in', 'inin'], ['out']>;
 
-  before(async () => {
-    const circomkit = new Circomkit({verbose: false, logLevel: 'silent'});
+  beforeAll(async () => {
+    const circomkit = new Circomkit({
+      verbose: false,
+      logLevel: 'silent',
+      circuits: './tests/circuits.json',
+      dirPtau: './tests/ptau',
+      dirCircuits: './tests/circuits',
+      dirInputs: './tests/inputs',
+      dirBuild: './tests/build',
+    });
     circuit = await circomkit.WitnessTester('error_rt', {file: 'errors', template: 'Errors'});
   });
 

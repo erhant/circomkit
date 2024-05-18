@@ -23,7 +23,17 @@
       }
     ]
   },
-  "ignorePatterns": ["build", "node_modules", "ptau", "circuits", "inputs", "dist", ".vscode", ".github"],
+  "ignorePatterns": [
+    "build",
+    "node_modules",
+    "ptau",
+    "circuits",
+    "inputs",
+    "dist",
+    ".vscode",
+    ".github",
+    "jest.config.js"
+  ],
   "overrides": [
     {
       "files": ["**/*.ts", "**/*.tsx"],

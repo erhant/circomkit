@@ -1,18 +1,16 @@
 import type {LogLevelDesc} from 'loglevel';
 
-/**
- * Primes supported by Circom, as described for the `-p` option.
- * @see https://github.com/iden3/circom/blob/master/program_structure/src/utils/constants.rs
- */
-export type CircomkitPrimes = 'bn128' | 'bls12381' | 'goldilocks' | 'grumpkin' | 'pallas' | 'vesta' | 'secq256r1';
-
-export type CircomkitProtocol = 'groth16' | 'plonk' | 'fflonk';
+export const PROTOCOLS = ['groth16', 'plonk', 'fflonk'] as const;
+export const PRIMES = ['bn128', 'bls12381', 'goldilocks', 'grumpkin', 'pallas', 'vesta', 'secq256r1'] as const;
 
 export type CircomkitConfig = {
-  /** Protocol to be used. */
-  protocol: CircomkitProtocol;
-  /** Underlying prime field. */
-  prime: CircomkitPrimes;
+  /** Protocol (proof system) to be used. */
+  protocol: (typeof PROTOCOLS)[number];
+  /**
+   * Primes supported by Circom, as described for the `-p` option.
+   * @see https://github.com/iden3/circom/blob/master/program_structure/src/utils/constants.rs
+   */
+  prime: (typeof PRIMES)[number];
   /** Circuit configurations path. */
   circuits: string;
   /** Directory to read circuits from. */
@@ -53,10 +51,30 @@ export type CircomkitConfig = {
   prettyCalldata: false;
 };
 
-/** Shorthand notations for which path to build in Circomkit. These paths require a circuit name. */
-export type CircuitPathBuilders = 'main' | 'sym' | 'pkey' | 'vkey' | 'wasm' | 'sol' | 'dir' | 'r1cs';
-
-/** Shorthand notations for which path to build in Circomkit. These paths require a circuit name and input name. */
-export type CircuitInputPathBuilders = 'pubs' | 'proof' | 'wtns' | 'in' | 'dir';
-
-export type CircomkitConfigOverrides = Partial<CircomkitConfig>;
+/** Default configurations */
+export const DEFAULT = Object.seal<Readonly<CircomkitConfig>>({
+  // general settings
+  protocol: 'groth16',
+  prime: 'bn128',
+  version: '2.1.0',
+  // directories & paths
+  circuits: './circuits.json',
+  dirPtau: './ptau',
+  dirCircuits: './circuits',
+  dirInputs: './inputs',
+  dirBuild: './build',
+  circomPath: 'circom',
+  // compiler-specific
+  optimization: 1,
+  inspect: true,
+  include: ['./node_modules'],
+  cWitness: false,
+  // groth16 phase-2 settings
+  groth16numContributions: 1,
+  groth16askForEntropy: false,
+  // solidity & calldata
+  prettyCalldata: false,
+  // logger
+  logLevel: 'INFO',
+  verbose: true,
+});

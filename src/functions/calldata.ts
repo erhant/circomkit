@@ -1,15 +1,5 @@
 import type {FflonkProof, Groth16Proof, PlonkProof, PublicSignals} from 'snarkjs';
 
-/** Makes each value 32-bytes long hexadecimal. Does not check for overflows! */
-function valuesToPaddedUint256s(vals: string[]) {
-  return vals.map(val => '0x' + BigInt(val).toString(16).padStart(64, '0'));
-}
-
-/** Wraps a string with double quotes. */
-function withQuotes(vals: string[]) {
-  return vals.map(val => `"${val}"`);
-}
-
 /**
  * Returns a calldata for the given proof & public signals, with regards to a Solidity verifier contract.
  *
@@ -96,11 +86,10 @@ function plonkCalldata(proof: PlonkProof, pretty: boolean = false) {
 
 function groth16Calldata(proof: Groth16Proof, pretty: boolean) {
   const pA = valuesToPaddedUint256s([proof.pi_a[0], proof.pi_a[1]]);
-  const pC = valuesToPaddedUint256s([proof.pi_c[0], proof.pi_c[1]]);
-
-  // note that pB are reversed, notice the indexing is [1] and [0] instead of [0] and [1].
+  // note that pB are reversed, the indexing is [1] and [0] instead of [0] and [1].
   const pB0 = valuesToPaddedUint256s([proof.pi_b[0][1], proof.pi_b[0][0]]);
   const pB1 = valuesToPaddedUint256s([proof.pi_b[1][1], proof.pi_b[1][0]]);
+  const pC = valuesToPaddedUint256s([proof.pi_c[0], proof.pi_c[1]]);
 
   if (pretty) {
     // the eternal struggle between "should i use a template literal" or "join with \n"
@@ -116,4 +105,18 @@ function groth16Calldata(proof: Groth16Proof, pretty: boolean) {
       `[${withQuotes(pC).join(', ')}]`,
     ].join('\n');
   }
+}
+
+/** Converts each hex-string in the array to 32-bytes long hexadecimal with 0x prefix. */
+function valuesToPaddedUint256s(values: string[]) {
+  return values.map(hexStr => {
+    const ans = '0x' + BigInt(hexStr).toString(16).padStart(64, '0');
+    if (ans.length !== 66) throw new Error('uint256 overflow: ' + hexStr);
+    return ans;
+  });
+}
+
+/** Wraps each string in the array with double quotes. */
+function withQuotes(vals: string[]) {
+  return vals.map(val => `"${val}"`);
 }

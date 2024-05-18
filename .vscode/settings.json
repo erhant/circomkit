@@ -6,7 +6,8 @@
     "inputs": "Json",
     "ptau": "Secure",
     "zkey": "Functions",
-    "ejs": "JavaScript"
+    "ejs": "JavaScript",
+    "testers": "Test"
   },
   // https://raw.githubusercontent.com/PKief/vscode-material-icon-theme/main/images/fileIcons.png
   "material-icon-theme.files.associations": {
