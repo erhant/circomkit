@@ -4,6 +4,8 @@ module.exports = {
   testEnvironment: 'node',
   verbose: true,
   rootDir: './tests',
+  globalTeardown: '<rootDir>/hooks/teardown.js',
+  forceExit: true,
   transform: {
     '^.+\\.test.(ts|js)$': [
       'ts-jest',

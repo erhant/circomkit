@@ -1,5 +1,8 @@
 import * as snarkjs from 'snarkjs';
-const wasm_tester = require('circom_tester').wasm;
+
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
+import {wasm as wasm_tester} from 'circom_tester';
 import {writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, renameSync} from 'fs';
 import {readFile, rm, writeFile} from 'fs/promises';
 import {randomBytes} from 'crypto';
@@ -195,9 +198,10 @@ export class Circomkit {
   }
 
   /** Export calldata to call a Verifier contract.
+   *
    * @returns calldata
    */
-  async calldata(circuit: string, input: string): Promise<string> {
+  async calldata(circuit: string, input: string, pretty?: boolean): Promise<string> {
     const pubs: snarkjs.PublicSignals = JSON.parse(
       await readFile(this.path.ofCircuitWithInput(circuit, input, 'pubs'), 'utf-8')
     );
@@ -205,7 +209,7 @@ export class Circomkit {
       await readFile(this.path.ofCircuitWithInput(circuit, input, 'proof'), 'utf-8')
     );
 
-    const res = getCalldata(proof, pubs, this.config.prettyCalldata);
+    const res = getCalldata(proof, pubs, pretty ?? this.config.prettyCalldata);
     return res;
   }
 

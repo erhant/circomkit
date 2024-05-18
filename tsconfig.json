@@ -9,12 +9,13 @@
     "pretty": true,
     "strict": true,
     "skipLibCheck": true,
-    "target": "ES6",
+    "types": ["jest", "node"],
     // to be used with bundler: pkgroll
     "moduleResolution": "Bundler",
     "module": "Preserve",
-    "types": ["jest", "node"]
+    "target": "ES6"
   },
-  "include": ["src/**/*.*", "tests/**/*.ts"],
-  "exclude": ["node_modules", "tests"]
+  "files": ["./hardhat.config.ts"],
+  "include": ["src/**/*.*", "tests/**/*.*"],
+  "exclude": ["node_modules"]
 }

@@ -31,16 +31,17 @@ Circomkit can be installed via:
 npm  install circomkit
 pnpm install circomkit
 yarn add     circomkit
+bun  add     circomkit
 ```
 
 You will also need [Circom](https://docs.circom.io), which can be installed following the instructions [here](https://docs.circom.io/getting-started/installation/).
 
 ## Usage
 
-You can setup a new project with the following:
+You can see available commands with:
 
 ```sh
-npx circomkit init
+npx circomkit help
 ```
 
 You can check out examples at the [circomkit-examples](https://github.com/erhant/circomkit-examples) repository.
@@ -324,12 +325,12 @@ circomkit
 Run all tests via:
 
 ```sh
-yarn test
+pnpm test
 ```
 
 > [!TIP]
 >
-> You can also use the CLI while developing Circomkit locally via `yarn cli` as if you are using `npx circomkit`. This is useful for hands-on testing stuff.
+> You can also use the CLI while developing Circomkit locally via `pnpm cli` as if you are using `npx circomkit`. This is useful for hands-on testing stuff.
 
 ## Styling
 
@@ -337,13 +338,10 @@ Circomkit uses [Google TypeScript Style Guide](https://google.github.io/stylegui
 
 ```sh
 # check the formatting
-yarn format
+pnpm format
 
 # lint everything
-yarn lint
-
-# do both at once
-yarn style
+pnpm lint
 ```
 
 ## Acknowledgements

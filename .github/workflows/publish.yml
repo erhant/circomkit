@@ -1,4 +1,4 @@
-name: Publish to NPM
+name: npm
 
 on:
   release:
@@ -8,16 +8,27 @@ jobs:
   publish:
     runs-on: ubuntu-latest
 
+    strategy:
+      matrix:
+        node-version: [20]
+
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v3
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
         with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
+          version: 9
 
-      - run: yarn
-      - run: yarn build
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
       - uses: JS-DevTools/npm-publish@v3
         id: publish
         with:

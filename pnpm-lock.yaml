@@ -5,6 +5,9 @@ settings:
   excludeLinksFromLockfile: false
 
 dependencies:
+  '@types/snarkjs':
+    specifier: ^0.7.8
+    version: 0.7.8
   circom_tester:
     specifier: ^0.0.19
     version: 0.0.19
@@ -22,27 +25,15 @@ devDependencies:
   '@commander-js/extra-typings':
     specifier: ^12.0.1
     version: 12.0.1(commander@12.1.0)
-  '@nomicfoundation/hardhat-chai-matchers':
-    specifier: ^2.0.0
-    version: 2.0.6(@nomicfoundation/hardhat-ethers@3.0.6)(chai@4.4.1)(ethers@6.12.1)(hardhat@2.22.4)
   '@nomicfoundation/hardhat-ethers':
     specifier: ^3.0.0
     version: 3.0.6(ethers@6.12.1)(hardhat@2.22.4)
-  '@nomicfoundation/hardhat-ignition':
-    specifier: ^0.15.0
-    version: 0.15.4(@nomicfoundation/hardhat-verify@2.0.7)(hardhat@2.22.4)
-  '@nomicfoundation/hardhat-ignition-ethers':
-    specifier: ^0.15.0
-    version: 0.15.4(@nomicfoundation/hardhat-ethers@3.0.6)(@nomicfoundation/hardhat-ignition@0.15.4)(@nomicfoundation/ignition-core@0.15.4)(ethers@6.12.1)(hardhat@2.22.4)
   '@nomicfoundation/hardhat-network-helpers':
     specifier: ^1.0.0
     version: 1.0.10(hardhat@2.22.4)
   '@nomicfoundation/hardhat-toolbox':
     specifier: ^5.0.0
     version: 5.0.0(@nomicfoundation/hardhat-chai-matchers@2.0.6)(@nomicfoundation/hardhat-ethers@3.0.6)(@nomicfoundation/hardhat-ignition-ethers@0.15.4)(@nomicfoundation/hardhat-network-helpers@1.0.10)(@nomicfoundation/hardhat-verify@2.0.7)(@typechain/ethers-v6@0.5.1)(@typechain/hardhat@9.1.0)(@types/chai@4.3.16)(@types/mocha@10.0.6)(@types/node@18.19.33)(chai@4.4.1)(ethers@6.12.1)(hardhat-gas-reporter@1.0.10)(hardhat@2.22.4)(solidity-coverage@0.8.12)(ts-node@10.9.2)(typechain@8.3.2)(typescript@5.4.5)
-  '@nomicfoundation/hardhat-verify':
-    specifier: ^2.0.0
-    version: 2.0.7(hardhat@2.22.4)
   '@typechain/ethers-v6':
     specifier: ^0.5.0
     version: 0.5.1(ethers@6.12.1)(typechain@8.3.2)(typescript@5.4.5)
@@ -55,9 +46,6 @@ devDependencies:
   '@types/node':
     specifier: ^18.11.18
     version: 18.19.33
-  '@types/snarkjs':
-    specifier: ^0.7.8
-    version: 0.7.8
   '@typescript-eslint/eslint-plugin':
     specifier: ^6.13.1
     version: 6.21.0(@typescript-eslint/parser@6.21.0)(eslint@8.57.0)(typescript@5.4.5)
@@ -82,9 +70,6 @@ devDependencies:
   hardhat:
     specifier: ^2.14.0
     version: 2.22.4(ts-node@10.9.2)(typescript@5.4.5)
-  hardhat-gas-reporter:
-    specifier: ^1.0.8
-    version: 1.0.10(hardhat@2.22.4)
   jest:
     specifier: ^29.7.0
     version: 29.7.0(@types/node@18.19.33)(ts-node@10.9.2)
@@ -97,18 +82,12 @@ devDependencies:
   solc:
     specifier: ^0.8.25
     version: 0.8.25
-  solidity-coverage:
-    specifier: ^0.8.0
-    version: 0.8.12(hardhat@2.22.4)
   ts-jest:
     specifier: ^29.1.2
     version: 29.1.2(@babel/core@7.24.5)(jest@29.7.0)(typescript@5.4.5)
   ts-node:
     specifier: ^10.9.1
     version: 10.9.2(@types/node@18.19.33)(typescript@5.4.5)
-  typechain:
-    specifier: ^8.3.0
-    version: 8.3.2(typescript@5.4.5)
   typescript:
     specifier: ^5.3.2
     version: 5.4.5
@@ -2370,7 +2349,7 @@ packages:
 
   /@types/snarkjs@0.7.8:
     resolution: {integrity: sha512-x37Jsv1vx6I6RMJdfvYEmDUOLYgzYMecwlk13gniDOcN20xLVe9hy9DlQxWeCPirqpDY/jwugQSqCi2RxehU3g==}
-    dev: true
+    dev: false
 
   /@types/stack-utils@2.0.3:
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}

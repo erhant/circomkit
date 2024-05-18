@@ -45,9 +45,9 @@ export function prepareMultiplier(N: number, order: bigint = primes['bn128']) {
   // TOTAL: 3*N - 1
   const size = 3 * N - 1;
 
-  const numbers: bigint[] = Array.from({length: N}, () => 2n + BigInt('0x' + randomBytes(8).toString('hex')));
+  const numbers: bigint[] = Array.from({length: N}, () => BigInt(2) + BigInt('0x' + randomBytes(8).toString('hex')));
   const product: bigint = numbers.reduce((prev, acc) => acc * prev) % order;
-  const malicious: bigint[] = Array.from({length: N}, () => 1n);
+  const malicious: bigint[] = Array.from({length: N}, () => BigInt(1));
   malicious[0] = product;
 
   const signals = {
