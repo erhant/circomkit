@@ -9,5 +9,8 @@
     "template": "Arrays",
     "params": [2, 3],
     "pubs": ["in1D", "in2D"]
+  },
+  "has_main": {
+    "file": "has_main"
   }
 }

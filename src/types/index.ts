@@ -34,8 +34,8 @@ export type SymbolsType = {
 export type CircuitConfig = {
   /** File to read the template from */
   file: string;
-  /** The template name to instantiate */
-  template: string;
+  /** The template name to instantiate, undefined to skip instantiation (main template already exists)  */
+  template: string | undefined;
   /** Directory to instantiate at */
   dir?: string;
   /** Target version */

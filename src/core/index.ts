@@ -235,6 +235,10 @@ export class Circomkit {
       };
     }
 
+    if (typeof circuitConfig.template === 'undefined') {
+      return `${this.config.dirCircuits}/${circuit}.circom`;
+    }
+
     // directory to output the file
     const directory = circuitConfig.dir || 'test';
 
