@@ -235,6 +235,11 @@ export class Circomkit {
       };
     }
 
+    const circomSource = readFileSync(`${this.config.dirCircuits}/${circuitConfig.file}.circom`, 'utf8');
+    const usesCustomTemplates = circomSource
+      .replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '') // Remove single and multi-line comments
+      .includes('pragma custom_templates;');
+
     // directory to output the file
     const directory = circuitConfig.dir || 'test';
 
@@ -258,7 +263,7 @@ export class Circomkit {
     const targetDir = `${this.config.dirCircuits}/${directory}`;
     const targetPath = `${targetDir}/${circuit}.circom`;
 
-    instantiateCircuit(config, targetDir, targetPath);
+    instantiateCircuit(config, targetDir, targetPath, usesCustomTemplates);
 
     return targetPath;
   }

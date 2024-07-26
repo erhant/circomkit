@@ -78,6 +78,27 @@ describe('configuring the C witness generator', () => {
   });
 });
 
+describe('compiling circuits with custom_templates', () => {
+  const CONFIG = {
+    verbose: false,
+    logLevel: 'silent',
+    dirPtau: './tests/ptau',
+    dirInputs: './tests/inputs',
+    dirBuild: './tests/build',
+    dirCircuits: './tests/circuits',
+    circuits: './tests/circuits.json',
+  } as const;
+  const CIRCUIT_NAME = 'uses_custom_templates';
+
+  it('should compile correctly', async () => {
+    const circomkit = new Circomkit({...CONFIG});
+
+    const outPath = await circomkit.compile(CIRCUIT_NAME);
+    expect(existsSync(`${outPath}/${CIRCUIT_NAME}_js`)).toBe(true);
+    rmSync(`${outPath}/${CIRCUIT_NAME}_js`, {recursive: true});
+  });
+});
+
 describe('compiling under different directories', () => {
   const cases = [
     {
