@@ -255,7 +255,7 @@ export class Circomkit {
       file: file,
       template: circuitConfig.template,
       version: circuitConfig.version || '2.0.0',
-      usesCustomTemplates,
+      usesCustomTemplates: circuitConfig.usesCustomTemplates || usesCustomTemplates,
       dir: directory,
       pubs: circuitConfig.pubs || [],
       params: circuitConfig.params || [],
