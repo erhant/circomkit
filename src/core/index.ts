@@ -255,6 +255,7 @@ export class Circomkit {
       file: file,
       template: circuitConfig.template,
       version: circuitConfig.version || '2.0.0',
+      usesCustomTemplates,
       dir: directory,
       pubs: circuitConfig.pubs || [],
       params: circuitConfig.params || [],
@@ -263,7 +264,7 @@ export class Circomkit {
     const targetDir = `${this.config.dirCircuits}/${directory}`;
     const targetPath = `${targetDir}/${circuit}.circom`;
 
-    instantiateCircuit(config, targetDir, targetPath, usesCustomTemplates);
+    instantiateCircuit(config, targetDir, targetPath);
 
     return targetPath;
   }
