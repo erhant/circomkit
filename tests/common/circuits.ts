@@ -33,7 +33,7 @@ type PreparedTestCircuit<S extends Record<string, CircuitSignals>> = {
  */
 export function prepareMultiplier(N: number, order: bigint = primes['bn128']) {
   const name = `multiplier_${N}`;
-  const config = {
+  const config: CircuitConfig = {
     file: 'multiplier',
     template: 'Multiplier',
     params: [N],

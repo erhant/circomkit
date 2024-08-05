@@ -1,5 +1,5 @@
 import {AssertionError} from 'node:assert';
-import type {CircomWasmTester, WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/';
+import type {CircomTester, WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/';
 
 // @todo detect optimized symbols https://github.com/erhant/circomkit/issues/80
 
@@ -12,12 +12,12 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
   constructor(
     /** The underlying `circom_tester` object */
-    private readonly circomWasmTester: CircomWasmTester
+    private readonly circomTester: CircomTester
   ) {}
 
   /** Assert that constraints are valid for a given witness. */
   async expectConstraintPass(witness: WitnessType): Promise<void> {
-    return this.circomWasmTester.checkConstraints(witness);
+    return this.circomTester.checkConstraints(witness);
   }
 
   /**
@@ -41,7 +41,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
   /** Compute witness given the input signals. */
   async calculateWitness(input: CircuitSignals<IN>): Promise<WitnessType> {
-    return this.circomWasmTester.calculateWitness(input, false);
+    return this.circomTester.calculateWitness(input, false);
   }
 
   /** Returns the number of constraints. */
@@ -287,13 +287,13 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * @param expectedOut computed output signals
    */
   private assertOut(actualOut: WitnessType, expectedOut: CircuitSignals<OUT>): Promise<void> {
-    return this.circomWasmTester.assertOut(actualOut, expectedOut);
+    return this.circomTester.assertOut(actualOut, expectedOut);
   }
 
   /** Loads the list of R1CS constraints to `this.constraints`. */
   private async loadConstraints(): Promise<void> {
-    await this.circomWasmTester.loadConstraints();
-    this.constraints = this.circomWasmTester.constraints;
+    await this.circomTester.loadConstraints();
+    this.constraints = this.circomTester.constraints;
   }
 
   /**
@@ -310,8 +310,8 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
   private async loadSymbols(): Promise<void> {
     // no need to check if symbols are already defined
     // that check happens within circomWasmTester
-    await this.circomWasmTester.loadSymbols();
-    this.symbols = this.circomWasmTester.symbols;
+    await this.circomTester.loadSymbols();
+    this.symbols = this.circomTester.symbols;
   }
 
   /**
@@ -319,7 +319,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * @param witness witness
    */
   private getDecoratedOutput(witness: WitnessType): Promise<string> {
-    return this.circomWasmTester.getDecoratedOutput(witness);
+    return this.circomTester.getDecoratedOutput(witness);
   }
 
   /**
@@ -327,6 +327,6 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * @deprecated this is buggy right now
    */
   private release(): Promise<void> {
-    return this.circomWasmTester.release();
+    return this.circomTester.release();
   }
 }

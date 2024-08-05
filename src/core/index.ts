@@ -3,12 +3,15 @@ import * as snarkjs from 'snarkjs';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import {wasm as wasm_tester} from 'circom_tester';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error
+import {c as c_tester} from 'circom_tester';
 import {writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, renameSync} from 'fs';
 import {readFile, rm, writeFile} from 'fs/promises';
 import {randomBytes} from 'crypto';
 import loglevel from 'loglevel';
 import {downloadPtau, getPtauName} from '../utils/ptau';
-import type {CircuitConfig, CircuitSignals, CircomWasmTester} from '../types';
+import type {CircuitConfig, CircuitSignals, CircomTester} from '../types';
 import {WitnessTester, ProofTester} from '../testers';
 import {prettyStringify} from '../utils';
 import {CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
@@ -486,12 +489,13 @@ export class Circomkit {
   /** Compiles the circuit and returns a witness tester instance. */
   async WitnessTester<IN extends string[] = [], OUT extends string[] = []>(
     circuit: string,
-    circuitConfig: CircuitConfig & {recompile?: boolean}
+    circuitConfig: CircuitConfig & {recompile?: boolean},
+    tester: 'wasm' | 'c' = 'wasm'
   ) {
     circuitConfig.dir ??= 'test'; // defaults to test directory
 
     const targetPath = this.instantiate(circuit, circuitConfig);
-    const circomWasmTester: CircomWasmTester = await wasm_tester(targetPath, {
+    const circomWasmTester: CircomTester = await (tester === 'wasm' ? wasm_tester : c_tester)(targetPath, {
       output: undefined, // this makes tests to be created under /tmp
       prime: this.config.prime,
       verbose: this.config.verbose,

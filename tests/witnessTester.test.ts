@@ -18,7 +18,7 @@ describe('witness tester', () => {
       dirInputs: './tests/inputs',
       dirBuild: './tests/build',
     });
-    circuit = await circomkit.WitnessTester(name, config);
+    circuit = await circomkit.WitnessTester(name, {...config, recompile: true}, 'c');
   });
 
   it('should have correct number of constraints', async () => {
