@@ -112,4 +112,7 @@ dist
 
 # Hardhat files
 /cache
-/artifacts 
+/artifacts
+
+# test inputs
+input.test.json

@@ -6,6 +6,7 @@ module.exports = {
   rootDir: './tests',
   globalTeardown: '<rootDir>/hooks/teardown.js',
   forceExit: true,
+  detectOpenHandles: true,
   transform: {
     '^.+\\.test.(ts|js)$': [
       'ts-jest',

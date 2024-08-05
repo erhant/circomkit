@@ -9,5 +9,9 @@
     "template": "Arrays",
     "params": [2, 3],
     "pubs": ["in1D", "in2D"]
+  },
+  "uses_custom_templates": {
+    "file": "custom_templates",
+    "template": "MyTest"
   }
 }

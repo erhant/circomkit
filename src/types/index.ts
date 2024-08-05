@@ -44,6 +44,8 @@ export type CircuitConfig = {
   pubs?: string[];
   /** An array of template parameters, defaults to `[]` */
   params?: (number | bigint)[];
+  /** Include `pragma custom_templates;` in instantiation */
+  usesCustomTemplates?: boolean;
 };
 
 /**

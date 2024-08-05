@@ -235,6 +235,15 @@ export class Circomkit {
       };
     }
 
+    const circomSource = readFileSync(`${this.config.dirCircuits}/${circuitConfig.file}.circom`, 'utf8');
+
+    // TODO: do we need regex here?
+    const usesCustomTemplates =
+      circuitConfig.usesCustomTemplates ??
+      circomSource
+        .replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '') // remove single and multi-line comments
+        .includes('pragma custom_templates;');
+
     // directory to output the file
     const directory = circuitConfig.dir || 'test';
 
@@ -246,13 +255,14 @@ export class Circomkit {
       file = '../'.repeat(filePrefixMatches.length) + file;
     }
 
-    const config = {
+    const config: Required<CircuitConfig> = {
       file: file,
       template: circuitConfig.template,
       version: circuitConfig.version || '2.0.0',
       dir: directory,
       pubs: circuitConfig.pubs || [],
       params: circuitConfig.params || [],
+      usesCustomTemplates,
     };
 
     const targetDir = `${this.config.dirCircuits}/${directory}`;

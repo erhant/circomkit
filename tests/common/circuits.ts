@@ -63,6 +63,6 @@ export function prepareMultiplier(N: number, order: bigint = primes['bn128']) {
   return {
     signals,
     circuit: {name, config, size, exact: true},
-    inputName: 'test-input',
+    inputName: 'input.test',
   } as PreparedTestCircuit<typeof signals>;
 }
