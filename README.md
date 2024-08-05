@@ -250,14 +250,13 @@ describe('proof tester', () => {
   // input signals and output signals can be given as type parameters
   // this makes all functions type-safe!
   let circuit: ProofTester<['in']>;
+  const protocol = 'plonk';
 
   beforeAll(async () => {
-    const circomkit = new Circomkit({
-      protocol: 'plonk',
-    });
+    const circomkit = new Circomkit({protocol});
     circomkit.instantiate(CIRCUIT_NAME, CIRCUIT_CONFIG);
     await circomkit.setup(CIRCUIT_NAME, PTAU_PATH);
-    circuit = await circomkit.ProofTester(CIRCUIT_NAME);
+    circuit = await circomkit.ProofTester(CIRCUIT_NAME, protocol);
   });
 
   it('should verify a proof correctly', async () => {
