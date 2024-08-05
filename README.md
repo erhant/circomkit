@@ -241,6 +241,31 @@ You can compute the witness via the `calculateWitness(input)` function. To test 
 > });
 > ```
 
+#### Using C Tester
+
+You can make use of C-based tester as well. There is a prerequisite:
+
+- Install `nlohmann-json` header that is included within the C code:
+- Install `nasm`
+- Install `gmp` (GNU Multi-precision Arithmetic Library)
+
+> [!TIP]
+>
+> If you are using Mac you can do these with brew:
+>
+> ```sh
+>
+> # install required stuff
+> brew install nlohmann-json
+> brew install nasm
+> brew install gmp
+>
+> # add brew to path if required, path may differ M2 / M1
+> export CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/opt/homebrew/include/"
+> export LIBRARY_PATH="$LIBRARY_PATH:/opt/homebrew/lib"
+> export INCLUDE_PATH="$INCLUDE_PATH:/opt/homebrew/include"
+> ```
+
 ### Proof Tester
 
 As an alternative to simulate generating a proof and verifying it, you can use Proof Tester. The proof tester makes use of WASM file, prover key and verifier key in the background. It will use the underlying Circomkit configuration to look for those files, and it can generate them automatically if they do not exist. An example using Plonk protocol is given below. Notice how we create the necessary files before creating the tester, as they are required for proof generation and verification.

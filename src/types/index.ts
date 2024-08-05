@@ -53,7 +53,7 @@ export type CircuitConfig = {
  * Not all functions may exist here, some are omitted.
  * @see https://github.com/iden3/circom_tester/blob/main/wasm/tester.js
  */
-export type CircomWasmTester = {
+export type CircomTester = {
   checkConstraints: (witness: WitnessType) => Promise<void>;
   release: () => Promise<void>;
   assertOut: (actualOut: WitnessType, expectedOut: CircuitSignals) => Promise<void>;
