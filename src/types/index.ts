@@ -40,12 +40,12 @@ export type CircuitConfig = {
   dir?: string;
   /** Target version */
   version?: `${number}.${number}.${number}`;
-  /** Include pragma custom_templates */
-  usesCustomTemplates?: boolean;
   /** An array of public input signal names, defaults to `[]` */
   pubs?: string[];
   /** An array of template parameters, defaults to `[]` */
   params?: (number | bigint)[];
+  /** Include `pragma custom_templates;` in instantiation */
+  usesCustomTemplates?: boolean;
 };
 
 /**
