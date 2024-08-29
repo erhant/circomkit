@@ -65,7 +65,7 @@ export const DEFAULT = Object.seal<Readonly<CircomkitConfig>>({
   dirBuild: './build',
   circomPath: 'circom',
   // compiler-specific
-  optimization: 1,
+  optimization: 2,
   inspect: true,
   include: ['./node_modules'],
   cWitness: false,
