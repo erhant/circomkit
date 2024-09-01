@@ -31,9 +31,10 @@ export type CircomkitConfig = {
   version: `${number}.${number}.${number}`;
   /**
    * [Optimization level](https://docs.circom.io/getting-started/compilation-options/#flags-and-options-related-to-the-r1cs-optimization).
+   * Defaults to `2` as per the Circom defaults, see [`circom/src/input_user.rs`](https://github.com/iden3/circom/blob/master/circom/src/input_user.rs#L249).
    * - `0`: No simplification is applied.
    * - `1`: Only applies `var` to `var` and `var` to `constant` simplification.
-   * - `2`: Full constraint simplificiation via Gaussian eliminations.
+   * - `2`: Full constraint simplificiation via Gaussian eliminations. (Default)
    * - `>2`: Any number higher than 2 will use `--O2round` with the number as simplification rounds.
    */
   optimization: number;
