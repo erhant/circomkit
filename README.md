@@ -95,7 +95,7 @@ npx circomkit calldata <circuit> <input>
 
 ### Circomkit Configurations
 
-Everything used by Circomkit can be optionally overridden by providing the selected fields in its constructor. Circomkit CLI does this automatically by checking out `circomkit.json` and overriding the defaults with that. You can print the active configuration via the following command:
+Everything used by Circomkit can be optionally overridden by providing the selected fields in its constructor. Circomkit CLI does this automatically by checking out [`circomkit.json`](src/configs/index.ts#L56) and overriding the defaults with that. You can print the active configuration via the following command:
 
 ```sh
 npx circomkit config

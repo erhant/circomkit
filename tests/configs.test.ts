@@ -100,6 +100,11 @@ describe('compiling circuits with custom_templates', () => {
 });
 
 describe('compiling under different directories', () => {
+
+  // Fibonacci circuits have only addition constraints so
+  // optimization levels >= 2 result in zero constraints and an invalid r1cs
+  const optimizationLevels = [0, 1];
+
   const cases = [
     {
       file: 'fibonacci/vanilla',
@@ -113,20 +118,21 @@ describe('compiling under different directories', () => {
     },
   ] as const;
 
-  cases.map(testcase =>
-    describe(`circomkit with explicit config & input (${testcase.circuit})`, () => {
+  optimizationLevels.map(optimization => cases.map(testcase =>
+    describe(`circomkit with explicit config (--O${optimization}) & input (${testcase.circuit})`, () => {
       let circomkit: Circomkit;
 
       beforeAll(() => {
         circomkit = new Circomkit({
           protocol: 'groth16',
+          optimization,
           verbose: false,
           logLevel: 'silent',
           circuits: './tests/circuits.json',
           dirPtau: './tests/ptau',
           dirCircuits: './tests/circuits',
           dirInputs: './tests/inputs',
-          dirBuild: './tests/build',
+          dirBuild: `./tests/build/o${optimization}`,
         });
       });
 
@@ -150,5 +156,5 @@ describe('compiling under different directories', () => {
         expect(isVerified).toBe(true);
       });
     })
-  );
+  ));
 });
