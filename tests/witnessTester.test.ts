@@ -1,6 +1,8 @@
 import {Circomkit, WitnessTester} from '../src';
 import {prepareMultiplier} from './common';
 
+// TODO: add C tester
+
 describe('witness tester', () => {
   let circuit: WitnessTester<['in'], ['out']>;
   const {
@@ -18,7 +20,7 @@ describe('witness tester', () => {
       dirInputs: './tests/inputs',
       dirBuild: './tests/build',
     });
-    circuit = await circomkit.WitnessTester(name, {...config, recompile: true}, 'c');
+    circuit = await circomkit.WitnessTester(name, {...config, recompile: true});
   });
 
   it('should have correct number of constraints', async () => {

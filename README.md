@@ -241,30 +241,11 @@ You can compute the witness via the `calculateWitness(input)` function. To test 
 > });
 > ```
 
-#### Using C Tester
+#### Using C Tester (Work in Progress ⌛)
 
-You can make use of C-based tester as well. There is a prerequisite:
+You can make use of the C-tester as well, which performs much better for larger circuits than the WASM alternative.
 
-- Install `nlohmann-json` header that is included within the C code:
-- Install `nasm`
-- Install `gmp` (GNU Multi-precision Arithmetic Library)
-
-> [!TIP]
->
-> If you are using Mac you can do these with brew:
->
-> ```sh
->
-> # install required stuff
-> brew install nlohmann-json
-> brew install nasm
-> brew install gmp
->
-> # add brew to path if required, path may differ M2 / M1
-> export CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:/opt/homebrew/include/"
-> export LIBRARY_PATH="$LIBRARY_PATH:/opt/homebrew/lib"
-> export INCLUDE_PATH="$INCLUDE_PATH:/opt/homebrew/include"
-> ```
+There may be some prerequisites to compile, and we have an [issue on this](https://github.com/erhant/circomkit/issues/88) right now until we can have a complete setup guide.
 
 ### Proof Tester
 
