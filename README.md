@@ -287,41 +287,41 @@ Circomkit with its default configuration follows an _opinionated file structure_
 
 An example structure is shown below. Suppose there is a generic circuit for a Sudoku solution knowledge proof written under `circuits` folder. When instantiated, a `main` component for a 9x9 board is created under `circuits/main`. The solution along with it's puzzle is stored as a JSON object under `inputs/sudoku_9x9`. You can see the respective artifacts under `build` directory. In particular, we see `groth16` prefix on some files, indicating that Groth16 protocol was used to create them.
 
-```sh
+```ml
 circomkit
-├── circuits.json
-├── circomkit.json
+├── circuits.json - "circuit configurations"
+├── circomkit.json - "circomkit configurations"
 │
-├── circuits
-│   ├── main
-│   │   └── sudoku_9x9.circom
-│   └── sudoku.circom
+├── circuits - "circuit codes are here"
+│   ├── main - "main components will be here"
+│   │   └── sudoku_9x9.circom - "auto-generated circuit instance"
+│   └── sudoku.circom - "circuit template"
 │
-├── inputs
-│   └── sudoku_9x9
-│       └── my_solution.json
+├── inputs - "circuit inputs are here"
+│   └── sudoku_9x9 - "folder name is the circuit instance name"
+│       └── my_solution.json - "file name is the input name"
 │
-├── ptau
+├── ptau - "PTAU files are here"
 │   └── powersOfTau28_hez_final_08.ptau
 │
-└── build
-    └── sudoku_9x9
-        ├── sudoku_9x9_js
+└── build - "build artifacts are stored here"
+    └── sudoku_9x9 - "folder name is the circuit instance name"
+        ├── sudoku_9x9_js - "WASM outputs"
         │   │── generate_witness.js
         │   │── witness_calculator.js
         │   └── sudoku_9x9.wasm
         │
-        ├── my_solution
-        │   │── proof.json
+        ├── my_solution - "folder name is the input name"
+        │   │── groth16_proof.json - "proofs are created per protocol"
         │   │── public.json
         │   └── witness.wtns
         │
         ├── sudoku_9x9.r1cs
-        ├── sudoku_9x9.sym
+        ├── sudoku_9x9.sym - "symbol file, used by tests"
         │
-        ├── groth16_pkey.zkey
-        ├── groth16_vkey.json
-        └── groth16_verifier.sol
+        ├── groth16_pkey.zkey - "proving key per protocol"
+        ├── groth16_vkey.json - "verification key per protocol"
+        └── groth16_verifier.sol - "verifier contract"
 
 ```
 
