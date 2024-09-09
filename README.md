@@ -241,6 +241,12 @@ You can compute the witness via the `calculateWitness(input)` function. To test 
 > });
 > ```
 
+#### Using C Tester (Work in Progress ⌛)
+
+You can make use of the C-tester as well, which performs much better for larger circuits than the WASM alternative.
+
+There may be some prerequisites to compile, and we have an [issue on this](https://github.com/erhant/circomkit/issues/88) right now until we can have a complete setup guide.
+
 ### Proof Tester
 
 As an alternative to simulate generating a proof and verifying it, you can use Proof Tester. The proof tester makes use of WASM file, prover key and verifier key in the background. It will use the underlying Circomkit configuration to look for those files, and it can generate them automatically if they do not exist. An example using Plonk protocol is given below. Notice how we create the necessary files before creating the tester, as they are required for proof generation and verification.

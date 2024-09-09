@@ -4,6 +4,7 @@ module.exports = {
   testEnvironment: 'node',
   verbose: true,
   rootDir: './tests',
+  testTimeout: 100000,
   globalTeardown: '<rootDir>/hooks/teardown.js',
   forceExit: true,
   detectOpenHandles: true,
