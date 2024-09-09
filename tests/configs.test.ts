@@ -100,7 +100,6 @@ describe('compiling circuits with custom_templates', () => {
 });
 
 describe('compiling under different directories', () => {
-
   // Fibonacci circuits have only addition constraints so
   // optimization levels >= 2 result in zero constraints and an invalid r1cs
   const optimizationLevels = [0, 1];
@@ -118,43 +117,45 @@ describe('compiling under different directories', () => {
     },
   ] as const;
 
-  optimizationLevels.map(optimization => cases.map(testcase =>
-    describe(`circomkit with explicit config (--O${optimization}) & input (${testcase.circuit})`, () => {
-      let circomkit: Circomkit;
+  optimizationLevels.map(optimization =>
+    cases.map(testcase =>
+      describe(`circomkit with explicit config (--O${optimization}) & input (${testcase.circuit})`, () => {
+        let circomkit: Circomkit;
 
-      beforeAll(() => {
-        circomkit = new Circomkit({
-          protocol: 'groth16',
-          optimization,
-          verbose: false,
-          logLevel: 'silent',
-          circuits: './tests/circuits.json',
-          dirPtau: './tests/ptau',
-          dirCircuits: './tests/circuits',
-          dirInputs: './tests/inputs',
-          dirBuild: `./tests/build/o${optimization}`,
-        });
-      });
-
-      it('should compile with custom config', async () => {
-        await circomkit.compile(testcase.circuit, {
-          file: testcase.file,
-          template: 'Fibonacci',
-          params: [7],
+        beforeAll(() => {
+          circomkit = new Circomkit({
+            protocol: 'groth16',
+            optimization,
+            verbose: false,
+            logLevel: 'silent',
+            circuits: './tests/circuits.json',
+            dirPtau: './tests/ptau',
+            dirCircuits: './tests/circuits',
+            dirInputs: './tests/inputs',
+            dirBuild: `./tests/build/o${optimization}`,
+          });
         });
 
-        await circomkit.info(testcase.circuit);
-      });
+        it('should compile with custom config', async () => {
+          await circomkit.compile(testcase.circuit, {
+            file: testcase.file,
+            template: 'Fibonacci',
+            params: [7],
+          });
 
-      it('should prove with custom input data', async () => {
-        const path = await circomkit.prove(testcase.circuit, testcase.input, {in: [1, 1]});
-        expect(existsSync(path)).toBe(true);
-      });
+          await circomkit.info(testcase.circuit);
+        });
 
-      it('should verify the proof', async () => {
-        const isVerified = await circomkit.verify(testcase.circuit, testcase.input);
-        expect(isVerified).toBe(true);
-      });
-    })
-  ));
+        it('should prove with custom input data', async () => {
+          const path = await circomkit.prove(testcase.circuit, testcase.input, {in: [1, 1]});
+          expect(existsSync(path)).toBe(true);
+        });
+
+        it('should verify the proof', async () => {
+          const isVerified = await circomkit.verify(testcase.circuit, testcase.input);
+          expect(isVerified).toBe(true);
+        });
+      })
+    )
+  );
 });
