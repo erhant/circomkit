@@ -96,8 +96,8 @@ export class Circomkit {
     return circuits[circuit] as CircuitConfig;
   }
 
-  /** Clear build files and the `main` component of a circuit. */
-  async clear(circuit: string): Promise<void> {
+  /** Clean build files and the `main` component of a circuit. */
+  async clean(circuit: string): Promise<void> {
     await Promise.all([
       rm(this.path.ofCircuit(circuit, 'dir'), {recursive: true, force: true}),
       rm(this.path.ofCircuit(circuit, 'main'), {force: true}),

@@ -47,11 +47,11 @@ function cli(args: string[]) {
     });
 
   ///////////////////////////////////////////////////////////////////////////////
-  const clear = new Command('clear')
-    .description('clear circuit build artifacts')
+  const clean = new Command('clean')
+    .description('clean circuit build artifacts')
     .argument('<circuit>', 'Circuit name')
     .action(async circuit => {
-      await circomkit.clear(circuit);
+      await circomkit.clean(circuit);
       circomkit.log.info('Cleaned.');
     });
 
@@ -231,7 +231,7 @@ function cli(args: string[]) {
     .addCommand(circuit)
     .addCommand(instantiate)
     .addCommand(info)
-    .addCommand(clear)
+    .addCommand(clean)
     .addCommand(contract)
     .addCommand(vkey)
     .addCommand(ptau)
