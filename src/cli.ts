@@ -4,6 +4,7 @@ import {Circomkit} from './core';
 import {existsSync, readFileSync, readdirSync, writeFileSync} from 'fs';
 import {prettyStringify} from './utils';
 import {exec} from 'child_process';
+import {teardown} from './utils/teardown';
 
 const CONFIG_PATH = './circomkit.json';
 
@@ -214,9 +215,9 @@ function cli(args: string[]) {
   });
 
   ///////////////////////////////////////////////////////////////////////////////
-  const config = new Command('config')
-    .description('print configuration')
-    .action(() => circomkit.log.info(circomkit.config));
+  const config = new Command('config').description('print configuration').action(() => {
+    circomkit.log.info(circomkit.config);
+  });
 
   ///////////////////////////////////////////////////////////////////////////////
   new Command()
@@ -241,6 +242,8 @@ function cli(args: string[]) {
     .addCommand(witness)
     .addCommand(verify)
     .addCommand(calldata)
+    // teardown to terminate SnarkJS, otherwise hangs the program
+    .hook('postAction', async () => await teardown())
     .parse(args);
 
   // TODO: test graceful exits
