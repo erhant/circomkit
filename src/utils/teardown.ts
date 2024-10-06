@@ -1,6 +1,6 @@
 declare global {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any, no-var
-  var curve_bn128: any;
+  // eslint-disable-next-line no-var
+  var curve_bn128: {terminate: () => void} | undefined;
 }
 
 export function teardown() {

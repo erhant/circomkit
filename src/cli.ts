@@ -19,7 +19,6 @@ function cli(args: string[]) {
     .action(async circuit => {
       const path = await circomkit.compile(circuit);
       circomkit.log.info('Built at:', path);
-      teardown();
 
       // TODO: pattern matching https://github.com/erhant/circomkit/issues/79
     });
@@ -31,7 +30,6 @@ function cli(args: string[]) {
     .action(async circuit => {
       const path = circomkit.instantiate(circuit);
       circomkit.log.info('Created at:', path);
-      teardown();
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -47,7 +45,6 @@ function cli(args: string[]) {
       console.log(`Number of Public Inputs: ${info.publicInputs}`);
       console.log(`Number of Public Outputs: ${info.publicOutputs}`);
       console.log(`Number of Labels: ${info.labels}`);
-      teardown();
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -57,7 +54,6 @@ function cli(args: string[]) {
     .action(async circuit => {
       await circomkit.clear(circuit);
       circomkit.log.info('Cleaned.');
-      teardown();
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -78,7 +74,6 @@ function cli(args: string[]) {
       }
 
       circomkit.log.info('Circomkit project initialized! ✨');
-      teardown();
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -94,7 +89,6 @@ function cli(args: string[]) {
           const {json, path} = await circomkit.json('r1cs', circuit);
           writeFileSync(path, prettyStringify(json));
           circomkit.log.info('Exported R1CS at: ' + path);
-          teardown();
         })
     )
     .addCommand(
@@ -105,7 +99,6 @@ function cli(args: string[]) {
           const {json, path} = await circomkit.json('zkey', circuit);
           writeFileSync(path, prettyStringify(json));
           circomkit.log.info('Exported prover key at: ' + path);
-          teardown();
         })
     )
     .addCommand(
@@ -117,7 +110,6 @@ function cli(args: string[]) {
           const {json, path} = await circomkit.json('wtns', circuit, input);
           writeFileSync(path, prettyStringify(json));
           circomkit.log.info('Exported prover key at: ' + path);
-          teardown();
         })
     );
 
@@ -128,7 +120,6 @@ function cli(args: string[]) {
     .action(async circuit => {
       const path = await circomkit.contract(circuit);
       circomkit.log.info('Created at: ' + path);
-      teardown();
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -139,7 +130,6 @@ function cli(args: string[]) {
     .action(async (circuit, input) => {
       const calldata = await circomkit.calldata(circuit, input);
       circomkit.log.info(calldata);
-      teardown();
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -150,7 +140,6 @@ function cli(args: string[]) {
     .action(async (circuit, pkeyPath) => {
       const path = await circomkit.vkey(circuit, pkeyPath);
       circomkit.log.info('Created at: ' + path);
-      teardown();
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -161,7 +150,6 @@ function cli(args: string[]) {
     .action(async (circuit, input) => {
       const path = await circomkit.prove(circuit, input);
       circomkit.log.info('Generated at: ' + path);
-      teardown();
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -176,7 +164,6 @@ function cli(args: string[]) {
       } else {
         circomkit.log.info('Verification failed!');
       }
-      teardown();
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -187,7 +174,6 @@ function cli(args: string[]) {
     .action(async (circuit, input) => {
       const path = await circomkit.witness(circuit, input);
       circomkit.log.info('Witness created: ' + path);
-      teardown();
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -199,7 +185,6 @@ function cli(args: string[]) {
       const {proverKeyPath, verifierKeyPath} = await circomkit.setup(circuit, ptauPath);
       circomkit.log.info('Prover key created: ' + proverKeyPath);
       circomkit.log.info('Verifier key created: ' + verifierKeyPath);
-      teardown();
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -209,7 +194,6 @@ function cli(args: string[]) {
     .action(async circuit => {
       const path = await circomkit.ptau(circuit);
       circomkit.log.info('PTAU ready at: ' + path);
-      teardown();
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -228,16 +212,12 @@ function cli(args: string[]) {
           .map((c, i) => `  ${i + 1}. ${c}`)
           .join('\n')
     );
-    teardown();
   });
 
   ///////////////////////////////////////////////////////////////////////////////
-  const config = new Command('config')
-    .description('print configuration')
-    .action(() => {
-      circomkit.log.info(circomkit.config)
-      teardown();
-    });
+  const config = new Command('config').description('print configuration').action(() => {
+    circomkit.log.info(circomkit.config);
+  });
 
   ///////////////////////////////////////////////////////////////////////////////
   new Command()
@@ -262,6 +242,8 @@ function cli(args: string[]) {
     .addCommand(witness)
     .addCommand(verify)
     .addCommand(calldata)
+    // teardown to terminate SnarkJS, otherwise hangs the program
+    .hook('postAction', () => teardown())
     .parse(args);
 
   // TODO: test graceful exits
