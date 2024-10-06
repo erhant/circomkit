@@ -60,8 +60,8 @@ npx circomkit instantiate <circuit>
 # Create a Solidity verifier contract
 npx circomkit contract <circuit>
 
-# Clean circuit artifacts
-npx circomkit clean <circuit>
+# Clear circuit artifacts
+npx circomkit clear <circuit>
 
 # Circuit-specific setup
 npx circomkit setup <circuit> [ptau-path]
