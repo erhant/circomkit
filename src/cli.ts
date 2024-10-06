@@ -243,7 +243,7 @@ function cli(args: string[]) {
     .addCommand(verify)
     .addCommand(calldata)
     // teardown to terminate SnarkJS, otherwise hangs the program
-    .hook('postAction', () => teardown())
+    .hook('postAction', async () => await teardown())
     .parse(args);
 
   // TODO: test graceful exits
