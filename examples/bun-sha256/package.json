@@ -1,0 +1,19 @@
+{
+  "description": "Circomkit examples",
+  "scripts": {
+    "start": "bun run ./src/index.ts",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "circomkit": "^0.3.0",
+    "circomlib": "^2.0.5"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5.1.3"
+  },
+  "prettier": {
+    "printWidth": 120,
+    "singleQuote": true
+  }
+}

@@ -32,7 +32,8 @@
     "dist",
     ".vscode",
     ".github",
-    "jest.config.js"
+    "jest.config.js",
+    "examples"
   ],
   "overrides": [
     {
