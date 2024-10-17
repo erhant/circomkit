@@ -65,6 +65,9 @@ export class Circomkit {
     if (!PROTOCOLS.includes(this.config.protocol)) {
       throw new Error('Invalid protocol in configuration.');
     }
+    if (this.config.optimization !== null && typeof this.config.optimization !== 'number') {
+      throw new Error('Invalid optimization level.');
+    }
     if (typeof this.config.optimization === 'number' && this.config.optimization < 0) {
       this.log.warn('Optimization level must be at least 0, setting it to 0.');
       this.config.optimization = 0;
