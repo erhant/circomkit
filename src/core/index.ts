@@ -65,7 +65,7 @@ export class Circomkit {
     if (!PROTOCOLS.includes(this.config.protocol)) {
       throw new Error('Invalid protocol in configuration.');
     }
-    if (this.config.optimization < 0) {
+    if (typeof this.config.optimization === 'number' && this.config.optimization < 0) {
       this.log.warn('Optimization level must be at least 0, setting it to 0.');
       this.config.optimization = 0;
     }
@@ -499,7 +499,7 @@ export class Circomkit {
       output: undefined, // this makes tests to be created under /tmp
       prime: this.config.prime,
       verbose: this.config.verbose,
-      O: Math.min(this.config.optimization, 1), // tester doesnt have O2
+      O: typeof this.config.optimization === 'number' ? Math.min(this.config.optimization, 1) : undefined, // tester doesnt have O2
       json: false,
       include: this.config.include,
       wasm: true,

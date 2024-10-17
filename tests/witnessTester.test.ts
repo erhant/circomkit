@@ -19,6 +19,7 @@ describe('witness tester', () => {
       dirCircuits: './tests/circuits',
       dirInputs: './tests/inputs',
       dirBuild: './tests/build',
+      optimization: 2,
     });
     circuit = await circomkit.WitnessTester(name, {...config, recompile: true});
   });
