@@ -27,9 +27,9 @@ const witnessPath = await circomkit.witness(circuitName, 'bunsbuns', {
 });
 console.info(`Witness created at ${witnessPath}`);
 
-// // https://github.com/oven-sh/bun/issues/11005
-// // https://github.com/iden3/snarkjs/pull/490
-// // Cant prove with Bun yet!
+// https://github.com/oven-sh/bun/issues/11005
+// https://github.com/iden3/snarkjs/pull/490
+console.log('Cant prove with Bun yet!');
 // console.info('Running prover...');
 // const proofPath = await circomkit.prove(circuitName, 'bunsbuns', {
 //   in: PREIMAGE_BYTES,

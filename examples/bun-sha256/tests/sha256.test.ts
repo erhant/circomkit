@@ -1,3 +1,4 @@
+import { describe, it, beforeAll } from 'bun:test';
 import { WitnessTester } from 'circomkit';
 import { createHash } from 'crypto';
 import { Circomkit } from 'circomkit';
