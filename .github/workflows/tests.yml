@@ -4,6 +4,16 @@ on:
   push:
     branches:
       - main
+    paths:
+      # Source files
+      - 'src/**'
+      - 'tests/**'
+      # Configurations
+      - 'circomkit.json'
+      - 'hardhat.config.ts'
+      - 'jest.config.js'
+      # workflow itself
+      - '.github/workflows/tests.yml'
 
 jobs:
   test:
