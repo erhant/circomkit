@@ -21,12 +21,14 @@ export async function compileCircuit(config: CircomkitConfig, targetPath: string
   if (config.verbose) flags += ' --verbose';
   if (config.inspect) flags += ' --inspect';
   if (config.cWitness) flags += ' --c';
-  if (config.optimization > 2) {
-    // --O2round <value>
-    flags += ` --O2round ${config.optimization}`;
-  } else {
-    // --O0, --O1 or --O2
-    flags += ` --O${config.optimization}`;
+  if (typeof config.optimization === 'number') {
+    if (config.optimization > 2) {
+      // --O2round <value>
+      flags += ` --O2round ${config.optimization}`;
+    } else {
+      // --O0, --O1 or --O2
+      flags += ` --O${config.optimization}`;
+    }
   }
 
   // call `circom` as a sub-process
