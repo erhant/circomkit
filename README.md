@@ -44,7 +44,7 @@ You can see available commands with:
 npx circomkit help
 ```
 
-You can check out examples at the [circomkit-examples](https://github.com/erhant/circomkit-examples) repository.
+You can check out examples at the [circomkit-examples](https://github.com/erhant/circomkit-examples) repository, or within the [examples](./examples/) directory here.
 
 ### Command Line Interface
 
