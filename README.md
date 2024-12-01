@@ -93,6 +93,12 @@ npx circomkit verify <circuit> <input>
 npx circomkit calldata <circuit> <input>
 ```
 
+You can also list the circuit templates and compiled instances with the command:
+
+```sh
+npx circomkit list
+```
+
 ### Circomkit Configurations
 
 Everything used by Circomkit can be optionally overridden by providing the selected fields in its constructor. Circomkit CLI does this automatically by checking out [`circomkit.json`](src/configs/index.ts#L56) and overriding the defaults with that. You can print the active configuration via the following command:
@@ -106,6 +112,7 @@ You can edit any of the fields there to fit your needs. Most importantly, you ca
 > [!NOTE]
 >
 > Using a prime other than `bn128` makes things a bit harder in circuit-specific setup, as you will have to find the PTAU files yourself, whereas in `bn128` we can use [Perpetual Powers of Tau](https://github.com/privacy-scaling-explorations/perpetualpowersoftau).
+
 
 ### Circuit Configurations
 

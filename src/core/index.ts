@@ -448,13 +448,13 @@ export class Circomkit {
    *
    * @returns a JSON object or the path that it would be exported to.
    */
-  async json(type: 'r1cs' | 'zkey', circuit: string): Promise<{json: object; path: string}>;
-  async json(type: 'wtns', circuit: string, input: string): Promise<{json: object; path: string}>;
-  async json(type: 'r1cs' | 'zkey' | 'wtns', circuit: string, input?: string): Promise<{json: object; path: string}> {
+  async json(target: 'r1cs' | 'zkey', circuit: string): Promise<{json: object; path: string}>;
+  async json(target: 'wtns', circuit: string, input: string): Promise<{json: object; path: string}>;
+  async json(target: 'r1cs' | 'zkey' | 'wtns', circuit: string, input?: string): Promise<{json: object; path: string}> {
     let json: object;
     let path: string;
 
-    switch (type) {
+    switch (target) {
       // R1CS
       case 'r1cs': {
         path = this.path.ofCircuit(circuit, 'r1cs');
@@ -480,7 +480,8 @@ export class Circomkit {
         break;
       }
       default:
-        throw new Error('Unknown export target: ' + type);
+        target satisfies never;
+        throw new Error('Unknown export target: ' + target);
     }
 
     return {
