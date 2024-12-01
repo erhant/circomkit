@@ -52,8 +52,12 @@ describe('witness tester', () => {
     const newSize = N + N - 1;
     const a = 2;
     const b = 3;
-    const aOut = Array(newSize).fill(0).map((_, i) => BigInt(i < N ? a * i : 0));
-    const bOut = Array(newSize).fill(0).map((_, i) => BigInt(i < N ? b * i : 0));
+    const aOut = Array(newSize)
+      .fill(0)
+      .map((_, i) => BigInt(i < N ? a * i : 0));
+    const bOut = Array(newSize)
+      .fill(0)
+      .map((_, i) => BigInt(i < N ? b * i : 0));
     const cOut = Array(N).fill(BigInt(a * b));
 
     const circuit2 = await circomkit.WitnessTester('multiout', {
