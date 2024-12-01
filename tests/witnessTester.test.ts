@@ -4,6 +4,7 @@ import {prepareMultiplier} from './common';
 // TODO: add C tester
 
 describe('witness tester', () => {
+  let circomkit: Circomkit;
   let circuit: WitnessTester<['in'], ['out']>;
   const {
     circuit: {name, config, size, exact},
@@ -11,7 +12,7 @@ describe('witness tester', () => {
   } = prepareMultiplier(4);
 
   beforeAll(async () => {
-    const circomkit = new Circomkit({
+    circomkit = new Circomkit({
       verbose: false,
       logLevel: 'silent',
       circuits: './tests/circuits.json',
@@ -44,6 +45,40 @@ describe('witness tester', () => {
     const output = await circuit.compute(signals.input, ['out']);
     expect(output).toHaveProperty('out');
     expect(output.out).toEqual(BigInt(signals.output.out));
+  });
+
+  it('should compute correctly with multiple output signals', async () => {
+    const N = 167;
+    const newSize = N + N - 1;
+    const a = 2;
+    const b = 3;
+    const aOut = Array(newSize).fill(0).map((_, i) => BigInt(i < N ? a * i : 0));
+    const bOut = Array(newSize).fill(0).map((_, i) => BigInt(i < N ? b * i : 0));
+    const cOut = Array(N).fill(BigInt(a * b));
+
+    const circuit2 = await circomkit.WitnessTester('multiout', {
+      file: 'multiout',
+      template: 'Multiout',
+      params: [N],
+    });
+
+    const input = {
+      a: Array(N).fill(a),
+      b: Array(N).fill(b),
+    };
+    const output = await circuit2.compute(input, ['aOut', 'bOut', 'cOut']);
+
+    expect(output).toHaveProperty('aOut');
+    expect(output).toHaveProperty('bOut');
+    expect(output).toHaveProperty('cOut');
+    expect(output.aOut).toHaveLength(newSize);
+    expect(output.bOut).toHaveLength(newSize);
+    expect(output.cOut).toHaveLength(N);
+    expect(output.aOut).toEqual(aOut);
+    expect(output.bOut).toEqual(bOut);
+    expect(output.cOut).toEqual(cOut);
+
+    await circuit2.expectPass(input, output);
   });
 
   it('should read witness correctly', async () => {
