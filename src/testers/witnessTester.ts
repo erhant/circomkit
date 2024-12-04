@@ -166,13 +166,13 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
         const vars = Object.keys(item).reduce((out, cur) => {
           // @ts-ignore
           const coeffRaw = item[cur];
-          const coeff = coeffRaw > fieldSize / 2n ? coeffRaw - fieldSize : coeffRaw;
+          const coeff = coeffRaw > fieldSize / BigInt(2) ? coeffRaw - fieldSize : coeffRaw;
           // @ts-ignore
           const varName = varsById[cur];
           out.push(
             // @ts-ignore
-            coeff === -1n && varName ? '-' + varName :
-            coeff === 1n && varName ? varName :
+            coeff === BigInt(-1) && varName ? '-' + varName :
+            coeff === BigInt(1) && varName ? varName :
             !varName ? `${coeff}` :
             `(${coeff} * ${varName})`,
           );
