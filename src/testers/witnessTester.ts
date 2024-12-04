@@ -151,7 +151,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
       const id = cur[1].varIdx;
       if(id !== -1) {
         // @ts-ignore
-        out[id] = cur[0];
+        out[id] = cur[0].slice(5); // Remove main.
       }
       return out;
     }, {});

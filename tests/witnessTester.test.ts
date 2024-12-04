@@ -35,17 +35,17 @@ describe('witness tester', () => {
     const parsedConstraints = await circuit.parseConstraints();
 
     expect(parsedConstraints.join('\n')).toEqual(
-`-main.in[0] * main.in[1] + main.inner[0] = 0
--main.inner[0] * main.in[2] + main.inner[1] = 0
--main.inner[1] * main.in[3] + main.out = 0
-main.isZero[0].in * main.isZero[0].inv - 1 = 0
-main.isZero[1].in * main.isZero[1].inv - 1 = 0
-main.isZero[2].in * main.isZero[2].inv - 1 = 0
-main.isZero[3].in * main.isZero[3].inv - 1 = 0
--1 + main.in[0] - main.isZero[0].in = 0
--1 + main.in[1] - main.isZero[1].in = 0
--1 + main.in[2] - main.isZero[2].in = 0
--1 + main.in[3] - main.isZero[3].in = 0`);
+`-in[0] * in[1] + inner[0] = 0
+-inner[0] * in[2] + inner[1] = 0
+-inner[1] * in[3] + out = 0
+isZero[0].in * isZero[0].inv - 1 = 0
+isZero[1].in * isZero[1].inv - 1 = 0
+isZero[2].in * isZero[2].inv - 1 = 0
+isZero[3].in * isZero[3].inv - 1 = 0
+-1 + in[0] - isZero[0].in = 0
+-1 + in[1] - isZero[1].in = 0
+-1 + in[2] - isZero[2].in = 0
+-1 + in[3] - isZero[3].in = 0`);
 
   });
 
