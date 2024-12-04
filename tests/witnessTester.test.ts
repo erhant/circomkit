@@ -31,6 +31,22 @@ describe('witness tester', () => {
     // should also work for non-exact too, where we expect at least some amount
     await circuit.expectConstraintCount(size!);
     await circuit.expectConstraintCount(size! - 1);
+
+    const parsedConstraints = await circuit.parseConstraints();
+
+    expect(parsedConstraints.join('\n')).toEqual(
+`-main.in[0] * main.in[1] + main.inner[0] = 0
+-main.inner[0] * main.in[2] + main.inner[1] = 0
+-main.inner[1] * main.in[3] + main.out = 0
+main.isZero[0].in * main.isZero[0].inv - 1 = 0
+main.isZero[1].in * main.isZero[1].inv - 1 = 0
+main.isZero[2].in * main.isZero[2].inv - 1 = 0
+main.isZero[3].in * main.isZero[3].inv - 1 = 0
+-1 + main.in[0] - main.isZero[0].in = 0
+-1 + main.in[1] - main.isZero[1].in = 0
+-1 + main.in[2] - main.isZero[2].in = 0
+-1 + main.in[3] - main.isZero[3].in = 0`);
+
   });
 
   it('should assert correctly', async () => {

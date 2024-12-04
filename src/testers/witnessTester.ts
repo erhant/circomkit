@@ -139,6 +139,73 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
   }
 
   /**
+   * Parse R1CS constraints into human-readable formulas.
+   */
+  async parseConstraints(): Promise<string[]> {
+    await this.loadConstraints();
+    await this.loadSymbols();
+
+    // @ts-ignore
+    const varsById = Object.entries(this.symbols).reduce((out, cur) => {
+      // @ts-ignore
+      const id = cur[1].varIdx;
+      if(id !== -1) {
+        // @ts-ignore
+        out[id] = cur[0];
+      }
+      return out;
+    }, {});
+
+    // @ts-ignore
+    const fieldSize = this.circomTester.witnessCalculator.prime;
+
+    // @ts-ignore
+    const parsedConstraints = this.constraints.map(constraint => {
+      // @ts-ignore
+      const groups = constraint.map(item => {
+        const vars = Object.keys(item).reduce((out, cur) => {
+          // @ts-ignore
+          const coeffRaw = item[cur];
+          const coeff = coeffRaw > fieldSize / 2n ? coeffRaw - fieldSize : coeffRaw;
+          // @ts-ignore
+          const varName = varsById[cur];
+          out.push(
+            // @ts-ignore
+            coeff === -1n && varName ? '-' + varName :
+            coeff === 1n && varName ? varName :
+            !varName ? `${coeff}` :
+            `(${coeff} * ${varName})`,
+          );
+          return out;
+        }, []);
+        return vars.reduce((out, cur, index) =>
+          // @ts-ignore
+          out + (index > 0 ? cur.startsWith('-') ? ` - ${cur.slice(1)}` : ` + ${cur}` : cur),
+          '');
+      })
+        // @ts-ignore
+        .map(curVar => curVar.indexOf(' ') === -1 ? curVar : `(${curVar})`);
+
+      return (
+        groups[0] +
+        (groups[1] ? ' * ' + groups[1] : '') +
+        (groups[2] ?
+          groups[2].startsWith('-') ?
+            ` + ${groups[2].slice(1)}`
+            : groups[0] || groups[1] ?
+              ' - ' + groups[2]
+              : groups[2].startsWith('(') ?
+                groups[2].slice(1, -1)
+                : groups[2]
+          : '') +
+        ' = 0'
+      );
+    });
+    // @ts-ignore
+    return parsedConstraints;
+  }
+
+  /**
    * Override witness value to try and fake a proof. If the circuit has soundness problems (i.e.
    * some signals are not constrained correctly), then you may be able to create a fake witness by
    * overriding specific values, and pass the constraints check.
