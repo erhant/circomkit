@@ -9,6 +9,7 @@ describe('witness tester', () => {
   const {
     circuit: {name, config, size, exact},
     signals,
+    parsedConstraints,
   } = prepareMultiplier(4);
 
   beforeAll(async () => {
@@ -32,20 +33,8 @@ describe('witness tester', () => {
     await circuit.expectConstraintCount(size!);
     await circuit.expectConstraintCount(size! - 1);
 
-    const parsedConstraints = await circuit.parseConstraints();
-
-    expect(parsedConstraints.join('\n')).toEqual(
-`-in[0] * in[1] + inner[0] = 0
--inner[0] * in[2] + inner[1] = 0
--inner[1] * in[3] + out = 0
-isZero[0].in * isZero[0].inv - 1 = 0
-isZero[1].in * isZero[1].inv - 1 = 0
-isZero[2].in * isZero[2].inv - 1 = 0
-isZero[3].in * isZero[3].inv - 1 = 0
--1 + in[0] - isZero[0].in = 0
--1 + in[1] - isZero[1].in = 0
--1 + in[2] - isZero[2].in = 0
--1 + in[3] - isZero[3].in = 0`);
+    const myParsedConstraints = await circuit.parseConstraints();
+    expect(myParsedConstraints).toStrictEqual(parsedConstraints);
 
   });
 
