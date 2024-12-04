@@ -161,12 +161,22 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
     // @ts-ignore
     const parsedConstraints = this.constraints.map(constraint => {
+      // Every constraint is 3 groups: <1> * <2> - <3> = 0
       // @ts-ignore
       const groups = constraint.map(item => {
+        // Each group can contain many signals (with coefficients) summed
         const vars = Object.keys(item).reduce((out, cur) => {
           // @ts-ignore
           const coeffRaw = item[cur];
-          const coeff = coeffRaw > fieldSize / BigInt(2) ? coeffRaw - fieldSize : coeffRaw;
+          // Display the coefficient as a signed value, helps a lot with -1
+          let coeff = coeffRaw > fieldSize / BigInt(2) ? coeffRaw - fieldSize : coeffRaw;
+          // Reduce numbers that are factors of the field size for better readability
+          // @ts-ignore
+          const modP = BigInt(fieldSize % coeff);
+          // XXX: Why within 10000?
+          if(modP !== BigInt(0) && modP <= BigInt(10000)) {
+            coeff = `(ρ-${fieldSize % coeff})/${fieldSize/coeff}`;
+          }
           // @ts-ignore
           const varName = varsById[cur];
           out.push(
@@ -178,6 +188,8 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
           );
           return out;
         }, []);
+
+        // Combine all the signals into one statement
         return vars.reduce((out, cur, index) =>
           // @ts-ignore
           out + (index > 0 ? cur.startsWith('-') ? ` - ${cur.slice(1)}` : ` + ${cur}` : cur),
