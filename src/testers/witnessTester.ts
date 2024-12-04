@@ -223,7 +223,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
       const signalDotCount = dotCount(signal) + 1; // +1 for the dot in `main.`
       const signalLength = signal.length + 5; // +5 for prefix `main.`
       const symbolNames = Object.keys(this.symbols!).filter(
-        s => s.startsWith(`main.${signal}`) && signalDotCount === dotCount(s)
+        s => s.match(new RegExp(`^main\\.${signal}(\\[|$|\\.)`)) && signalDotCount === dotCount(s)
       );
 
       // get the symbol values from symbol names, ignoring `main.` prefix
