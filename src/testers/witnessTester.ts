@@ -175,7 +175,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
           const modP = BigInt(fieldSize % coeff);
           // XXX: Why within 10000?
           if(modP !== BigInt(0) && modP <= BigInt(10000)) {
-            coeff = `(ρ-${fieldSize % coeff})/${fieldSize/coeff}`;
+            coeff = `(p-${fieldSize % coeff})/${fieldSize/coeff}`;
           }
           // @ts-ignore
           const varName = varsById[cur];
