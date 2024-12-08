@@ -15,7 +15,15 @@ import type {CircuitConfig, CircuitSignals, CircomTester} from '../types';
 import {WitnessTester, ProofTester} from '../testers';
 import {prettyStringify} from '../utils';
 import {CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
-import {compileCircuit, instantiateCircuit, readR1CSInfo, getCalldata} from '../functions';
+import {
+  compileCircuit,
+  instantiateCircuit,
+  readR1CSInfo,
+  getCalldata,
+  parseConstraints,
+  readSymbols,
+  stringifyBigIntsWithField,
+} from '../functions';
 import {CircomkitPath} from './pathing';
 
 /**
@@ -130,6 +138,18 @@ export class Circomkit {
   /** Returns circuit information. */
   async info(circuit: string) {
     return await readR1CSInfo(this.path.ofCircuit(circuit, 'r1cs'));
+  }
+
+  /** Returns human-readable constraint formula array. */
+  async constraints(circuit: string) {
+    const r1csPath = this.path.ofCircuit(circuit, 'r1cs');
+    const symPath = this.path.ofCircuit(circuit, 'sym');
+    // @ts-ignore
+    const r1csFile = await import('r1csfile');
+    const r1cs = await r1csFile.readR1cs(r1csPath, true, true, true);
+    const sym = await readSymbols(symPath);
+    const constraints = stringifyBigIntsWithField(r1cs.curve.Fr, r1cs.constraints);
+    return parseConstraints(constraints, sym, r1cs.prime);
   }
 
   /** Downloads the phase-1 setup PTAU file for a circuit based on it's number of constraints.

@@ -9,6 +9,7 @@ describe('witness tester', () => {
   const {
     circuit: {name, config, size, exact},
     signals,
+    parsedConstraints,
   } = prepareMultiplier(4);
 
   beforeAll(async () => {
@@ -31,6 +32,10 @@ describe('witness tester', () => {
     // should also work for non-exact too, where we expect at least some amount
     await circuit.expectConstraintCount(size!);
     await circuit.expectConstraintCount(size! - 1);
+
+    const myParsedConstraints = await circuit.parseConstraints();
+    expect(myParsedConstraints).toStrictEqual(parsedConstraints);
+
   });
 
   it('should assert correctly', async () => {
