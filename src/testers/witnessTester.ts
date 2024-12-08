@@ -1,5 +1,6 @@
 import {AssertionError} from 'node:assert';
 import type {CircomTester, WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/';
+import {parseConstraints} from '../functions/';
 
 // @todo detect optimized symbols https://github.com/erhant/circomkit/issues/80
 
@@ -144,77 +145,9 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
   async parseConstraints(): Promise<string[]> {
     await this.loadConstraints();
     await this.loadSymbols();
-
-    // @ts-ignore
-    const varsById = Object.entries(this.symbols).reduce((out, cur) => {
-      // @ts-ignore
-      const id = cur[1].varIdx;
-      if(id !== -1) {
-        // @ts-ignore
-        out[id] = cur[0].slice(5); // Remove main.
-      }
-      return out;
-    }, {});
-
     // @ts-ignore
     const fieldSize = this.circomTester.witnessCalculator.prime;
-
-    // @ts-ignore
-    const parsedConstraints = this.constraints.map(constraint => {
-      // Every constraint is 3 groups: <1> * <2> - <3> = 0
-      // @ts-ignore
-      const groups = constraint.map(item => {
-        // Each group can contain many signals (with coefficients) summed
-        const vars = Object.keys(item).reduce((out, cur) => {
-          // @ts-ignore
-          const coeffRaw = item[cur];
-          // Display the coefficient as a signed value, helps a lot with -1
-          let coeff = coeffRaw > fieldSize / BigInt(2) ? coeffRaw - fieldSize : coeffRaw;
-          // Reduce numbers that are factors of the field size for better readability
-          // @ts-ignore
-          const modP = BigInt(fieldSize % coeff);
-          // XXX: Why within 10000?
-          if(modP !== BigInt(0) && modP <= BigInt(10000)) {
-            coeff = `(p-${fieldSize % coeff})/${fieldSize/coeff}`;
-          }
-          // @ts-ignore
-          const varName = varsById[cur];
-          out.push(
-            // @ts-ignore
-            coeff === BigInt(-1) && varName ? '-' + varName :
-            coeff === BigInt(1) && varName ? varName :
-            !varName ? `${coeff}` :
-            `(${coeff} * ${varName})`,
-          );
-          return out;
-        }, []);
-
-        // Combine all the signals into one statement
-        return vars.reduce((out, cur, index) =>
-          // @ts-ignore
-          out + (index > 0 ? cur.startsWith('-') ? ` - ${cur.slice(1)}` : ` + ${cur}` : cur),
-          '');
-      })
-        // @ts-ignore
-        .map(curVar => curVar.indexOf(' ') === -1 ? curVar : `(${curVar})`);
-
-      return (
-        groups[0] +
-        (groups[1] ? ' * ' + groups[1] : '') +
-        (groups[2] ?
-          groups[2].startsWith('-') ?
-            ` + ${groups[2].slice(1)}`
-            : groups[0] || groups[1] ?
-              ' - ' + groups[2]
-              : groups[2].startsWith('(') ?
-                groups[2].slice(1, -1)
-                : groups[2]
-          : '') +
-        ' = 0'
-      );
-    });
-    // @ts-ignore
-    return parsedConstraints;
+    return parseConstraints(this.constraints, this.symbols, fieldSize);
   }
 
   /**

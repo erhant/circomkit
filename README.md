@@ -71,6 +71,12 @@ npx circomkit vkey <circuit> [pkey-path]
 
 # Automatically download PTAU (for BN128)
 npx circomkit ptau <circuit>
+
+# Display circuit info (e.g. constraint count)
+npx circomkit info <circuit>
+
+# Display human-readable constraint formulas
+npx circomkit constraints <circuit>
 ```
 
 > [!NOTE]
