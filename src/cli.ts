@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-import {Command} from '@commander-js/extra-typings';
-import {Circomkit} from './core';
-import {existsSync, readFileSync, readdirSync, writeFileSync} from 'fs';
-import {prettyStringify} from './utils';
-import {exec} from 'child_process';
-import {teardown} from './utils/teardown';
+import { Command } from '@commander-js/extra-typings';
+import { Circomkit } from './core';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'fs';
+import { prettyStringify } from './utils';
+import { exec } from 'child_process';
+import { teardown } from './utils/teardown';
 
 const CONFIG_PATH = './circomkit.json';
 
@@ -64,8 +64,8 @@ function cli(args: string[]) {
       const cmd = `git clone https://github.com/erhant/circomkit-examples.git ${dir ?? '.'}`;
       circomkit.log.info(cmd);
 
-      const result = await new Promise<{stdout: string; stderr: string}>((resolve, reject) =>
-        exec(cmd, (error, stdout, stderr) => (error ? reject(error) : resolve({stdout, stderr})))
+      const result = await new Promise<{ stdout: string; stderr: string }>((resolve, reject) =>
+        exec(cmd, (error, stdout, stderr) => (error ? reject(error) : resolve({ stdout, stderr })))
       );
 
       circomkit.log.info(result.stdout);
@@ -78,27 +78,35 @@ function cli(args: string[]) {
 
   ///////////////////////////////////////////////////////////////////////////////
 
-  // TODO: add -p / --print option to print JSON without saving it
   const json = new Command('json')
     .description('export JSON files')
+    .option('-p, --print', 'Print JSON without saving it')
     .addCommand(
       new Command('r1cs')
         .description('export r1cs')
         .argument('<circuit>', 'Circuit name')
-        .action(async circuit => {
-          const {json, path} = await circomkit.json('r1cs', circuit);
-          writeFileSync(path, prettyStringify(json));
-          circomkit.log.info('Exported R1CS at: ' + path);
+        .action(async (circuit, options) => {
+          const { json, path } = await circomkit.json('r1cs', circuit);
+          if (options.print) {
+            console.log(prettyStringify(json));
+          } else {
+            writeFileSync(path, prettyStringify(json));
+            circomkit.log.info('Exported R1CS at: ' + path);
+          }
         })
     )
     .addCommand(
       new Command('zkey')
         .description('export prover key')
         .argument('<circuit>', 'Circuit name')
-        .action(async circuit => {
-          const {json, path} = await circomkit.json('zkey', circuit);
-          writeFileSync(path, prettyStringify(json));
-          circomkit.log.info('Exported prover key at: ' + path);
+        .action(async (circuit, options) => {
+          const { json, path } = await circomkit.json('zkey', circuit);
+          if (options.print) {
+            console.log(prettyStringify(json));
+          } else {
+            writeFileSync(path, prettyStringify(json));
+            circomkit.log.info('Exported prover key at: ' + path);
+          }
         })
     )
     .addCommand(
@@ -106,10 +114,14 @@ function cli(args: string[]) {
         .description('export witness')
         .argument('<circuit>', 'Circuit name')
         .argument('<input>', 'Input name')
-        .action(async (circuit, input) => {
-          const {json, path} = await circomkit.json('wtns', circuit, input);
-          writeFileSync(path, prettyStringify(json));
-          circomkit.log.info('Exported prover key at: ' + path);
+        .action(async (circuit, input, options) => {
+          const { json, path } = await circomkit.json('wtns', circuit, input);
+          if (options.print) {
+            console.log(prettyStringify(json));
+          } else {
+            writeFileSync(path, prettyStringify(json));
+            circomkit.log.info('Exported witness at: ' + path);
+          }
         })
     );
 
@@ -182,7 +194,7 @@ function cli(args: string[]) {
     .argument('<circuit>', 'Circuit name')
     .argument('[ptauPath]', 'Path to PTAU')
     .action(async (circuit, ptauPath) => {
-      const {proverKeyPath, verifierKeyPath} = await circomkit.setup(circuit, ptauPath);
+      const { proverKeyPath, verifierKeyPath } = await circomkit.setup(circuit, ptauPath);
       circomkit.log.info('Prover key created: ' + proverKeyPath);
       circomkit.log.info('Verifier key created: ' + verifierKeyPath);
     });
@@ -208,9 +220,9 @@ function cli(args: string[]) {
     const circuits = circomkit.readCircuits();
     circomkit.log.info(
       `\nCircuit Names (${circomkit.config.circuits}):\n` +
-        Object.keys(circuits)
-          .map((c, i) => `  ${i + 1}. ${c}`)
-          .join('\n')
+      Object.keys(circuits)
+        .map((c, i) => `  ${i + 1}. ${c}`)
+        .join('\n')
     );
   });
 
