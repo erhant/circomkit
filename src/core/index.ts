@@ -416,6 +416,10 @@ export class Circomkit {
    */
   async witness(circuit: string, input: string, data?: CircuitSignals): Promise<string> {
     const wasmPath = this.path.ofCircuit(circuit, 'wasm');
+    if (!existsSync(wasmPath)) {
+      this.log.warn('WASM file does not exist, creating it now...');
+      await this.compile(circuit);
+    }
     const wtnsPath = this.path.ofCircuitWithInput(circuit, input, 'wtns');
     const outDir = this.path.ofCircuitWithInput(circuit, input, 'dir');
     const jsonInput = data ?? JSON.parse(readFileSync(this.path.ofCircuitWithInput(circuit, input, 'in'), 'utf-8'));
