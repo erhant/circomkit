@@ -1,4 +1,7 @@
 import {ReadPosition, openSync, readSync} from 'fs';
+// @ts-ignore
+import * as fastFile from "fastfile";
+import type {SymbolsType} from '../types/';
 import {primeToName} from '../utils';
 
 /**
@@ -100,6 +103,98 @@ export async function readR1CSInfo(r1csPath: string): Promise<R1CSInfoType> {
   return r1csInfoType;
 }
 
+export async function readSymbols(symFileName: string): Promise<SymbolsType> {
+  const fd = await fastFile.readExisting(symFileName);
+  const buff = await fd.read(fd.totalSize);
+  await fd.close();
+  const symsStr = new TextDecoder("utf-8").decode(buff);
+  const lines = symsStr.split("\n");
+  const out = {};
+  for (let i=0; i<lines.length; i++) {
+    const arr = lines[i].split(",");
+    if (arr.length!=4) continue;
+    // @ts-ignore
+    out[arr[3]] = {
+      labelIdx: Number(arr[0]),
+      varIdx: Number(arr[1]),
+      componentIdx: Number(arr[2]),
+    };
+  }
+  return out;
+}
+
+// @ts-ignore
+export function parseConstraints(constraints, symbols, fieldSize): Promise<string[]> {
+  // @ts-ignore
+  const varsById = Object.entries(symbols).reduce((out, cur) => {
+    // @ts-ignore
+    const id = cur[1].varIdx;
+    if(id !== -1) {
+      // @ts-ignore
+      out[id] = cur[0].slice(5); // Remove main.
+    }
+    return out;
+  }, {});
+
+  // @ts-ignore
+  const parsedConstraints = constraints.map(constraint => {
+    // Every constraint is 3 groups: <1> * <2> - <3> = 0
+    // @ts-ignore
+    const groups = constraint.map(item => {
+      // Each group can contain many signals (with coefficients) summed
+      const vars = Object.keys(item).reduce((out, cur) => {
+        // @ts-ignore
+        const coeffRaw = BigInt(item[cur]);
+        // Display the coefficient as a signed value, helps a lot with -1
+        let coeff = coeffRaw > fieldSize / BigInt(2) ? coeffRaw - fieldSize : coeffRaw;
+        // Reduce numbers that are factors of the field size for better readability
+        // @ts-ignore
+        const modP = BigInt(fieldSize) % BigInt(coeff);
+        // XXX: Why within 10000?
+        if(modP !== BigInt(0) && modP <= BigInt(10000)) {
+          // @ts-ignore
+          coeff = `(p-${fieldSize % coeff})/${fieldSize/coeff}`;
+        }
+        // @ts-ignore
+        const varName = varsById[cur];
+        out.push(
+          // @ts-ignore
+          coeff === BigInt(-1) && varName ? '-' + varName :
+          coeff === BigInt(1) && varName ? varName :
+          !varName ? `${coeff}` :
+          `(${coeff} * ${varName})`,
+        );
+        return out;
+      }, []);
+
+      // Combine all the signals into one statement
+      return vars.reduce((out, cur, index) =>
+        // @ts-ignore
+        out + (index > 0 ? cur.startsWith('-') ? ` - ${cur.slice(1)}` : ` + ${cur}` : cur),
+        '');
+    })
+      // @ts-ignore
+      .map(curVar => curVar.indexOf(' ') === -1 ? curVar : `(${curVar})`);
+
+    return (
+      groups[0] +
+      (groups[1] ? ' * ' + groups[1] : '') +
+      (groups[2] ?
+        groups[2].startsWith('-') ?
+          ` + ${groups[2].slice(1)}`
+          : groups[0] || groups[1] ?
+            ' - ' + groups[2]
+            : groups[2].startsWith('(') ?
+              groups[2].slice(1, -1)
+              : groups[2]
+        : '') +
+      ' = 0'
+    );
+  });
+  // @ts-ignore
+  return parsedConstraints;
+}
+
 /** Reads a specified number of bytes from a file and converts them to a `BigInt`.
  *
  * @param offset The position in `buffer` to write the data to.
@@ -112,4 +207,26 @@ export function readBytesFromFile(fd: number, offset: number, length: number, po
   readSync(fd, buffer, offset, length, position);
 
   return BigInt(`0x${buffer.reverse().toString('hex')}`);
+}
+
+// From Snarkjs
+// @ts-ignore
+export function stringifyBigIntsWithField(Fr, o) {
+    if (o instanceof Uint8Array)  {
+        return Fr.toString(o);
+    } else if (Array.isArray(o)) {
+        return o.map(stringifyBigIntsWithField.bind(null, Fr));
+    } else if (typeof o == "object") {
+        const res = {};
+        const keys = Object.keys(o);
+        keys.forEach( (k) => {
+            // @ts-ignore
+            res[k] = stringifyBigIntsWithField(Fr, o[k]);
+        });
+        return res;
+    } else if ((typeof(o) == "bigint") || o.eq !== undefined)  {
+        return o.toString(10);
+    } else {
+        return o;
+    }
 }
