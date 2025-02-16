@@ -105,7 +105,7 @@ function cli(args: string[]) {
       .description('export r1cs')
       .argument('<circuit>', 'Circuit name')
       .action(async (circuit, options) => {
-        const {json, path} = await circomkit.json('r1cs', circuit);
+        const { json, path } = await circomkit.json('r1cs', circuit);
         if (options.print) {
           console.log(prettyStringify(json));
         } else {
@@ -119,7 +119,7 @@ function cli(args: string[]) {
       .description('export prover key')
       .argument('<circuit>', 'Circuit name')
       .action(async (circuit, options) => {
-        const {json, path} = await circomkit.json('zkey', circuit);
+        const { json, path } = await circomkit.json('zkey', circuit);
         if (options.print) {
           console.log(prettyStringify(json));
         } else {
@@ -134,7 +134,7 @@ function cli(args: string[]) {
       .argument('<circuit>', 'Circuit name')
       .argument('<input>', 'Input name')
       .action(async (circuit, input, options) => {
-        const {json, path} = await circomkit.json('wtns', circuit, input);
+        const { json, path } = await circomkit.json('wtns', circuit, input);
         if (options.print) {
           console.log(prettyStringify(json));
         } else {
@@ -240,8 +240,8 @@ function cli(args: string[]) {
     circomkit.log.info(
       `\nCircuit Names (${circomkit.config.circuits}):\n` +
         Object.keys(circuits)
-        .map((c, i) => `  ${i + 1}. ${c}`)
-        .join('\n')
+         .map((c, i) => `  ${i + 1}. ${c}`)
+         .join('\n')
     );
   });
 
