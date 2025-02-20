@@ -14,20 +14,14 @@ function cli(args: string[]) {
   ///////////////////////////////////////////////////////////////////////////////
   const circuit = new Command('compile')
     .description('compile the circuit')
-    .argument('[pattern]', 'Circuit name or pattern (defaults to "*" for all circuits)')
+    .argument('[pattern]', 'Circuit name or pattern (defaults to ".*" for all circuits)')
     .action(async pattern => {
       const circuits = circomkit.readCircuits();
       const circuitNames = Object.keys(circuits);
 
-      if (!pattern) pattern = '*';
+      if (!pattern) pattern = '.*';
 
-      // Convert glob pattern to regex
-      const regexPattern = pattern
-        .replace(/\*/g, '.*')  // Convert * to .*
-        .replace(/\?/g, '.')   // Convert ? to .
-        .replace(/\./g, '\\.'); // Escape dots
-      const regex = new RegExp(`^${regexPattern}$`);
-
+      const regex = new RegExp(`^${pattern}$`);
       const matchingCircuits = circuitNames.filter(name => regex.test(name));
 
       if (matchingCircuits.length === 0) {
