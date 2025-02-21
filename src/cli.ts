@@ -14,13 +14,26 @@ function cli(args: string[]) {
   ///////////////////////////////////////////////////////////////////////////////
   const circuit = new Command('compile')
     .description('compile the circuit')
-    .argument('<circuit>', 'Circuit name')
-    // .hook('preAction', () => titleLog('Compiling the circuit'))
-    .action(async circuit => {
-      const path = await circomkit.compile(circuit);
-      circomkit.log.info('Built at:', path);
+    .argument('[pattern]', 'Circuit name or pattern (defaults to ".*" for all circuits)')
+    .action(async pattern => {
+      const circuits = circomkit.readCircuits();
+      const circuitNames = Object.keys(circuits);
 
-      // TODO: pattern matching https://github.com/erhant/circomkit/issues/79
+      if (!pattern) pattern = '.*';
+
+      const regex = new RegExp(`^${pattern}$`);
+      const matchingCircuits = circuitNames.filter(name => regex.test(name));
+
+      if (matchingCircuits.length === 0) {
+        circomkit.log.info('No circuits found matching pattern:', pattern);
+        return;
+      }
+
+      for (const circuitName of matchingCircuits) {
+        circomkit.log.info(`Compiling ${circuitName}...`);
+        const path = await circomkit.compile(circuitName);
+        circomkit.log.info(`Built at: ${path}`);
+      }
     });
 
   ///////////////////////////////////////////////////////////////////////////////
