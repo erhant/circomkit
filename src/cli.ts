@@ -90,53 +90,54 @@ function cli(args: string[]) {
     });
 
   ///////////////////////////////////////////////////////////////////////////////
-
   const json = new Command('json')
-  .description('export JSON files')
-  .option('-p, --print', 'Print JSON without saving it')
-  .addCommand(
-    new Command('r1cs')
-      .description('export r1cs')
-      .argument('<circuit>', 'Circuit name')
-      .action(async (circuit, options) => {
-        const { json, path } = await circomkit.json('r1cs', circuit);
-        if (options.print) {
-          console.log(prettyStringify(json));
-        } else {
-          writeFileSync(path, prettyStringify(json));
-          circomkit.log.info('Exported R1CS at: ' + path);
-        }
-      })
-  )
-  .addCommand(
-    new Command('zkey')
-      .description('export prover key')
-      .argument('<circuit>', 'Circuit name')
-      .action(async (circuit, options) => {
-        const { json, path } = await circomkit.json('zkey', circuit);
-        if (options.print) {
-          console.log(prettyStringify(json));
-        } else {
-          writeFileSync(path, prettyStringify(json));
-          circomkit.log.info('Exported prover key at: ' + path);
-        }
-      })
-  )
-  .addCommand(
-    new Command('wtns')
-      .description('export witness')
-      .argument('<circuit>', 'Circuit name')
-      .argument('<input>', 'Input name')
-      .action(async (circuit, input, options) => {
-        const { json, path } = await circomkit.json('wtns', circuit, input);
-        if (options.print) {
-          console.log(prettyStringify(json));
-        } else {
-          writeFileSync(path, prettyStringify(json));
-          circomkit.log.info('Exported witness at: ' + path);
-        }
-      })
-  );
+    .description('export JSON files')
+    .addCommand(
+      new Command('r1cs')
+        .description('export r1cs')
+        .argument('<circuit>', 'Circuit name')
+        .option('-p, --print', 'Print JSON without saving it')
+        .action(async (circuit, options) => {
+          const {json, path} = await circomkit.json('r1cs', circuit);
+          if (options.print) {
+            console.log(prettyStringify(json));
+          } else {
+            writeFileSync(path, prettyStringify(json));
+            circomkit.log.info('Exported R1CS at: ' + path);
+          }
+        })
+    )
+    .addCommand(
+      new Command('zkey')
+        .description('export prover key')
+        .argument('<circuit>', 'Circuit name')
+        .option('-p, --print', 'Print JSON without saving it')
+        .action(async (circuit, options) => {
+          const {json, path} = await circomkit.json('zkey', circuit);
+          if (options.print) {
+            console.log(prettyStringify(json));
+          } else {
+            writeFileSync(path, prettyStringify(json));
+            circomkit.log.info('Exported prover key at: ' + path);
+          }
+        })
+    )
+    .addCommand(
+      new Command('wtns')
+        .description('export witness')
+        .argument('<circuit>', 'Circuit name')
+        .argument('<input>', 'Input name')
+        .option('-p, --print', 'Print JSON without saving it')
+        .action(async (circuit, input, options) => {
+          const {json, path} = await circomkit.json('wtns', circuit, input);
+          if (options.print) {
+            console.log(prettyStringify(json));
+          } else {
+            writeFileSync(path, prettyStringify(json));
+            circomkit.log.info('Exported witness at: ' + path);
+          }
+        })
+    );
 
   ///////////////////////////////////////////////////////////////////////////////
   const contract = new Command('contract')
@@ -234,8 +235,8 @@ function cli(args: string[]) {
     circomkit.log.info(
       `\nCircuit Names (${circomkit.config.circuits}):\n` +
         Object.keys(circuits)
-         .map((c, i) => `  ${i + 1}. ${c}`)
-         .join('\n')
+          .map((c, i) => `  ${i + 1}. ${c}`)
+          .join('\n')
     );
   });
 
