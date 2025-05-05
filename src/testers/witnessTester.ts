@@ -1,5 +1,7 @@
 import {AssertionError} from 'node:assert';
 import type {CircomTester, WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/';
+import path from 'node:path';
+import fs from 'node:fs';
 
 // @todo detect optimized symbols https://github.com/erhant/circomkit/issues/80
 
@@ -177,7 +179,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
   /** Read symbol values from a witness. */
   async readWitness(witness: Readonly<WitnessType>, symbols: string[]): Promise<Record<string, bigint>> {
-    await this.loadSymbols();
+    await this.loadSpecificSymbols(symbols);
 
     const ans: Record<string, bigint> = {};
     for (const symbolName of symbols) {
@@ -314,6 +316,38 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     // that check happens within circomWasmTester
     await this.circomTester.loadSymbols();
     this.symbols = this.circomTester.symbols;
+  }
+
+  /** Faster alternative to this.circomTester.loadSymbols(),
+   *  stops once all the requested symbols are found */
+  private async loadSpecificSymbols(symbolsRequested: string[]): Promise<void> {
+    if (!this.symbols) this.symbols = {}; // Init if missing
+
+    // Identify which symbols are still needed
+    const symbolsToFind = new Set(symbolsRequested.filter(s => !this.symbols?.[s]));
+    if (symbolsToFind.size === 0) return;
+
+    // Read the symbols file into memory
+    const symbolsFile = await fs.promises.readFile(
+      path.join(this.circomTester.dir, this.circomTester.baseName + '.sym'),
+      'utf8'
+    );
+
+    // Start looking for the requested symbols
+    for (const line of symbolsFile.split('\n')) {
+      if (symbolsToFind.size === 0) return; // Stop when all found
+
+      const [labelIdx, varIdx, componentIdx, symbolName] = line.split(',');
+      if (!symbolName || !symbolsToFind.has(symbolName)) continue; // Skip non-requested symbols
+
+      // Add found symbols to the symbols map, like circomTester.loadSymbols()
+      this.symbols[symbolName] = {
+        labelIdx: Number(labelIdx),
+        varIdx: Number(varIdx),
+        componentIdx: Number(componentIdx),
+      };
+      symbolsToFind.delete(symbolName); // Remove from list
+    }
   }
 
   /**
