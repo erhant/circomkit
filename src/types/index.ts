@@ -63,4 +63,6 @@ export type CircomTester = {
   loadSymbols: () => Promise<void>;
   symbols: SymbolsType | undefined;
   getDecoratedOutput: (witness: WitnessType) => Promise<string>;
+  dir: string;
+  baseName: string;
 };
