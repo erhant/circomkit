@@ -250,7 +250,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
         let idx = this.symbols![matchedSymbols[0]].varIdx;
 
         // we can assume that a symbol with this name appears only once in a component, and that the depth is same for
-        // all occurences of this symbol, given the type system used in Circom. So, we can just count the number
+        // all occurrences of this symbol, given the type system used in Circom. So, we can just count the number
         // of `[`s in any symbol of this signal to find the number of dimensions of this signal.
         // we particularly choose the last symbol in the array, as that holds the maximum index of each dimension of this array.
         const splits = matchedSymbols.at(-1)!.split('[');
