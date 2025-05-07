@@ -7,6 +7,8 @@ type PreparedTestCircuit<S extends Record<string, CircuitSignals>> = {
   signals: S;
   /** Name for the input path to an existing input JSON file under `inputs` folder. */
   inputName: string;
+  /** To compare against generated value. */
+  parsedConstraints: string[];
   /** Circuit information. */
   circuit: {
     /** Circuit name. */
@@ -45,6 +47,17 @@ export function prepareMultiplier(N: number, order: bigint = primes['bn128']) {
   // TOTAL: 3*N - 1
   const size = 3 * N - 1;
 
+  let parsedConstraints;
+  if(N >= 3) {
+    parsedConstraints = [
+      '-in[0] * in[1] + inner[0] = 0',
+      ...Array(N-3).fill(0).map((_, i) => `-inner[${i}] * in[${i+2}] + inner[${i+1}] = 0`),
+      `-inner[${N-3}] * in[${N-1}] + out = 0`,
+      ...Array(N).fill(0).map((_, i) => `isZero[${i}].in * isZero[${i}].inv - 1 = 0`),
+      ...Array(N).fill(0).map((_, i) => `-1 + in[${i}] - isZero[${i}].in = 0`),
+    ];
+  }
+
   const numbers: bigint[] = Array.from({length: N}, () => BigInt(2) + BigInt('0x' + randomBytes(8).toString('hex')));
   const product: bigint = numbers.reduce((prev, acc) => acc * prev) % order;
   const malicious: bigint[] = Array.from({length: N}, () => BigInt(1));
@@ -64,5 +77,6 @@ export function prepareMultiplier(N: number, order: bigint = primes['bn128']) {
     signals,
     circuit: {name, config, size, exact: true},
     inputName: 'input.test',
+    parsedConstraints,
   } as PreparedTestCircuit<typeof signals>;
 }
