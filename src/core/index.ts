@@ -338,8 +338,6 @@ export class Circomkit {
 
     // get ptau path
     if (ptauPath === undefined) {
-      this.log.info('No PTAU was provided, downloading it.');
-      // if no ptau is given, we can download it
       if (this.config.prime !== 'bn128') {
         throw new Error('Can not download PTAU file when using a prime field other than bn128');
       }
