@@ -1,5 +1,6 @@
 import {AssertionError} from 'node:assert';
 import type {CircomTester, WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/';
+import {parseConstraints} from '../functions/';
 
 // @todo detect optimized symbols https://github.com/erhant/circomkit/issues/80
 
@@ -139,6 +140,17 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
   }
 
   /**
+   * Parse R1CS constraints into human-readable formulas.
+   */
+  async parseConstraints(): Promise<string[]> {
+    await this.loadConstraints();
+    await this.loadSymbols();
+    // @ts-ignore
+    const fieldSize = this.circomTester.witnessCalculator.prime;
+    return parseConstraints(this.constraints, this.symbols, fieldSize);
+  }
+
+  /**
    * Override witness value to try and fake a proof. If the circuit has soundness problems (i.e.
    * some signals are not constrained correctly), then you may be able to create a fake witness by
    * overriding specific values, and pass the constraints check.
@@ -223,7 +235,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
       const signalDotCount = dotCount(signal) + 1; // +1 for the dot in `main.`
       const signalLength = signal.length + 5; // +5 for prefix `main.`
       const symbolNames = Object.keys(this.symbols!).filter(
-        s => s.startsWith(`main.${signal}`) && signalDotCount === dotCount(s)
+        s => s.match(new RegExp(`^main\\.${signal}(\\[|$|\\.)`)) && signalDotCount === dotCount(s)
       );
 
       // get the symbol values from symbol names, ignoring `main.` prefix

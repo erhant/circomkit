@@ -71,6 +71,12 @@ npx circomkit vkey <circuit> [pkey-path]
 
 # Automatically download PTAU (for BN128)
 npx circomkit ptau <circuit>
+
+# Display circuit info (e.g. constraint count)
+npx circomkit info <circuit>
+
+# Display human-readable constraint formulas
+npx circomkit constraints <circuit>
 ```
 
 > [!NOTE]
@@ -206,6 +212,17 @@ it('should have correct number of constraints', async () => {
   await circuit.expectConstraintCount(N, true);
 });
 ```
+
+> <picture>
+>   <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/light-theme/tip.svg">
+>   <img alt="Warning" src="https://raw.githubusercontent.com/Mqxx/GitHub-Markdown/main/blockquotes/badge/dark-theme/tip.svg">
+> </picture><br>
+>
+> You can also generate an array of human-readable formulas for each constraint using `parseConstraints`:
+>
+> ```ts
+> console.log((await circuit.parseConstraints()).join('\n'));
+> ```
 
 If you want more control over the output signals, you can use the `compute` function. It takes in an input, and an array of output signal names used in the `main` component so that they can be extracted from the witness.
 
