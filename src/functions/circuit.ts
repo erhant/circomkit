@@ -16,11 +16,12 @@ export async function compileCircuit(config: CircomkitConfig, targetPath: string
   mkdirSync(outDir, {recursive: true});
 
   // prettier-ignore
-  let flags = `--sym --wasm --r1cs -p ${config.prime} -o ${outDir}`;
+  let flags = `--sym --r1cs -p ${config.prime} -o ${outDir}`;
   if (config.include.length > 0) flags += ' ' + config.include.map(path => `-l ${path}`).join(' ');
   if (config.verbose) flags += ' --verbose';
   if (config.inspect) flags += ' --inspect';
   if (config.cWitness) flags += ' --c';
+  if (!config.skipWasm) flags += ' --wasm';
   if (typeof config.optimization === 'number') {
     if (config.optimization > 2) {
       // --O2round <value>
