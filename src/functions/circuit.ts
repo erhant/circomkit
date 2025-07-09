@@ -21,7 +21,7 @@ export async function compileCircuit(config: CircomkitConfig, targetPath: string
   if (config.verbose) flags += ' --verbose';
   if (config.inspect) flags += ' --inspect';
   if (config.cWitness) flags += ' --c';
-  if (!config.skipWasm) flags += ' --wasm';
+  if (config.wasmWitness) flags += ' --wasm';
   if (typeof config.optimization === 'number') {
     if (config.optimization > 2) {
       // --O2round <value>

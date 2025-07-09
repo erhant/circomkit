@@ -49,8 +49,8 @@ export type CircomkitConfig = {
   logLevel: LogLevelDesc;
   /** Whether to generate the C witness calculator. */
   cWitness: boolean;
-  /** Whether to skip generating the WASM witness calculator. */
-  skipWasm: boolean;
+  /** Whether to generate the WASM witness calculator. */
+  wasmWitness: boolean;
   /** Whether to print Solidity copy-pasteable calldata. */
   prettyCalldata: false;
 };
@@ -73,7 +73,7 @@ export const DEFAULT = Object.seal<Readonly<CircomkitConfig>>({
   inspect: true,
   include: ['./node_modules'],
   cWitness: false,
-  skipWasm: false,
+  wasmWitness: true,
   // groth16 phase-2 settings
   groth16numContributions: 1,
   groth16askForEntropy: false,
