@@ -41,7 +41,7 @@
     "snarkjs": "^0.7.x"
   },
   "dependencies": {
-    "circom_tester": "^0.0.19",
+    "circom_tester": "^0.0.23",
     "commander": "^12.1.0",
     "loglevel": "^1.9.2"
   },
