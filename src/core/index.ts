@@ -264,7 +264,8 @@ export class Circomkit {
     const config: Required<CircuitConfig> = {
       file: file,
       template: circuitConfig.template,
-      version: circuitConfig.version || '2.0.0',
+      // Precedence: per-circuit override > this.config.version > "2.0.0". See #123.
+      version: circuitConfig.version || this.config.version || '2.0.0',
       dir: directory,
       pubs: circuitConfig.pubs || [],
       params: circuitConfig.params || [],
