@@ -157,3 +157,40 @@ describe('circomkit', () => {
     })
   );
 });
+
+describe('instantiate version fallback (#123)', () => {
+  const {circuit} = prepareMultiplier(3);
+  const baseConfig = {
+    verbose: false,
+    logLevel: 'silent' as const,
+    circuits: './tests/circuits.json',
+    dirPtau: './tests/ptau',
+    dirCircuits: './tests/circuits',
+    dirInputs: './tests/inputs',
+    dirBuild: './tests/build',
+  };
+
+  it('should use this.config.version when circuitConfig has no version field', () => {
+    const customVersion = '2.1.9';
+    const circomkit = new Circomkit({...baseConfig, version: customVersion});
+
+    const path = circomkit.instantiate('multiplier_version_fallback', circuit.config);
+    const content = readFileSync(path, 'utf-8');
+    expect(content).toContain(`pragma circom ${customVersion};`);
+
+    rmSync(path);
+  });
+
+  it('should prefer circuitConfig.version over this.config.version', () => {
+    const circomkit = new Circomkit({...baseConfig, version: '2.1.9'});
+
+    const path = circomkit.instantiate('multiplier_version_override', {
+      ...circuit.config,
+      version: '2.2.0',
+    });
+    const content = readFileSync(path, 'utf-8');
+    expect(content).toContain('pragma circom 2.2.0;');
+
+    rmSync(path);
+  });
+});
