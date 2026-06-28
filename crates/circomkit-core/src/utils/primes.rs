@@ -41,6 +41,19 @@ pub fn prime_value(prime: Prime) -> BigUint {
     }
 }
 
+/// Returns the number of bytes used to encode a field element of the given prime
+/// in Circom's binary `.wtns`/`.r1cs` formats (the `n8` field).
+///
+/// Matches snarkjs/ffjavascript: the modulus bit-length rounded up to a whole
+/// number of 64-bit words, times 8. e.g. bn128 (254 bits) → 32, goldilocks
+/// (64 bits) → 8.
+///
+/// TODO: add link here
+pub fn prime_field_n8(prime: Prime) -> u32 {
+    let bits = prime_value(prime).bits();
+    (((bits - 1) / 64 + 1) * 8) as u32
+}
+
 /// Attempts to identify a `Prime` variant from its field value.
 pub fn prime_from_value(value: &BigUint) -> Option<Prime> {
     let primes = [
@@ -80,5 +93,18 @@ mod tests {
     fn unknown_prime_returns_none() {
         let unknown = BigUint::from(42u32);
         assert_eq!(prime_from_value(&unknown), None);
+    }
+
+    #[test]
+    fn field_n8_matches_snarkjs_word_alignment() {
+        // 254/255-bit curves pack into 32 bytes (4 64-bit words).
+        assert_eq!(prime_field_n8(Prime::Bn128), 32);
+        assert_eq!(prime_field_n8(Prime::Bls12381), 32);
+        assert_eq!(prime_field_n8(Prime::Grumpkin), 32);
+        assert_eq!(prime_field_n8(Prime::Pallas), 32);
+        assert_eq!(prime_field_n8(Prime::Vesta), 32);
+        assert_eq!(prime_field_n8(Prime::Secq256r1), 32);
+        // Goldilocks is a 64-bit field — a single word.
+        assert_eq!(prime_field_n8(Prime::Goldilocks), 8);
     }
 }

@@ -32,17 +32,17 @@ impl Circomkit {
         };
 
         // Check source .circom file mtime
-        if let Ok(source_mtime) = source_path.metadata().and_then(|m| m.modified()) {
-            if source_mtime > r1cs_mtime {
-                return false;
-            }
+        if let Ok(source_mtime) = source_path.metadata().and_then(|m| m.modified())
+            && source_mtime > r1cs_mtime
+        {
+            return false;
         }
 
         // Check generated main file mtime
-        if let Ok(main_mtime) = main_path.metadata().and_then(|m| m.modified()) {
-            if main_mtime > r1cs_mtime {
-                return false;
-            }
+        if let Ok(main_mtime) = main_path.metadata().and_then(|m| m.modified())
+            && main_mtime > r1cs_mtime
+        {
+            return false;
         }
 
         true

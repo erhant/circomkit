@@ -4,6 +4,7 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 
 use circomkit::Circomkit;
+use circomkit::ProvingBackendKind;
 
 #[derive(Parser)]
 #[command(
@@ -94,6 +95,9 @@ enum Commands {
         circuit: String,
         /// Input name
         input: String,
+        /// Override the proving backend (snarkjs, arkworks, lambdaworks)
+        #[arg(long)]
+        backend: Option<ProvingBackendKind>,
     },
 
     /// Verify a proof
@@ -243,8 +247,12 @@ fn main() -> Result<()> {
             println!("witness: {}", path.display());
         }
 
-        Commands::Prove { circuit, input } => {
-            let path = ck.prove(&circuit, &input, None)?;
+        Commands::Prove {
+            circuit,
+            input,
+            backend,
+        } => {
+            let path = ck.prove(&circuit, &input, None, backend)?;
             println!("proof: {}", path.display());
         }
 

@@ -9,7 +9,7 @@ pub use circomkit::Circomkit;
 
 // Re-export key types for convenience
 pub use circomkit_core::config::{CircomkitConfig, CircuitConfig};
-pub use circomkit_core::enums::{Prime, Protocol};
+pub use circomkit_core::enums::{Prime, Protocol, ProvingBackendKind};
 pub use circomkit_core::error::CoreError;
 pub use circomkit_core::pathing::CircomkitPaths;
 pub use circomkit_core::types::R1CSInfo;

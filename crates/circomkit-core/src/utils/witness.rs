@@ -4,7 +4,7 @@ use std::path::Path;
 use num_bigint::BigInt;
 use num_traits::Signed;
 
-use super::primes::prime_value;
+use super::primes::{prime_field_n8, prime_value};
 use crate::error::{CoreError, Result};
 use crate::types::Witness;
 
@@ -98,15 +98,14 @@ pub fn parse_witness_to_elems<T>(
     ))
 }
 
-/// Write a witness to a binary `.wtns` file (version 2, BN128 prime).
-///
-/// Uses 32 bytes per field element (n8 = 32), which is standard for BN128/BLS12-381.
-///
-/// TODO: take prime as argument
-pub fn write_witness_file(path: &Path, witness: &Witness) -> Result<()> {
-    let n8: u32 = 32;
-    let prime = prime_value(crate::enums::Prime::Bn128);
-    let prime_bytes = prime.to_bytes_le();
+/// Write a witness to a binary `.wtns` file (version 2) for the given prime.
+pub fn write_witness_file(
+    path: &Path,
+    witness: &Witness,
+    prime: crate::enums::Prime,
+) -> Result<()> {
+    let n8 = prime_field_n8(prime);
+    let prime_bytes = prime_value(prime).to_bytes_le();
 
     let witness_count = witness.len() as u32;
 
@@ -154,4 +153,39 @@ pub fn write_witness_file(path: &Path, witness: &Witness) -> Result<()> {
     }
     std::fs::write(path, buf)?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::enums::Prime;
+
+    /// Extract the `n8` field from section 1 of a written witness file.
+    /// Layout: header (12 bytes) + section id (4) + section length (8) → n8 at offset 24.
+    fn n8_from_bytes(buf: &[u8]) -> u32 {
+        u32::from_le_bytes(buf[24..28].try_into().unwrap())
+    }
+
+    #[test]
+    fn writes_n8_per_prime_and_roundtrips() {
+        let dir = std::env::temp_dir().join("circomkit_wtns_n8");
+        std::fs::create_dir_all(&dir).unwrap();
+        let witness = vec![BigInt::from(1), BigInt::from(42), BigInt::from(255)];
+
+        // bn128 packs elements into 32 bytes.
+        let bn = dir.join("bn128.wtns");
+        write_witness_file(&bn, &witness, Prime::Bn128).unwrap();
+        let bytes = std::fs::read(&bn).unwrap();
+        assert_eq!(n8_from_bytes(&bytes), 32);
+        assert_eq!(parse_witness_bytes(&bytes).unwrap(), witness);
+
+        // goldilocks packs elements into 8 bytes — the old hardcoded 32 would be wrong.
+        let gl = dir.join("goldilocks.wtns");
+        write_witness_file(&gl, &witness, Prime::Goldilocks).unwrap();
+        let bytes = std::fs::read(&gl).unwrap();
+        assert_eq!(n8_from_bytes(&bytes), 8);
+        assert_eq!(parse_witness_bytes(&bytes).unwrap(), witness);
+
+        let _ = std::fs::remove_dir_all(&dir);
+    }
 }

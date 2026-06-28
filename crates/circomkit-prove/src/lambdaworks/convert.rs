@@ -24,8 +24,8 @@ fn field_to_dec<F: IsPrimeField>(elem: &FieldElement<F>) -> String {
 pub fn proof_to_snarkjs_json(proof: &Proof) -> serde_json::Value {
     serde_json::json!({
         "pi_a": [
-            field_to_dec(&proof.pi1.x()),
-            field_to_dec(&proof.pi1.y()),
+            field_to_dec(proof.pi1.x()),
+            field_to_dec(proof.pi1.y()),
             "1"
         ],
         "pi_b": [
@@ -40,8 +40,8 @@ pub fn proof_to_snarkjs_json(proof: &Proof) -> serde_json::Value {
             ["1", "0"]
         ],
         "pi_c": [
-            field_to_dec(&proof.pi3.x()),
-            field_to_dec(&proof.pi3.y()),
+            field_to_dec(proof.pi3.x()),
+            field_to_dec(proof.pi3.y()),
             "1"
         ],
         "protocol": "groth16",
