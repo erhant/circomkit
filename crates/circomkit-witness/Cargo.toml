@@ -1,0 +1,24 @@
+[package]
+name = "circomkit-witness"
+description = "Witness calculator trait and backends for Circomkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+circomkit-core.workspace = true
+thiserror.workspace = true
+log.workspace = true
+serde_json.workspace = true
+num-bigint.workspace = true
+num-traits.workspace = true
+
+[dependencies.wasmtime]
+workspace = true
+optional = true
+
+[features]
+default = ["witness-wasm"]
+witness-wasm = ["dep:wasmtime"]
+witness-c = []

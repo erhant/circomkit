@@ -1,0 +1,16 @@
+[package]
+name = "circomkit-test"
+description = "Testing utilities for Circom circuits"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+circomkit-core.workspace = true
+circomkit-witness.workspace = true
+circomkit-prove.workspace = true
+thiserror.workspace = true
+log.workspace = true
+serde_json.workspace = true
+num-bigint.workspace = true

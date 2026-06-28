@@ -1,0 +1,97 @@
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
+use std::fmt;
+
+/// Zero-knowledge proof protocol.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum Protocol {
+    Groth16,
+    Plonk,
+    Fflonk,
+}
+
+impl fmt::Display for Protocol {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Groth16 => write!(f, "groth16"),
+            Self::Plonk => write!(f, "plonk"),
+            Self::Fflonk => write!(f, "fflonk"),
+        }
+    }
+}
+
+/// Finite field / elliptic curve prime.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum Prime {
+    Bn128,
+    Bls12381,
+    Goldilocks,
+    Grumpkin,
+    Pallas,
+    Vesta,
+    Secq256r1,
+}
+
+impl fmt::Display for Prime {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Bn128 => write!(f, "bn128"),
+            Self::Bls12381 => write!(f, "bls12381"),
+            Self::Goldilocks => write!(f, "goldilocks"),
+            Self::Grumpkin => write!(f, "grumpkin"),
+            Self::Pallas => write!(f, "pallas"),
+            Self::Vesta => write!(f, "vesta"),
+            Self::Secq256r1 => write!(f, "secq256r1"),
+        }
+    }
+}
+
+/// Witness calculator backend.
+/// TODO: should be at circomkit-witness?
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum WitnessBackend {
+    #[default]
+    Wasm,
+    C,
+}
+
+/// Proving backend kind.
+/// TODO: should be at circomkit-prove?
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum ProvingBackendKind {
+    #[default]
+    Snarkjs,
+    Arkworks,
+    Lambdaworks,
+}
+
+/// Log level for circomkit operations.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum LogLevel {
+    Trace,
+    Debug,
+    #[default]
+    Info,
+    Warn,
+    Error,
+    Silent,
+}
+
+impl LogLevel {
+    /// Convert to `log::LevelFilter`.
+    pub fn to_level_filter(self) -> log::LevelFilter {
+        match self {
+            Self::Trace => log::LevelFilter::Trace,
+            Self::Debug => log::LevelFilter::Debug,
+            Self::Info => log::LevelFilter::Info,
+            Self::Warn => log::LevelFilter::Warn,
+            Self::Error => log::LevelFilter::Error,
+            Self::Silent => log::LevelFilter::Off,
+        }
+    }
+}

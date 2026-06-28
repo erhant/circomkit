@@ -1,0 +1,81 @@
+[workspace]
+resolver = "3"
+members = [
+  "crates/circomkit-core",
+  "crates/circomkit-witness",
+  "crates/circomkit-prove",
+  "crates/circomkit-test",
+  "crates/circomkit",
+  "crates/circomkit-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/erhant/circomkit"
+authors = ["Erhan Tezcan"]
+
+[workspace.dependencies]
+# Internal crates
+circomkit-core = { path = "crates/circomkit-core" }
+circomkit-witness = { path = "crates/circomkit-witness" }
+circomkit-prove = { path = "crates/circomkit-prove" }
+circomkit-test = { path = "crates/circomkit-test" }
+circomkit = { path = "crates/circomkit" }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = "0.8"
+
+# Numeric
+num-bigint = { version = "0.4", features = ["serde"] }
+num-traits = "0.2"
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# HTTP (PTAU download)
+ureq = "2"
+
+# Temp files
+tempfile = "3"
+
+# Regex
+regex = "1"
+
+# WASM runtime (witness calculation)
+wasmtime = "31"
+
+# Lambdaworks (proving)
+lambdaworks-math = { git = "https://github.com/erhant/lambdaworks", branch = "erhant/fix-circom-adapter" }
+lambdaworks-circom-adapter = { git = "https://github.com/erhant/lambdaworks", branch = "erhant/fix-circom-adapter" }
+lambdaworks-groth16 = { git = "https://github.com/erhant/lambdaworks", branch = "erhant/fix-circom-adapter" }
+
+# Arkworks (proving)
+ark-circom = { version = "0.6", default-features = false }
+ark-bn254 = "0.6"
+ark-groth16 = { version = "0.6", default-features = false, features = [
+  "parallel",
+] }
+ark-ff = { version = "0.6", default-features = false, features = [
+  "parallel",
+  "asm",
+] }
+ark-ec = { version = "0.6", default-features = false, features = ["parallel"] }
+ark-relations = { version = "0.6", default-features = false }
+ark-serialize = { version = "0.6", default-features = false }
+ark-std = { version = "0.6", default-features = false, features = [
+  "parallel",
+  "std",
+] }
+rand = "0.8"
