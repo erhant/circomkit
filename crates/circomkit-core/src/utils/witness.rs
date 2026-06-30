@@ -168,24 +168,23 @@ mod tests {
 
     #[test]
     fn writes_n8_per_prime_and_roundtrips() {
-        let dir = std::env::temp_dir().join("circomkit_wtns_n8");
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+
+        // create a fake witness
         let witness = vec![BigInt::from(1), BigInt::from(42), BigInt::from(255)];
 
-        // bn128 packs elements into 32 bytes.
-        let bn = dir.join("bn128.wtns");
+        // bn128 packs elements into 32 bytes
+        let bn = dir.path().join("bn128.wtns");
         write_witness_file(&bn, &witness, Prime::Bn128).unwrap();
         let bytes = std::fs::read(&bn).unwrap();
         assert_eq!(n8_from_bytes(&bytes), 32);
         assert_eq!(parse_witness_bytes(&bytes).unwrap(), witness);
 
-        // goldilocks packs elements into 8 bytes — the old hardcoded 32 would be wrong.
-        let gl = dir.join("goldilocks.wtns");
+        // goldilocks packs elements into 8 bytes
+        let gl = dir.path().join("goldilocks.wtns");
         write_witness_file(&gl, &witness, Prime::Goldilocks).unwrap();
         let bytes = std::fs::read(&gl).unwrap();
         assert_eq!(n8_from_bytes(&bytes), 8);
         assert_eq!(parse_witness_bytes(&bytes).unwrap(), witness);
-
-        let _ = std::fs::remove_dir_all(&dir);
     }
 }

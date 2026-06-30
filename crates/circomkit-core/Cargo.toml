@@ -22,3 +22,6 @@ download = ["dep:ureq"]
 [dependencies.ureq]
 workspace = true
 optional = true
+
+[dev-dependencies]
+tempfile.workspace = true
