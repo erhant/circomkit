@@ -16,7 +16,7 @@ fn full_prove_and_verify() {
 
     let input = signals! { "in" => vec![2_i64, 4, 10] };
     let proof_path = ck
-        .prove("multiplier_3", "prove_test", Some(&input))
+        .prove("multiplier_3", "prove_test", Some(&input), None)
         .unwrap();
     assert!(proof_path.exists());
 
@@ -30,7 +30,7 @@ fn verify_rejects_tampered_signals() {
     setup_multiplier(&ck);
 
     let input = signals! { "in" => vec![2_i64, 4, 10] };
-    ck.prove("multiplier_3", "tamper_test", Some(&input))
+    ck.prove("multiplier_3", "tamper_test", Some(&input), None)
         .unwrap();
 
     // Tamper with the public signals file
@@ -52,7 +52,7 @@ fn prove_rejects_unsupported_backend_curve() {
 
     let input = signals! { "in" => vec![2_i64, 4, 10] };
     let err = ck
-        .prove("multiplier_3", "cap_test", Some(&input))
+        .prove("multiplier_3", "cap_test", Some(&input), None)
         .expect_err("lambdaworks on bn128 must be rejected");
 
     let msg = err.to_string().to_lowercase();
@@ -80,12 +80,45 @@ fn arkworks_backend_through_orchestrator() {
     ck.config.prover.backend = ProvingBackendKind::Arkworks;
 
     let input = signals! { "in" => vec![2_i64, 4, 10] };
-    let proof_path = ck.prove("multiplier_3", "ark_e2e", Some(&input)).unwrap();
+    let proof_path = ck
+        .prove("multiplier_3", "ark_e2e", Some(&input), None)
+        .unwrap();
     assert!(proof_path.exists());
 
     // Same proving key snarkjs set up + snarkjs-format proof => snarkjs verifies it.
     let ok = ck.verify("multiplier_3", "ark_e2e").unwrap();
     assert!(ok, "snarkjs should verify the arkworks-generated proof");
+}
+
+/// An explicit backend override (as the CLI `--backend` flag passes) wins over
+/// the resolved `prover.backend`. The config defaults to snarkjs (bn128), but
+/// overriding to lambdaworks (bls12381-only) surfaces the curve capability error
+/// before any proving work — proving the override, not the config, was used.
+#[test]
+fn prove_backend_override_beats_config() {
+    use circomkit::core::enums::ProvingBackendKind;
+
+    let (ck, _guard) = test_circomkit();
+
+    let input = signals! { "in" => vec![2_i64, 4, 10] };
+    let err = ck
+        .prove(
+            "multiplier_3",
+            "override_test",
+            Some(&input),
+            Some(ProvingBackendKind::Lambdaworks),
+        )
+        .expect_err("override to lambdaworks on bn128 must be rejected");
+
+    let msg = err.to_string().to_lowercase();
+    assert!(
+        msg.contains("lambdaworks"),
+        "error should name the overridden backend: {msg}"
+    );
+    assert!(
+        msg.contains("curve"),
+        "error should mention the curve: {msg}"
+    );
 }
 
 #[test]
@@ -102,7 +135,7 @@ fn witness_then_prove() {
 
     // Then prove (will recompute witness via snarkjs, but the file exists)
     let proof_path = ck
-        .prove("multiplier_3", "witness_test", Some(&input))
+        .prove("multiplier_3", "witness_test", Some(&input), None)
         .unwrap();
     assert!(proof_path.exists());
 

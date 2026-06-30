@@ -97,6 +97,8 @@ impl Circomkit {
         input: &str,
         data: Option<&CircuitSignals>,
     ) -> Result<PathBuf> {
+        let prime = self.resolve(circuit)?.compiler.prime;
+
         let input_data = match data {
             Some(d) => d.clone(),
             None => self.load_input(circuit, input)?,
@@ -114,7 +116,7 @@ impl Circomkit {
         if let Some(parent) = wtns_path.parent() {
             std::fs::create_dir_all(parent)?;
         }
-        circomkit_core::utils::write_witness_file(&wtns_path, &witness)?;
+        circomkit_core::utils::write_witness_file(&wtns_path, &witness, prime)?;
 
         log::info!("witness computed for {circuit}/{input}");
         Ok(wtns_path)
@@ -122,19 +124,21 @@ impl Circomkit {
 
     /// Generate a proof for a circuit with the given input.
     ///
-    /// The proving backend is selected from the resolved circuit config
-    /// (`prover.backend`), capability-checked against the protocol and curve.
-    /// snarkjs uses its one-shot `full_prove`; native backends (arkworks,
-    /// lambdaworks) compute a witness first, then prove from it.
+    /// The proving backend is taken from `backend` when provided (e.g. the CLI
+    /// `--backend` flag), otherwise from the resolved circuit config
+    /// (`prover.backend`). Either way it is capability-checked against the
+    /// protocol and curve. snarkjs uses its one-shot `full_prove`; native
+    /// backends (arkworks, lambdaworks) compute a witness first, then prove from it.
     pub fn prove(
         &self,
         circuit: &str,
         input: &str,
         data: Option<&CircuitSignals>,
+        backend: Option<ProvingBackendKind>,
     ) -> Result<PathBuf> {
         let resolved = self.resolve(circuit)?;
         let protocol = resolved.prover.protocol;
-        let kind = resolved.prover.backend;
+        let kind = backend.unwrap_or(resolved.prover.backend);
         let prime = resolved.compiler.prime;
 
         let pkey_path = self.paths.pkey(circuit, protocol);

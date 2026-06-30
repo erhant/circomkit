@@ -69,6 +69,31 @@ pub enum ProvingBackendKind {
     Lambdaworks,
 }
 
+impl fmt::Display for ProvingBackendKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Snarkjs => write!(f, "snarkjs"),
+            Self::Arkworks => write!(f, "arkworks"),
+            Self::Lambdaworks => write!(f, "lambdaworks"),
+        }
+    }
+}
+
+impl std::str::FromStr for ProvingBackendKind {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s.to_ascii_lowercase().as_str() {
+            "snarkjs" => Ok(Self::Snarkjs),
+            "arkworks" => Ok(Self::Arkworks),
+            "lambdaworks" => Ok(Self::Lambdaworks),
+            other => Err(format!(
+                "unknown proving backend '{other}' (expected: snarkjs, arkworks, lambdaworks)"
+            )),
+        }
+    }
+}
+
 /// Log level for circomkit operations.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
@@ -93,5 +118,36 @@ impl LogLevel {
             Self::Error => log::LevelFilter::Error,
             Self::Silent => log::LevelFilter::Off,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn proving_backend_kind_from_str_roundtrips() {
+        for kind in [
+            ProvingBackendKind::Snarkjs,
+            ProvingBackendKind::Arkworks,
+            ProvingBackendKind::Lambdaworks,
+        ] {
+            let parsed: ProvingBackendKind = kind.to_string().parse().unwrap();
+            assert_eq!(parsed, kind);
+        }
+        // Case-insensitive parsing.
+        assert_eq!(
+            "ARKWORKS".parse::<ProvingBackendKind>().unwrap(),
+            ProvingBackendKind::Arkworks
+        );
+    }
+
+    #[test]
+    fn proving_backend_kind_from_str_rejects_unknown() {
+        let err = "plonky2".parse::<ProvingBackendKind>().unwrap_err();
+        assert!(
+            err.contains("plonky2"),
+            "error should name the bad input: {err}"
+        );
     }
 }
