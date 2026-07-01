@@ -28,7 +28,7 @@ impl Circomkit {
     }
 
     /// Load Circomkit from a `circomkit.json` file.
-    pub fn from_file(path: &Path) -> Result<Self> {
+    pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
         let config = CircomkitConfig::from_file(path)?;
         Self::new(config)
     }

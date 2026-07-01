@@ -56,7 +56,8 @@ impl CircomkitConfig {
     ///
     /// Automatically detects the legacy Circomkit v0.3 flat config format
     /// and converts it to the new nested format.
-    pub fn from_file(path: &Path) -> Result<Self> {
+    pub fn from_file(path: impl AsRef<Path>) -> Result<Self> {
+        let path = path.as_ref();
         if !path.exists() {
             return Ok(Self::default());
         }

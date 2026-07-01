@@ -1,0 +1,6 @@
+# Circomkit build artifacts and downloaded PTAU
+/build
+/ptau
+
+# Auto-generated main components (created by `circomkit compile`/`instantiate`)
+/circuits/main
