@@ -98,6 +98,10 @@ circomkit ptau <circuit>
 
 Actions that generate a witness, a proof, or verify a proof need JSON inputs for the signal values. Input files live under the `inputs` folder, in a directory named after the circuit. For example, an input named `foo` for a circuit named `bar` is at `inputs/bar/foo.json`.
 
+> [!TIP]
+>
+> For circuits with a single input, you can skip the subdirectory and use the flat `inputs/{circuit}.json` layout instead. When `inputs/{circuit}/{input}.json` is missing, Circomkit falls back to `inputs/{circuit}.json`.
+
 ```sh
 # Compute a witness
 circomkit witness <circuit> <input>

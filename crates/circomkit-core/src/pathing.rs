@@ -113,6 +113,15 @@ impl CircomkitPaths {
         self.input_dir.join(circuit).join(format!("{input}.json"))
     }
 
+    /// Flat input JSON fallback: `{input_dir}/{circuit}.json`
+    ///
+    /// A convenience layout for circuits with a single input, avoiding the
+    /// per-circuit subdirectory. Used as a fallback when the per-input file
+    /// under [`input_json`](Self::input_json) does not exist.
+    pub fn input_json_flat(&self, circuit: &str) -> PathBuf {
+        self.input_dir.join(format!("{circuit}.json"))
+    }
+
     /// PTAU file: `{ptau_dir}/{ptau_name}`
     pub fn ptau(&self, ptau_name: &str) -> PathBuf {
         self.ptau_dir.join(ptau_name)
@@ -184,6 +193,10 @@ mod tests {
         assert_eq!(
             paths.input_json("mul", "test"),
             PathBuf::from("./inputs/mul/test.json")
+        );
+        assert_eq!(
+            paths.input_json_flat("mul"),
+            PathBuf::from("./inputs/mul.json")
         );
     }
 
