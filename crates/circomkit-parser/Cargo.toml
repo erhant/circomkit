@@ -1,0 +1,18 @@
+[package]
+name = "circomkit-parser"
+description = "Lightweight parser for Circom source interfaces (templates, signals, tags) used for codegen"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+pest.workspace = true
+pest_derive.workspace = true
+thiserror.workspace = true
+serde = { workspace = true, optional = true }
+
+[features]
+default = []
+# Derive serde on the AST types (useful for codegen / bindings that emit JSON).
+serde = ["dep:serde"]

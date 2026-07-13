@@ -1,0 +1,89 @@
+//! Interface-only grammar for Circom source files.
+//!
+//! This grammar deliberately parses **only** the parts of a `.circom` file that
+//! describe a template's *interface*: `pragma` directives, `include`s, template
+//! headers (name + parameters), `signal` declarations (direction, tags, array
+//! dimensions), and the `main` component. Statement bodies (assignments,
+//! constraints, loops, expressions) are brace-skipped rather than parsed, so the
+//! grammar stays small and robust to circom language features we don't care about.
+
+// Whitespace and comments are silently skipped between tokens in non-atomic rules.
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+COMMENT    = _{ line_comment | block_comment }
+line_comment  = _{ "//" ~ (!"\n" ~ ANY)* }
+block_comment = _{ "/*" ~ (!"*/" ~ ANY)* ~ "*/" }
+
+// Word boundary: succeeds when the next char cannot continue an identifier.
+WB = _{ !(ASCII_ALPHANUMERIC | "_") }
+
+// Keyword tokens. These MUST be atomic (`@`) so no implicit whitespace is
+// inserted between the literal and the boundary check — otherwise the boundary
+// would be tested after the trailing space and always fail.
+kw_pragma    = @{ "pragma" ~ WB }
+kw_include   = @{ "include" ~ WB }
+kw_template  = @{ "template" ~ WB }
+kw_function  = @{ "function" ~ WB }
+kw_signal    = @{ "signal" ~ WB }
+kw_component = @{ "component" ~ WB }
+kw_main      = @{ "main" ~ WB }
+kw_public    = @{ "public" ~ WB }
+custom_kw    = @{ "custom" ~ WB }
+signal_qualifier = @{ ("input" | "output") ~ WB }
+
+ident  = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+string = @{ "\"" ~ (!"\"" ~ ANY)* ~ "\"" }
+
+program = { SOI ~ item* ~ EOI }
+
+item = _{
+      pragma_stmt
+    | include_stmt
+    | template_def
+    | function_def
+    | main_component
+    | block            // skip stray balanced blocks (e.g. `bus` definitions)
+    | stray
+}
+// A single skippable top-level token (strings kept atomic so their contents
+// can't unbalance brace matching).
+stray = _{ string | (!("{" | "}") ~ ANY) }
+
+pragma_stmt = { kw_pragma ~ pragma_body ~ ";" }
+pragma_body = @{ (!";" ~ ANY)* }
+
+include_stmt = { kw_include ~ string ~ ";" }
+
+template_def = { kw_template ~ custom_kw? ~ ident ~ param_list ~ block }
+
+function_def = { kw_function ~ ident ~ param_list ~ block }
+
+param_list = { "(" ~ (ident ~ ("," ~ ident)*)? ~ ")" }
+
+// Brace-balanced block. Signal declarations are captured wherever they appear
+// (including nested inside loops/conditionals); everything else is skipped.
+block       = { "{" ~ block_item* ~ "}" }
+block_item  = _{ block | signal_decl | block_token }
+block_token = _{ string | (!("{" | "}") ~ ANY) }
+
+signal_decl = {
+    kw_signal
+    ~ signal_qualifier?
+    ~ tag_list?
+    ~ signal_item ~ ("," ~ signal_item)*
+    ~ signal_tail?
+    ~ ";"
+}
+tag_list    = { "{" ~ ident ~ ("," ~ ident)* ~ "}" }
+signal_item = { ident ~ dimension* }
+dimension   = ${ "[" ~ dim_content ~ "]" }
+dim_content = @{ ( "[" ~ dim_content ~ "]" | (!("[" | "]") ~ ANY) )* }
+// Optional inline assignment (`<== expr`, `<-- expr`, ...) up to the terminator.
+signal_tail = _{ ( string | (!";" ~ ANY) )+ }
+
+main_component = {
+    kw_component ~ kw_main ~ main_public? ~ "=" ~ ident ~ arg_list ~ ";"
+}
+main_public = { "{" ~ kw_public ~ "[" ~ (ident ~ ("," ~ ident)*)? ~ "]" ~ "}" }
+arg_list    = { "(" ~ (arg ~ ("," ~ arg)*)? ~ ")" }
+arg         = ${ ( paren_group | (!("," | "(" | ")") ~ ANY) )+ }
+paren_group = { "(" ~ ( paren_group | (!("(" | ")") ~ ANY) )* ~ ")" }

@@ -1,7 +1,8 @@
 use std::path::PathBuf;
 
+use circomkit_codegen::{MainComponentSpec, instantiate_circuit};
 use circomkit_core::error::{CoreError, Result};
-use circomkit_core::functions::{compile_circuit, instantiate_circuit};
+use circomkit_core::functions::compile_circuit;
 use circomkit_core::types::R1CSInfo;
 use circomkit_core::utils::read_r1cs_info;
 
@@ -12,7 +13,15 @@ impl Circomkit {
     pub fn instantiate(&self, circuit: &str) -> Result<PathBuf> {
         let resolved = self.resolve(circuit)?;
         let main_path = self.paths.circuit_main(circuit);
-        instantiate_circuit(&resolved.circuit, &main_path, &resolved.version)?;
+        let c = &resolved.circuit;
+        let spec = MainComponentSpec {
+            file: &c.file,
+            template: &c.template,
+            params: &c.params,
+            pubs: &c.pubs,
+            uses_custom_templates: c.uses_custom_templates,
+        };
+        instantiate_circuit(&spec, &main_path, &resolved.version)?;
         log::info!("instantiated {circuit} at {}", main_path.display());
         Ok(main_path)
     }
