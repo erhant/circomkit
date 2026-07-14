@@ -1,0 +1,100 @@
+# Getting Started
+
+## Requirements
+
+Circomkit shells out to external tools for compilation and (by default) proving:
+
+- [`circom`](https://docs.circom.io/getting-started/installation/) (v2.2.x) — the
+  circuit compiler.
+- [`snarkjs`](https://github.com/iden3/snarkjs) (v0.7.x, installed globally via
+  npm) — the default proving/setup/verify pipeline.
+
+Both must be on your `PATH`. Run `circomkit doctor` at any time to check your
+environment (tool versions, OS, memory, and the largest PTAU your machine can
+likely handle).
+
+## Installation
+
+Pick whichever fits your setup:
+
+```sh
+# Rust (from crates.io)
+cargo install circomkit-cli
+
+# npm / Bun (also installs the library)
+npm install -g circomkit
+bun add -g circomkit
+
+# Homebrew, or the shell installer (from GitHub Releases)
+brew install erhant/tap/circomkit
+curl --proto '=https' --tlsv1.2 -LsSf https://github.com/erhant/circomkit/releases/latest/download/circomkit-installer.sh | sh
+```
+
+To build from source:
+
+```sh
+cargo build --release        # binary at target/release/circomkit
+```
+
+## Your first circuit
+
+**1. Create a project** with a `circomkit.json`:
+
+```json
+{
+  "$schema": "./schema.json",
+  "prover": { "protocol": "groth16", "backend": "snarkjs" },
+  "compiler": { "prime": "bn128", "srcDir": "./circuits", "outDir": "./build" },
+  "circuits": {
+    "multiplier_3": { "file": "multiplier", "template": "Multiplier", "params": [3] }
+  }
+}
+```
+
+**2. Write the circuit** at `circuits/multiplier.circom`:
+
+```circom
+pragma circom 2.0.0;
+
+template Multiplier(n) {
+    assert(n > 1);
+    signal input in[n];
+    signal output out;
+
+    signal inner[n - 1];
+    inner[0] <== in[0] * in[1];
+    for (var i = 2; i < n; i++) {
+        inner[i - 1] <== inner[i - 2] * in[i];
+    }
+    out <== inner[n - 2];
+}
+```
+
+**3. Provide an input** at `inputs/multiplier_3/default.json`:
+
+```json
+{ "in": [2, 4, 10] }
+```
+
+**4. Run the lifecycle:**
+
+```sh
+circomkit compile multiplier_3      # circom → r1cs, wasm, sym
+circomkit setup   multiplier_3      # trusted setup (auto-downloads PTAU for bn128)
+circomkit witness multiplier_3 default
+circomkit prove   multiplier_3 default
+circomkit verify  multiplier_3 default
+```
+
+That's it — you've compiled a circuit, run a trusted setup, and produced and
+verified a proof. Artifacts land under `build/multiplier_3/`.
+
+Next, export a Solidity verifier and its calldata:
+
+```sh
+circomkit contract multiplier_3
+circomkit calldata multiplier_3 default --pretty
+```
+
+See the [CLI Reference](./cli.md) for every command, and [Testing](./testing.md)
+to lock in behavior with real tests.

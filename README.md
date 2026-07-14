@@ -25,7 +25,13 @@ This is a Rust rewrite of [Circomkit](https://github.com/erhant/circomkit) (orig
 
 > [!NOTE]
 >
-> This is a work-in-progress rewrite. Node.js (napi-rs) and Python (pyo3) bindings are planned; the `Circomkit` struct is intentionally FFI-friendly (no generics, owned return types).
+> This is a Rust rewrite of the original TypeScript Circomkit. A Node.js / Bun package (via napi-rs) is available; the `Circomkit` struct is intentionally FFI-friendly (no generics, owned return types).
+
+## Documentation
+
+The **[Circomkit book](./book/)** is the full guide — getting started, configuration, the CLI, backends, testing, and the Rust / Node.js APIs. Build it locally with [`mdbook`](https://rust-lang.github.io/mdBook/): `mdbook serve book`.
+
+Learning Circom itself? See the companion book **[circom101](https://github.com/erhant/circom101)**.
 
 ## Requirements
 

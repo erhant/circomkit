@@ -31,7 +31,7 @@ version = "0.1.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/erhant/circomkit"
-authors = ["Erhan Tezcan"]
+authors = ["erhant"]
 
 [workspace.dependencies]
 # Internal crates
@@ -127,4 +127,3 @@ targets = [
   "x86_64-pc-windows-msvc",
 ]
 # Only the CLI crate produces a binary; the library crates are ignored.
-

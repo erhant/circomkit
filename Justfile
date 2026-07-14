@@ -32,6 +32,10 @@ test-all:
 schema:
     cargo test -p circomkit-core generate_schema -- --ignored
 
+# Serve the book locally with live reload and open it in the browser
+book:
+    mdbook serve book --open
+
 # Fail if schema.json is out of date with the config types (CI gate)
 schema-check:
     #!/usr/bin/env bash

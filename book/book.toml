@@ -1,0 +1,17 @@
+[book]
+title = "Circomkit"
+authors = ["erhant"]
+description = "A simple-to-use & opinionated Circom development & testing toolkit."
+language = "en"
+src = "src"
+
+[output.html]
+default-theme = "rust"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/erhant/circomkit"
+edit-url-template = "https://github.com/erhant/circomkit/edit/main/book/{path}"
+additional-css = []
+
+[output.html.fold]
+enable = true
+level = 1
