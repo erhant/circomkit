@@ -1,8 +1,9 @@
 use std::path::PathBuf;
 
 use circomkit_codegen::{MainComponentSpec, instantiate_circuit};
+use circomkit_core::enums::WitnessBackend;
 use circomkit_core::error::{CoreError, Result};
-use circomkit_core::functions::compile_circuit;
+use circomkit_core::functions::{build_c_witness_binary, compile_circuit};
 use circomkit_core::types::R1CSInfo;
 use circomkit_core::utils::read_r1cs_info;
 
@@ -71,13 +72,31 @@ impl Circomkit {
         }
 
         let out_dir = self.paths.circuit_dir(circuit);
+        // TODO: maybe we hide wasm and c compiler options and just enable w.r.t chosen witness config?
+        let want_c = self.config.witness.calculator == WitnessBackend::C;
+        let c_binary = self.paths.circuit_c_binary(circuit);
 
-        if !resolved.compiler.recompile && self.is_build_fresh(circuit, &resolved.circuit.file) {
+        // Skip only when artifacts are fresh AND, for the C backend, the native
+        // binary already exists (otherwise we must recompile with `--c`).
+        if !resolved.compiler.recompile
+            && self.is_build_fresh(circuit, &resolved.circuit.file)
+            && !(want_c && !c_binary.exists())
+        {
             log::info!("skipping compilation for {circuit} (build is up-to-date)");
             return Ok(out_dir);
         }
 
-        compile_circuit(&resolved.compiler, &main_path, &out_dir)?;
+        // The C witness backend needs circom's `--c` output; enable it on demand.
+        let mut compiler = resolved.compiler.clone();
+        if want_c {
+            compiler.c = true;
+        }
+        compile_circuit(&compiler, &main_path, &out_dir)?;
+
+        if want_c {
+            build_c_witness_binary(&self.paths.circuit_c_dir(circuit), &c_binary)?;
+        }
+
         log::info!("compiled {circuit} to {}", out_dir.display());
         Ok(out_dir)
     }

@@ -63,6 +63,11 @@ impl CircomkitPaths {
         self.circuit_dir(circuit).join(format!("{circuit}_cpp"))
     }
 
+    /// Compiled C witness binary: `{out_dir}/{circuit}/{circuit}_cpp/{circuit}`
+    pub fn circuit_c_binary(&self, circuit: &str) -> PathBuf {
+        self.circuit_c_dir(circuit).join(circuit)
+    }
+
     // ---- Protocol-dependent paths ----
 
     /// Prover key: `{out_dir}/{circuit}/{protocol}_pkey.zkey`

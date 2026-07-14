@@ -40,8 +40,6 @@ struct LegacyConfig {
     dir_ptau: PathBuf,
     #[serde(default = "default_dir_build")]
     dir_build: PathBuf,
-    #[serde(default = "default_circom_path")]
-    circom_path: String,
 
     #[serde(default)]
     optimization: Option<u32>,
@@ -88,9 +86,6 @@ fn default_dir_ptau() -> PathBuf {
 }
 fn default_dir_build() -> PathBuf {
     PathBuf::from("./build")
-}
-fn default_circom_path() -> String {
-    "circom".to_string()
 }
 fn default_include() -> Vec<PathBuf> {
     vec![PathBuf::from("./node_modules")]
@@ -153,7 +148,6 @@ pub fn from_legacy(value: &serde_json::Value, config_dir: &Path) -> Result<Circo
             r1cs: true,
             c: legacy.c_witness,
             inspect: legacy.inspect,
-            circom_path: legacy.circom_path,
             recompile: false,
         },
         witness: WitnessConfig {

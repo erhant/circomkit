@@ -31,8 +31,6 @@ pub struct CompilerConfig {
     pub c: bool,
     /// Run constraint inspection during compilation.
     pub inspect: bool,
-    /// Path to the circom binary.
-    pub circom_path: String,
     /// Force recompilation even if build artifacts are up-to-date.
     /// When `false` (default), compilation is skipped if the R1CS file exists
     /// and is newer than the source `.circom` file.
@@ -53,7 +51,6 @@ impl Default for CompilerConfig {
             r1cs: true,
             c: false,
             inspect: true,
-            circom_path: "circom".to_string(),
             recompile: false,
         }
     }

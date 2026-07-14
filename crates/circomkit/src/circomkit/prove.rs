@@ -5,7 +5,7 @@ use circomkit_core::error::{CoreError, Result};
 use circomkit_core::functions::get_calldata;
 use circomkit_core::types::CircuitSignals;
 use circomkit_prove::{ProvingBackend, SetupBackend, make_proving_backend};
-use circomkit_witness::make_witness_calculator;
+use circomkit_witness::{WitnessCalculator, WitnessError, make_witness_calculator};
 
 use super::Circomkit;
 
@@ -16,6 +16,21 @@ pub struct SetupOutput {
 }
 
 impl Circomkit {
+    /// Build the configured witness calculator for a circuit, resolving the
+    /// artifact paths (WASM module or native C binary) from the circuit's
+    /// paths. Keeps path derivation in one place without coupling the witness
+    /// crate to circomkit's path layout.
+    pub(crate) fn witness_calculator(
+        &self,
+        circuit: &str,
+    ) -> std::result::Result<Box<dyn WitnessCalculator>, WitnessError> {
+        make_witness_calculator(
+            self.config.witness.calculator,
+            &self.paths.circuit_wasm(circuit),
+            Some(&self.paths.circuit_c_binary(circuit)),
+        )
+    }
+
     /// Get or download the PTAU file for a circuit.
     pub fn ptau(&self, circuit: &str) -> Result<PathBuf> {
         let info = self.info(circuit)?;
@@ -104,8 +119,8 @@ impl Circomkit {
             None => self.load_input(circuit, input)?,
         };
 
-        let wasm_path = self.paths.circuit_wasm(circuit);
-        let calc = make_witness_calculator(self.config.witness.calculator, &wasm_path, None)
+        let calc = self
+            .witness_calculator(circuit)
             .map_err(|e| CoreError::CompilationFailed(format!("witness calculator: {e}")))?;
 
         let witness = calc

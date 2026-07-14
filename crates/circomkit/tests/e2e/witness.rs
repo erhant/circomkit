@@ -137,6 +137,35 @@ fn errors_fail_wrong_array_size() {
     assert!(result.is_err());
 }
 
+/// The circom `--c` native witness backend, exercised end-to-end.
+///
+/// This backend is architecture-gated: circom's C generator emits x86-64
+/// assembly, so `make` only builds on x86_64. The test asserts the happy path
+/// there, and a clean error on every other architecture — so it passes on CI
+/// (x86_64, with `nasm` + `libgmp` installed) and on arm64 dev machines alike.
+#[test]
+fn c_backend_arch_gated() {
+    use circomkit::core::enums::WitnessBackend;
+
+    let (mut ck, _guard) = test_circomkit();
+    ck.config.witness.calculator = WitnessBackend::C;
+
+    let input = signals! { "in" => vec![2_i64, 4, 10] };
+    let result = ck
+        .compile("multiplier_3")
+        .and_then(|_| ck.witness("multiplier_3", "c_backend", Some(&input)));
+
+    if cfg!(target_arch = "x86_64") {
+        let wtns = result.expect("C witness backend should build and run on x86_64");
+        assert!(wtns.exists(), "witness file should be written");
+    } else {
+        assert!(
+            result.is_err(),
+            "C witness backend should fail cleanly on non-x86_64 architectures"
+        );
+    }
+}
+
 #[test]
 fn custom_templates_pass() {
     let (ck, _guard) = test_circomkit();

@@ -18,7 +18,13 @@ num-traits.workspace = true
 workspace = true
 optional = true
 
+[dependencies.tempfile]
+workspace = true
+optional = true
+
 [features]
-default = ["witness-wasm"]
+default = ["witness-wasm", "witness-c"]
+# WASM witness calculator (wasmtime).
 witness-wasm = ["dep:wasmtime"]
-witness-c = []
+# Native C witness calculator (circom `--c`; runs the compiled binary).
+witness-c = ["dep:tempfile"]

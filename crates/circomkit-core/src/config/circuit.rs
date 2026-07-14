@@ -63,7 +63,6 @@ partial_config! {
         pub r1cs: bool,
         pub c: bool,
         pub inspect: bool,
-        pub circom_path: String,
         pub recompile: bool
     }
 }

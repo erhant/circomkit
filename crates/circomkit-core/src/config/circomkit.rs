@@ -194,9 +194,14 @@ mod tests {
     fn generate_schema() {
         let schema = CircomkitConfig::json_schema();
         let json = serde_json::to_string_pretty(&schema).unwrap();
-        let out_path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../..")
-            .join("schema.json");
+        // Honor an output-path override so `schema-check` can write to a temp
+        // file and diff without mutating the committed schema.json.
+        let out_path = match std::env::var_os("CIRCOMKIT_SCHEMA_OUT") {
+            Some(p) => std::path::PathBuf::from(p),
+            None => std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../..")
+                .join("schema.json"),
+        };
         std::fs::write(&out_path, &json).unwrap();
         println!("schema written to {}", out_path.display());
     }

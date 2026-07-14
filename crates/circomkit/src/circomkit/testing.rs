@@ -2,7 +2,6 @@ use circomkit_core::config::CircuitConfig;
 use circomkit_core::enums::Protocol;
 use circomkit_prove::SnarkjsBackend;
 use circomkit_test::{ProofTester, WitnessTester};
-use circomkit_witness::make_witness_calculator;
 
 use super::Circomkit;
 
@@ -17,8 +16,7 @@ impl Circomkit {
         self.compile(circuit)
             .map_err(circomkit_test::TestError::Core)?;
 
-        let wasm_path = self.paths.circuit_wasm(circuit);
-        let calc = make_witness_calculator(self.config.witness.calculator, &wasm_path, None)?;
+        let calc = self.witness_calculator(circuit)?;
 
         let _ = config;
         Ok(WitnessTester::new(
