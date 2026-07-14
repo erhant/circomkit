@@ -9,6 +9,21 @@ members = [
   "crates/circomkit-test",
   "crates/circomkit",
   "crates/circomkit-cli",
+  "bindings/napi",
+]
+
+# Keep the bare `cargo build`/`cargo test` (no `-p`/`--workspace`) lean — they
+# skip the napi addon. Full `--workspace` runs (e.g. `just check`, CI) still
+# build it.
+default-members = [
+  "crates/circomkit-core",
+  "crates/circomkit-parser",
+  "crates/circomkit-codegen",
+  "crates/circomkit-witness",
+  "crates/circomkit-prove",
+  "crates/circomkit-test",
+  "crates/circomkit",
+  "crates/circomkit-cli",
 ]
 
 [workspace.package]
@@ -60,6 +75,11 @@ regex = "1"
 # Circom source parsing (circomkit-parser)
 pest = "2"
 pest_derive = "2"
+
+# Node.js bindings (circomkit-napi)
+napi = { version = "3", features = ["napi9"] }
+napi-derive = "3"
+napi-build = "1"
 
 # WASM runtime (witness calculation)
 wasmtime = "31"
