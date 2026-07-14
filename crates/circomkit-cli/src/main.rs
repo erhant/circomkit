@@ -6,6 +6,8 @@ use clap::{Parser, Subcommand};
 use circomkit::Circomkit;
 use circomkit::ProvingBackendKind;
 
+mod doctor;
+
 #[derive(Parser)]
 #[command(
     name = "circomkit",
@@ -23,6 +25,13 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Diagnose the environment (tool versions, OS, memory, max PTAU)
+    Doctor {
+        /// Output the report as JSON
+        #[arg(long)]
+        json: bool,
+    },
+
     /// Print the effective configuration
     Config,
 
@@ -139,10 +148,19 @@ fn main() -> Result<()> {
     env_logger::init();
     let cli = Cli::parse();
 
+    // `doctor` inspects the environment and needs no circomkit.json.
+    if let Commands::Doctor { json } = &cli.command {
+        let ok = doctor::run(*json);
+        std::process::exit(if ok { 0 } else { 1 });
+    }
+
     let ck = Circomkit::from_file(&cli.config)
         .with_context(|| format!("failed to load config from {}", cli.config.display()))?;
 
     match cli.command {
+        // Handled before config loading (needs no circomkit.json).
+        Commands::Doctor { .. } => unreachable!(),
+
         Commands::Config => {
             println!("{}", serde_json::to_string_pretty(&ck.config)?);
         }

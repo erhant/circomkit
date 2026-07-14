@@ -72,6 +72,9 @@ tempfile = "3"
 # Regex
 regex = "1"
 
+# System info (circomkit doctor: memory, CPU)
+sysinfo = { version = "0.33", default-features = false, features = ["system"] }
+
 # Circom source parsing (circomkit-parser)
 pest = "2"
 pest_derive = "2"
