@@ -31,7 +31,9 @@ impl CircomProgram {
 
     /// Whether the file declares `pragma custom_templates`.
     pub fn has_custom_templates(&self) -> bool {
-        self.pragmas.iter().any(|p| matches!(p, Pragma::CustomTemplates))
+        self.pragmas
+            .iter()
+            .any(|p| matches!(p, Pragma::CustomTemplates))
     }
 
     /// Find a template by name.
@@ -69,12 +71,16 @@ pub struct Template {
 impl Template {
     /// Input signals only.
     pub fn inputs(&self) -> impl Iterator<Item = &Signal> {
-        self.signals.iter().filter(|s| s.direction == SignalDirection::Input)
+        self.signals
+            .iter()
+            .filter(|s| s.direction == SignalDirection::Input)
     }
 
     /// Output signals only.
     pub fn outputs(&self) -> impl Iterator<Item = &Signal> {
-        self.signals.iter().filter(|s| s.direction == SignalDirection::Output)
+        self.signals
+            .iter()
+            .filter(|s| s.direction == SignalDirection::Output)
     }
 }
 

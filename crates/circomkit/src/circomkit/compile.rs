@@ -78,6 +78,7 @@ impl Circomkit {
 
         // Skip only when artifacts are fresh AND, for the C backend, the native
         // binary already exists (otherwise we must recompile with `--c`).
+        #[expect(clippy::nonminimal_bool)]
         if !resolved.compiler.recompile
             && self.is_build_fresh(circuit, &resolved.circuit.file)
             && !(want_c && !c_binary.exists())

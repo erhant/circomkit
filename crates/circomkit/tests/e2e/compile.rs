@@ -1,7 +1,7 @@
 use circomkit::Circomkit;
 use circomkit::core::config::CircomkitConfig;
 
-use super::common::{test_circomkit, workspace_root};
+use super::common::{test_circomkit, test_lock, workspace_root};
 
 #[test]
 fn compile_multiplier() {
@@ -127,8 +127,11 @@ fn compile_tags() {
 
 #[test]
 fn recompiles_when_forced() {
+    // Hold the shared lock + pin CWD so this doesn't race other tests writing
+    // the same `tests/build/multiplier_3` directory.
+    let _guard = test_lock();
     let mut config =
-        CircomkitConfig::from_file(&workspace_root().join("tests/circomkit.json")).unwrap();
+        CircomkitConfig::from_file(workspace_root().join("tests/circomkit.json")).unwrap();
     config.compiler.recompile = true;
     let ck = Circomkit::new(config).unwrap();
 

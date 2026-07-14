@@ -41,11 +41,19 @@ fn ensure_ptau() {
 /// Returns the Circomkit instance AND the lock guard — hold onto the guard
 /// for the duration of your test to prevent concurrent filesystem access.
 pub fn test_circomkit() -> (Circomkit, std::sync::MutexGuard<'static, ()>) {
-    let guard = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    let root = workspace_root();
-    std::env::set_current_dir(&root).expect("failed to set CWD to workspace root");
-    ensure_ptau();
-    let config_path = root.join("tests/circomkit.json");
+    let guard = test_lock();
+    let config_path = workspace_root().join("tests/circomkit.json");
     let ck = Circomkit::from_file(&config_path).expect("failed to load test config");
     (ck, guard)
+}
+
+/// Acquire the shared test lock and pin CWD to the workspace root, returning the
+/// guard. Use this (instead of [`test_circomkit`]) when a test needs a custom
+/// config but must still serialize with the rest of the suite — otherwise it
+/// races other tests on the shared `tests/build` directory.
+pub fn test_lock() -> std::sync::MutexGuard<'static, ()> {
+    let guard = TEST_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    std::env::set_current_dir(workspace_root()).expect("failed to set CWD to workspace root");
+    ensure_ptau();
+    guard
 }
