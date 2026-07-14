@@ -6,7 +6,10 @@
   "repository": "https://github.com/erhant/circomkit",
   "main": "index.js",
   "types": "index.d.ts",
-  "files": ["index.js", "index.d.ts", "*.node"],
+  "bin": {
+    "circomkit": "bin.js"
+  },
+  "files": ["index.js", "index.d.ts", "bin.js", "*.node"],
   "napi": {
     "binaryName": "circomkit",
     "targets": [

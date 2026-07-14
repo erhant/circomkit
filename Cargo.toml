@@ -107,3 +107,21 @@ ark-std = { version = "0.6", default-features = false, features = [
   "std",
 ] }
 rand = "0.8"
+
+# Release tooling for the `circomkit` CLI binary (cargo-dist / `dist`).
+# `dist init` will confirm/complete this and generate the GitHub Actions
+# workflow. npm is intentionally omitted — the `circomkit` npm package ships the
+# CLI as a `bin` over the native addon.
+[workspace.metadata.dist]
+cargo-dist-version = "0.32.0"
+ci = "github"
+installers = ["shell", "powershell", "homebrew"]
+targets = [
+  "aarch64-apple-darwin",
+  "x86_64-apple-darwin",
+  "x86_64-unknown-linux-gnu",
+  "aarch64-unknown-linux-gnu",
+  "x86_64-pc-windows-msvc",
+]
+# Only the CLI crate produces a binary; the library crates are ignored.
+
