@@ -42,6 +42,9 @@ pub enum CoreError {
     #[error("config validation failed: {0}")]
     ConfigValidation(String),
 
+    #[error("invalid calldata value: {0}")]
+    InvalidCalldata(String),
+
     #[error(transparent)]
     Io(#[from] std::io::Error),
 

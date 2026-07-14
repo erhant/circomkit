@@ -48,7 +48,8 @@ pub fn prime_value(prime: Prime) -> BigUint {
 /// number of 64-bit words, times 8. e.g. bn128 (254 bits) → 32, goldilocks
 /// (64 bits) → 8.
 ///
-/// TODO: add link here
+/// See the r1cs binary format spec (the `Field Size` / `n8` field):
+/// <https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md>
 pub fn prime_field_n8(prime: Prime) -> u32 {
     let bits = prime_value(prime).bits();
     (((bits - 1) / 64 + 1) * 8) as u32

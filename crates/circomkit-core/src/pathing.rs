@@ -6,8 +6,6 @@ use crate::enums::Protocol;
 /// Resolves all filesystem paths for circomkit artifacts.
 #[derive(Debug, Clone)]
 pub struct CircomkitPaths {
-    // TODO: can this be static perhaps?
-    // path lives as long as the Circomkit instance, so we can store refs instead of owned Paths if needed
     src_dir: PathBuf,
     out_dir: PathBuf,
     input_dir: PathBuf,

@@ -79,7 +79,16 @@ pub fn ptau_path_if_exists(ptau_name: &str, ptau_dir: &Path) -> Option<PathBuf> 
 mod tests {
     use super::*;
 
-    // TODO: add ignored tests for `download_ptau` that actually download the file
+    #[cfg(feature = "download")]
+    #[test]
+    #[ignore = "downloads a real PTAU file over the network"]
+    fn download_ptau_fetches_smallest() {
+        let dir = tempfile::tempdir().unwrap();
+        let name = ptau_name_for_constraints(0); // power 08, the smallest
+        let path = download_ptau(&name, dir.path()).unwrap();
+        assert!(path.exists());
+        assert!(path.metadata().unwrap().len() > 0);
+    }
 
     #[test]
     fn ptau_naming() {

@@ -49,7 +49,6 @@ impl fmt::Display for Prime {
 }
 
 /// Witness calculator backend.
-/// TODO: should be at circomkit-witness?
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum WitnessBackend {
@@ -59,7 +58,6 @@ pub enum WitnessBackend {
 }
 
 /// Proving backend kind.
-/// TODO: should be at circomkit-prove?
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Hash, Serialize, Deserialize, JsonSchema)]
 #[serde(rename_all = "lowercase")]
 pub enum ProvingBackendKind {

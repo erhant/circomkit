@@ -11,21 +11,21 @@ pub fn get_calldata(proof: &serde_json::Value, pubs: &[String], pretty: bool) ->
         .as_str()
         .ok_or_else(|| CoreError::InvalidR1cs("proof missing 'protocol' field".to_string()))?;
 
-    let pubs_calldata = public_signals_calldata(pubs, pretty);
+    let pubs_calldata = public_signals_calldata(pubs, pretty)?;
 
     let proof_calldata = match protocol {
-        "groth16" => groth16_calldata(proof, pretty),
-        "plonk" => plonk_calldata(proof, pretty),
-        "fflonk" => fflonk_calldata(proof, pretty),
+        "groth16" => groth16_calldata(proof, pretty)?,
+        "plonk" => plonk_calldata(proof, pretty)?,
+        "fflonk" => fflonk_calldata(proof, pretty)?,
         _ => return Err(CoreError::InvalidProtocol(protocol.to_string())),
     };
 
     Ok(format!("\n{proof_calldata}\n\n{pubs_calldata}\n"))
 }
 
-fn public_signals_calldata(pubs: &[String], pretty: bool) -> String {
-    let pubs256 = values_to_padded_uint256s(pubs);
-    if pretty {
+fn public_signals_calldata(pubs: &[String], pretty: bool) -> Result<String> {
+    let pubs256 = values_to_padded_uint256s(pubs)?;
+    Ok(if pretty {
         format!(
             "uint[{}] memory pubs = [\n    {}\n];",
             pubs.len(),
@@ -34,23 +34,23 @@ fn public_signals_calldata(pubs: &[String], pretty: bool) -> String {
     } else {
         let quoted: Vec<String> = pubs256.iter().map(|s| format!("\"{s}\"")).collect();
         format!("[{}]", quoted.join(","))
-    }
+    })
 }
 
-fn groth16_calldata(proof: &serde_json::Value, pretty: bool) -> String {
-    let p_a = values_to_padded_uint256s(&extract_strs(&proof["pi_a"], 2));
+fn groth16_calldata(proof: &serde_json::Value, pretty: bool) -> Result<String> {
+    let p_a = values_to_padded_uint256s(&extract_strs(&proof["pi_a"], 2))?;
     // Note: pB indices are reversed for Ethereum compatibility
     let p_b0 = values_to_padded_uint256s(&[
         extract_str(&proof["pi_b"][0][1]),
         extract_str(&proof["pi_b"][0][0]),
-    ]);
+    ])?;
     let p_b1 = values_to_padded_uint256s(&[
         extract_str(&proof["pi_b"][1][1]),
         extract_str(&proof["pi_b"][1][0]),
-    ]);
-    let p_c = values_to_padded_uint256s(&extract_strs(&proof["pi_c"], 2));
+    ])?;
+    let p_c = values_to_padded_uint256s(&extract_strs(&proof["pi_c"], 2))?;
 
-    if pretty {
+    Ok(if pretty {
         [
             format!("uint[2] memory pA = [\n  {}\n];", p_a.join(",\n  ")),
             format!(
@@ -72,10 +72,10 @@ fn groth16_calldata(proof: &serde_json::Value, pretty: bool) -> String {
             format!("[{}]", with_quotes(&p_c).join(", ")),
         ]
         .join("\n")
-    }
+    })
 }
 
-fn plonk_calldata(proof: &serde_json::Value, pretty: bool) -> String {
+fn plonk_calldata(proof: &serde_json::Value, pretty: bool) -> Result<String> {
     let vals = values_to_padded_uint256s(&[
         extract_str(&proof["A"][0]),
         extract_str(&proof["A"][1]),
@@ -101,19 +101,19 @@ fn plonk_calldata(proof: &serde_json::Value, pretty: bool) -> String {
         extract_str(&proof["eval_s1"]),
         extract_str(&proof["eval_s2"]),
         extract_str(&proof["eval_zw"]),
-    ]);
+    ])?;
 
-    if pretty {
+    Ok(if pretty {
         format!(
             "uint[24] memory proof = [\n    {}\n];",
             vals.join(",\n    ")
         )
     } else {
         format!("[{}]", with_quotes(&vals).join(","))
-    }
+    })
 }
 
-fn fflonk_calldata(proof: &serde_json::Value, pretty: bool) -> String {
+fn fflonk_calldata(proof: &serde_json::Value, pretty: bool) -> Result<String> {
     let vals = values_to_padded_uint256s(&[
         extract_str(&proof["polynomials"]["C1"][0]),
         extract_str(&proof["polynomials"]["C1"][1]),
@@ -139,29 +139,31 @@ fn fflonk_calldata(proof: &serde_json::Value, pretty: bool) -> String {
         extract_str(&proof["evaluations"]["t1w"]),
         extract_str(&proof["evaluations"]["t2w"]),
         extract_str(&proof["evaluations"]["inv"]),
-    ]);
+    ])?;
 
-    if pretty {
+    Ok(if pretty {
         format!(
             "uint256[24] memory proof = [\n    {}\n];",
             vals.join(",\n    ")
         )
     } else {
         format!("[{}]", with_quotes(&vals).join(","))
-    }
+    })
 }
 
 /// Convert decimal string values to 0x-prefixed, zero-padded 64-hex-char (uint256) strings.
-fn values_to_padded_uint256s(values: &[String]) -> Vec<String> {
+fn values_to_padded_uint256s(values: &[String]) -> Result<Vec<String>> {
     values
         .iter()
         .map(|v| {
             let n = v
                 .parse::<BigInt>()
-                .unwrap_or_else(|_| panic!("invalid decimal value: {v}"));
-            let hex = format!("{:064x}", n);
-            assert!(hex.len() == 64, "uint256 overflow for value: {v}");
-            format!("0x{hex}")
+                .map_err(|_| CoreError::InvalidCalldata(format!("not a decimal integer: {v}")))?;
+            let hex = format!("{n:064x}");
+            if hex.len() != 64 {
+                return Err(CoreError::InvalidCalldata(format!("uint256 overflow: {v}")));
+            }
+            Ok(format!("0x{hex}"))
         })
         .collect()
 }
