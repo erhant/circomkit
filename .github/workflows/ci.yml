@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  lint:
+    name: fmt + clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+
+  test:
+    name: test (${{ matrix.os }}, circom ${{ matrix.circom }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86-64 exercises the C witness backend (needs nasm/gmp; circom
+          # C generator emits x86 assembly). The tags e2e circuit needs circom >= 2.2.0.
+          - { os: ubuntu-latest, circom: v2.2.3 }
+          - { os: ubuntu-latest, circom: v2.2.2 }
+          # macOS is arm64; no prebuilt circom, so build from source. The C
+          # witness backend is expected to error there (arch-gated test).
+          - { os: macos-latest, circom: v2.2.3 }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install snarkjs (latest)
+        run: npm install -g snarkjs
+
+      # circom's C witness generator needs these; Linux x86-64 only.
+      - name: Install C witness toolchain (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libgmp-dev nasm nlohmann-json3-dev libsodium-dev
+
+      - name: Cache circom binary
+        id: circom-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/circom-bin
+          key: circom-${{ runner.os }}-${{ matrix.circom }}
+
+      - name: Install circom ${{ matrix.circom }}
+        if: steps.circom-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/circom-bin
+          if [ "${{ runner.os }}" = "Linux" ]; then
+            curl -fsSL -o ~/circom-bin/circom \
+              "https://github.com/iden3/circom/releases/download/${{ matrix.circom }}/circom-linux-amd64"
+            chmod +x ~/circom-bin/circom
+          else
+            # No prebuilt arm64 asset — build from source.
+            git clone --depth 1 --branch "${{ matrix.circom }}" https://github.com/iden3/circom /tmp/circom
+            cargo build --release --manifest-path /tmp/circom/Cargo.toml
+            cp /tmp/circom/target/release/circom ~/circom-bin/circom
+          fi
+
+      - name: Add circom to PATH
+        run: echo "$HOME/circom-bin" >> "$GITHUB_PATH"
+
+      - name: Versions
+        run: |
+          circom --version
+          snarkjs --version || true
+
+      # Cache the downloaded test PTAU to avoid flaky network fetches.
+      - name: Cache test PTAU
+        uses: actions/cache@v4
+        with:
+          path: tests/ptau
+          key: ptau-${{ runner.os }}-powersOfTau28_hez_final_08
+
+      # `cargo test` (default-members) runs the full suite except the napi
+      # cdylib. On Linux x86-64 the C-witness e2e test builds and runs; on macOS
+      # arm64 it asserts the clean error path.
+      - name: Test
+        run: cargo test

@@ -4,14 +4,14 @@
 
 Circomkit shells out to external tools for compilation and (by default) proving:
 
-- [`circom`](https://docs.circom.io/getting-started/installation/) (v2.2.x) — the
-  circuit compiler.
-- [`snarkjs`](https://github.com/iden3/snarkjs) (v0.7.x, installed globally via
-  npm) — the default proving/setup/verify pipeline.
+- [`circom`](https://docs.circom.io/getting-started/installation/) (v2.2.x) — the circuit compiler.
+- [`snarkjs`](https://github.com/iden3/snarkjs) (v0.7.x, installed globally via npm) — the default proving/setup/verify pipeline.
 
-Both must be on your `PATH`. Run `circomkit doctor` at any time to check your
-environment (tool versions, OS, memory, and the largest PTAU your machine can
-likely handle).
+Both must be on your `PATH`.
+
+> [!TIP]
+>
+> Run `circomkit doctor` at any time to check your environment (tool versions, OS, memory, and the largest PTAU your machine can likely handle).
 
 ## Installation
 
@@ -21,20 +21,28 @@ Pick whichever fits your setup:
 # Rust (from crates.io)
 cargo install circomkit-cli
 
-# npm / Bun (also installs the library)
+# npm / Bun (from npm)
 npm install -g circomkit
 bun add -g circomkit
 
-# Homebrew, or the shell installer (from GitHub Releases)
+# Homebrew
 brew install erhant/tap/circomkit
+
+# the shell installer (from GitHub Releases)
 curl --proto '=https' --tlsv1.2 -LsSf https://github.com/erhant/circomkit/releases/latest/download/circomkit-installer.sh | sh
 ```
 
-To build from source:
-
-```sh
-cargo build --release        # binary at target/release/circomkit
-```
+> [!NOTE]
+>
+> You can also build from source:
+>
+> ```sh
+> # clone the repo
+> git clone https://github.com/erhant/circomkit.git
+>
+> # build binary at target/release/circomkit
+> cargo build --release
+> ```
 
 ## Your first circuit
 
@@ -42,11 +50,15 @@ cargo build --release        # binary at target/release/circomkit
 
 ```json
 {
-  "$schema": "./schema.json",
+  "$schema": "./schema.json", // FIXME: fix schema link
   "prover": { "protocol": "groth16", "backend": "snarkjs" },
   "compiler": { "prime": "bn128", "srcDir": "./circuits", "outDir": "./build" },
   "circuits": {
-    "multiplier_3": { "file": "multiplier", "template": "Multiplier", "params": [3] }
+    "multiplier_3": {
+      "file": "multiplier",
+      "template": "Multiplier",
+      "params": [3]
+    }
   }
 }
 ```

@@ -16,7 +16,7 @@ fn expect_pass_multiplier() {
 
     let input = signals! { "in" => vec![2_i64, 4, 10] };
     let output = signals! { "out" => 80_i64 };
-    tester.expect_pass(&input, Some(&output)).unwrap();
+    tester.expect_pass_with(&input, &output).unwrap();
 }
 
 #[test]
@@ -25,7 +25,7 @@ fn expect_pass_different_values() {
 
     let input = signals! { "in" => vec![3_i64, 5, 7] };
     let output = signals! { "out" => 105_i64 };
-    tester.expect_pass(&input, Some(&output)).unwrap();
+    tester.expect_pass_with(&input, &output).unwrap();
 }
 
 #[test]
@@ -80,7 +80,7 @@ fn arrays_pass() {
     };
 
     // Arrays circuit just constrains relationships, no explicit output
-    tester.expect_pass(&input, None).unwrap();
+    tester.expect_pass(&input).unwrap();
 }
 
 #[test]
@@ -111,7 +111,7 @@ fn errors_pass_valid() {
     // in != 1, so in=0 is fine
     let input = signals! { "in" => 0_i64, "inin" => vec![3_i64, 5] };
     let output = signals! { "out" => 15_i64 }; // 0 + (3 * 5) = 15
-    tester.expect_pass(&input, Some(&output)).unwrap();
+    tester.expect_pass_with(&input, &output).unwrap();
 }
 
 #[test]
@@ -174,7 +174,7 @@ fn custom_templates_pass() {
 
     let input = signals! { "in1" => 3_i64, "in2" => 7_i64 };
     let output = signals! { "out" => 21_i64 };
-    tester.expect_pass(&input, Some(&output)).unwrap();
+    tester.expect_pass_with(&input, &output).unwrap();
 }
 
 #[test]
@@ -186,7 +186,7 @@ fn custom_templates_wrong_output() {
     // 3 * 7 = 21, not 42
     let input = signals! { "in1" => 3_i64, "in2" => 7_i64 };
     let wrong_output = signals! { "out" => 42_i64 };
-    let result = tester.expect_pass(&input, Some(&wrong_output));
+    let result = tester.expect_pass_with(&input, &wrong_output);
     assert!(result.is_err());
 }
 
@@ -199,5 +199,5 @@ fn tags_bounded_add_pass() {
     // 100 + 50 = 150, both fit in 8 bits (max 255)
     let input = signals! { "a" => 100_i64, "b" => 50_i64 };
     let output = signals! { "out" => 150_i64 };
-    tester.expect_pass(&input, Some(&output)).unwrap();
+    tester.expect_pass_with(&input, &output).unwrap();
 }

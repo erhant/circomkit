@@ -40,7 +40,7 @@ Circomkit shells out to external tools for compilation and (by default) proving:
 - [`circom`](https://docs.circom.io/getting-started/installation/) (v2.2.x) — circuit compiler.
 - [`snarkjs`](https://github.com/iden3/snarkjs) (v0.7.x, installed globally via npm) — used for the default proving/setup/verify pipeline (Groth16, PLONK, FFLONK across all 7 primes).
 
-The native Arkworks / Lambdaworks backends do their own proving in-process and don't require snarkjs to *prove*, but setup / vkey / contract / verify still route through snarkjs.
+The native Arkworks / Lambdaworks backends do their own proving in-process and don't require snarkjs to _prove_, but setup / vkey / contract / verify still route through snarkjs.
 
 ## Installation
 
@@ -225,8 +225,8 @@ Circomkit provides two tester utilities that reduce boilerplate so you can focus
 
 `WitnessTester` computes witnesses via the WASM calculator (wasmtime) and offers assertion helpers:
 
-- `expect_pass(input, None)` — constraints & assertions pass for the input.
-- `expect_pass(input, Some(output))` — additionally checks that outputs match.
+- `expect_pass(input)` — constraints & assertions pass for the input.
+- `expect_pass_with(input, output)` — additionally checks that outputs match.
 - `expect_fail(input)` — witness computation fails (returns the error message).
 
 ```rust
@@ -239,7 +239,7 @@ let tester = ck.witness_tester("multiplier_3", config)?;
 // Passes on correct input & output
 let input  = signals! { "in" => vec![2_i64, 4, 10] };
 let output = signals! { "out" => 80_i64 };
-tester.expect_pass(&input, Some(&output))?;
+tester.expect_pass_with(&input, &output)?;
 
 // Fails on bad input
 let bad = signals! { "in" => vec![1_i64, 4, 10] };
@@ -288,11 +288,11 @@ let tester = ck.proof_tester("multiplier_3", Protocol::Groth16)?;
 
 Beyond snarkjs, Circomkit ships two native Rust Groth16 backends, gated behind Cargo features on the umbrella / CLI crates:
 
-| Backend | Feature flag | Curve | Notes |
-|---|---|---|---|
-| snarkjs | *(default)* | all 7 primes | full protocol support (Groth16 / PLONK / FFLONK) |
-| Arkworks | `prove-arkworks` | BN254 | loads a snarkjs `.zkey`, produces a snarkjs-format proof |
-| Lambdaworks | `prove-lambdaworks` | BLS12-381 | trusted setup on-the-fly, reads binary or JSON R1CS |
+| Backend     | Feature flag        | Curve        | Notes                                                    |
+| ----------- | ------------------- | ------------ | -------------------------------------------------------- |
+| snarkjs     | _(default)_         | all 7 primes | full protocol support (Groth16 / PLONK / FFLONK)         |
+| Arkworks    | `prove-arkworks`    | BN254        | loads a snarkjs `.zkey`, produces a snarkjs-format proof |
+| Lambdaworks | `prove-lambdaworks` | BLS12-381    | trusted setup on-the-fly, reads binary or JSON R1CS      |
 
 ```sh
 cargo build --features "prove-arkworks,prove-lambdaworks"
@@ -374,7 +374,7 @@ Integration tests require `circom` and `snarkjs` on your `PATH`. Test circuits l
 
 ## Acknowledgements
 
-We wholeheartedly thank [BuidlGuild](https://buidlguidl.com/) & [Austin Griffith](https://twitter.com/austingriffith) for providing Circomkit with an [Ecosystem Impact Grant](https://grants.buidlguidl.com/)!
+We wholeheartedly thank [BuidlGuidl](https://buidlguidl.com/) & [Austin Griffith](https://twitter.com/austingriffith) for providing Circomkit with an [Ecosystem Impact Grant](https://grants.buidlguidl.com/)!
 
 ## License
 

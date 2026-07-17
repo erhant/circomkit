@@ -1,7 +1,6 @@
 # Circomkit reference
 
-Config schema, project layout, every CLI command, backends, and the testing
-API. Read the section you need.
+Config schema, project layout, every CLI command, backends, and the testing API. Read the section you need.
 
 ## Table of contents
 
@@ -26,8 +25,7 @@ ptau/                     # phase-1 powers of tau
 build/<circuit>/          # r1cs, wasm, sym, zkey, vkey, proof, verifier.sol
 ```
 
-For a circuit with a single input you may use the flat `inputs/<circuit>.json`
-instead of `inputs/<circuit>/<input>.json`.
+For a circuit with a single input you may use the flat `inputs/<circuit>.json`instead of `inputs/<circuit>/<input>.json`.
 
 ## circomkit.json
 
@@ -35,38 +33,39 @@ instead of `inputs/<circuit>/<input>.json`.
 {
   "$schema": "./schema.json",
   "prover": {
-    "protocol": "groth16",          // groth16 | plonk | fflonk
-    "backend": "snarkjs",           // snarkjs | arkworks | lambdaworks
+    "protocol": "groth16", // groth16 | plonk | fflonk
+    "backend": "snarkjs", // snarkjs | arkworks | lambdaworks
     "ptauDir": "./ptau",
     "inputDir": "./inputs"
   },
   "compiler": {
-    "prime": "bn128",               // bn128 | bls12381 | goldilocks | grumpkin | pallas | vesta | secq256r1
+    "prime": "bn128", // bn128 | bls12381 | goldilocks | grumpkin | pallas | vesta | secq256r1
     "srcDir": "./circuits",
     "outDir": "./build",
-    "optimization": 1               // PLONK requires >= 1
+    "optimization": 1 // PLONK requires >= 1
   },
-  "witness": { "calculator": "wasm" },  // wasm | c
+  "witness": { "calculator": "wasm" }, // wasm | c
   "logLevel": "info",
   "circuits": {
     "multiplier_3": {
-      "file": "multiplier",         // circuits/multiplier.circom
-      "template": "Multiplier",     // the template to instantiate
-      "params": [3],                // template parameters (optional, default [])
-      "pubs": ["in"],               // public input signals (optional, default [])
-      "overrides": { "version": "2.2.0" }  // per-circuit config overrides (optional)
+      "file": "multiplier", // circuits/multiplier.circom
+      "template": "Multiplier", // the template to instantiate
+      "params": [3], // template parameters (optional, default [])
+      "pubs": ["in"], // public input signals (optional, default [])
+      "overrides": { "version": "2.2.0" } // per-circuit config overrides (optional)
     }
   },
-  "version": "2.1.0"                 // default circom pragma version for generated main
+  "version": "2.1.0" // default circom pragma version for generated main
 }
 ```
 
 Notes:
+
 - `circom` and `snarkjs` must be installed and on PATH (Circomkit shells out to
   them). `circomkit doctor` verifies this.
 - Non-`bn128` primes make trusted setup harder — you must supply PTAU yourself
   (only `bn128` auto-downloads via the Perpetual Powers of Tau, up to 2^28).
-- `pubs` lists which *inputs* are public; outputs are always public.
+- `pubs` lists which _inputs_ are public; outputs are always public.
 - Per-circuit `overrides` merge on top of the global sections.
 
 ## CLI commands
@@ -108,20 +107,24 @@ strings for large values (beyond JS safe integers); arrays for signal arrays:
 ```
 
 ```json
-{ "a": "218882428718392752222464057452572750885483644004160343436982041865758084956", "b": 3 }
+{
+  "a": "218882428718392752222464057452572750885483644004160343436982041865758084956",
+  "b": 3
+}
 ```
 
 ## Backends
 
 Proving (`prover.backend`):
 
-| backend      | curves          | protocols            | notes |
-|--------------|-----------------|----------------------|-------|
-| `snarkjs`    | all 7 primes    | groth16/plonk/fflonk | default; also does setup/vkey/contract/verify |
-| `arkworks`   | bn254           | groth16              | Cargo feature `prove-arkworks`; loads a snarkjs zkey |
-| `lambdaworks`| bls12381        | groth16              | Cargo feature `prove-lambdaworks`; trusted setup on the fly |
+| backend       | curves       | protocols            | notes                                                       |
+| ------------- | ------------ | -------------------- | ----------------------------------------------------------- |
+| `snarkjs`     | all 7 primes | groth16/plonk/fflonk | default; also does setup/vkey/contract/verify               |
+| `arkworks`    | bn254        | groth16              | Cargo feature `prove-arkworks`; loads a snarkjs zkey        |
+| `lambdaworks` | bls12381     | groth16              | Cargo feature `prove-lambdaworks`; trusted setup on the fly |
 
 Witness (`witness.calculator`):
+
 - `wasm` (default): wasmtime over circom's `.wasm`. Works everywhere.
 - `c`: native binary from `circom --c` (faster on large circuits, 64-bit, no
   wasm 4 GB cap). Requires `nasm` + a C toolchain and **only builds on x86-64**
@@ -139,7 +142,7 @@ let config = ck.config.circuits["multiplier_3"].clone();
 let tester = ck.witness_tester("multiplier_3", config)?;
 
 // correctness
-tester.expect_pass(&signals!{ "in" => vec![2_i64, 4, 10] }, Some(&signals!{ "out" => 80_i64 }))?;
+tester.expect_pass_with(&signals!{ "in" => vec![2_i64, 4, 10] }, &signals!{ "out" => 80_i64 })?;
 // rejection
 tester.expect_fail(&signals!{ "in" => vec![1_i64, 4, 10] })?;
 // guard the constraint count
@@ -170,11 +173,11 @@ import { Circomkit } from "circomkit";
 
 const ck = Circomkit.fromFile("circomkit.json");
 ck.compile("multiplier_3");
-ck.setup("multiplier_3");                          // auto-downloads PTAU for bn128
+ck.setup("multiplier_3"); // auto-downloads PTAU for bn128
 ck.witness("multiplier_3", "default", JSON.stringify({ in: [2, 4, 10] }));
 ck.prove("multiplier_3", "default", JSON.stringify({ in: [2, 4, 10] }));
-const ok = ck.verify("multiplier_3", "default");   // boolean
-const info = ck.info("multiplier_3");              // { wires, constraints, primeName, ... }
+const ok = ck.verify("multiplier_3", "default"); // boolean
+const info = ck.info("multiplier_3"); // { wires, constraints, primeName, ... }
 ```
 
 Inputs and inline config cross as JSON strings; path-returning methods return a

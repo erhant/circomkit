@@ -16,9 +16,7 @@ circomkit list                # list configured circuits
 circomkit config              # print the resolved configuration
 ```
 
-`doctor` verifies your toolchain and estimates the largest PTAU power your
-machine can handle from available memory. It exits non-zero if a required tool
-(circom, snarkjs) is missing, so it works in CI too.
+`doctor` verifies your toolchain and estimates the largest PTAU power your machine can handle from available memory. It exits non-zero if a required tool (circom, snarkjs) is missing, so it works in CI too.
 
 ## Building
 
@@ -29,8 +27,7 @@ circomkit info <circuit>      # wires, constraints, public/private I/O, prime
 circomkit clear <circuit>     # remove build artifacts for a circuit
 ```
 
-`compile` matches circuit names by regex, so `circomkit compile ".*"` builds
-everything.
+`compile` matches circuit names by regex, so `circomkit compile ".*"` builds everything.
 
 ## Setup & keys
 

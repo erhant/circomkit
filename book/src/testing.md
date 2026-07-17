@@ -1,15 +1,13 @@
 # Testing
 
-Circomkit ships tester utilities that reduce boilerplate so you can focus on
-inputs and outputs. Signals are built with the `signals!` macro.
+Circomkit ships tester utilities that reduce boilerplate so you can focus on inputs and outputs. Signals are built with the `signals!` macro.
 
 ## Witness Tester
 
-`WitnessTester` computes witnesses via the WASM calculator and offers
-assertions:
+`WitnessTester` computes witnesses via the WASM calculator and offers assertions:
 
-- `expect_pass(input, None)` — constraints and assertions pass for the input.
-- `expect_pass(input, Some(output))` — additionally checks that outputs match.
+- `expect_pass(input)` — constraints and assertions pass for the input.
+- `expect_pass_with(input, output)` — additionally checks that outputs match.
 - `expect_fail(input)` — witness computation must fail (rejection cases).
 - `expect_constraint_count(n, exact)` — guard against accidental blowups.
 - `compute(input, &["out"])` — extract named output signals.
@@ -22,9 +20,9 @@ let config = ck.config.circuits["multiplier_3"].clone();
 let tester = ck.witness_tester("multiplier_3", config)?;
 
 // passes on correct input & output
-tester.expect_pass(
+tester.expect_pass_with(
     &signals!{ "in" => vec![2_i64, 4, 10] },
-    Some(&signals!{ "out" => 80_i64 }),
+    &signals!{ "out" => 80_i64 },
 )?;
 
 // fails on bad input (Multiplier rejects inputs containing 1)
@@ -37,7 +35,7 @@ tester.expect_constraint_count(15, true)?;
 ## Testing soundness
 
 Correctness (honest inputs give the right output) is not the same as
-**soundness** (a malicious prover *cannot* satisfy the circuit with a wrong
+**soundness** (a malicious prover _cannot_ satisfy the circuit with a wrong
 value). To test soundness, compute a witness, tamper with an internal/output
 signal, and assert the constraints now fail:
 

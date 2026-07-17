@@ -1,8 +1,8 @@
 # Configuration
 
-Everything is driven by a single `circomkit.json`, following the v0.4
-unified-config style. Print the resolved configuration with `circomkit config`,
-and use the generated `schema.json` for editor autocompletion.
+Everything is driven by a single `circomkit.json`.
+
+Print the resolved configuration with `circomkit config`:
 
 ```json
 {
@@ -36,21 +36,21 @@ and use the generated `schema.json` for editor autocompletion.
 
 ### `prover`
 
-| Field      | Values                                  | Notes |
-|------------|-----------------------------------------|-------|
-| `protocol` | `groth16`, `plonk`, `fflonk`            | proving system |
-| `backend`  | `snarkjs`, `arkworks`, `lambdaworks`    | see [Backends](./backends.md) |
-| `ptauDir`  | path                                    | where PTAU files live |
-| `inputDir` | path                                    | where input JSONs live |
+| Field      | Values                               | Notes                         |
+| ---------- | ------------------------------------ | ----------------------------- |
+| `protocol` | `groth16`, `plonk`, `fflonk`         | proving system                |
+| `backend`  | `snarkjs`, `arkworks`, `lambdaworks` | see [Backends](./backends.md) |
+| `ptauDir`  | path                                 | where PTAU files live         |
+| `inputDir` | path                                 | where input JSONs live        |
 
 ### `compiler`
 
-| Field          | Values | Notes |
-|----------------|--------|-------|
-| `prime`        | `bn128`, `bls12381`, `goldilocks`, `grumpkin`, `pallas`, `vesta`, `secq256r1` | field |
-| `srcDir`       | path   | circuit sources |
-| `outDir`       | path   | build artifacts |
-| `optimization` | `0`, `1`, `2`, … | PLONK requires `>= 1` |
+| Field          | Values                                                                        | Notes                 |
+| -------------- | ----------------------------------------------------------------------------- | --------------------- |
+| `prime`        | `bn128`, `bls12381`, `goldilocks`, `grumpkin`, `pallas`, `vesta`, `secq256r1` | field                 |
+| `srcDir`       | path                                                                          | circuit sources       |
+| `outDir`       | path                                                                          | build artifacts       |
+| `optimization` | `0`, `1`, `2`, …                                                              | PLONK requires `>= 1` |
 
 > Using a prime other than `bn128` makes trusted setup harder — you must supply
 > the PTAU files yourself. With `bn128`, Circomkit auto-downloads from the
@@ -94,5 +94,7 @@ ptau/
 build/<circuit>/              # r1cs, wasm, sym, zkey, vkey, proof, verifier.sol
 ```
 
-For a circuit with a single input, the flat `inputs/<circuit>.json` layout works
-too — Circomkit falls back to it when `inputs/<circuit>/<input>.json` is missing.
+> [!TIP]
+>
+> For a circuit with a single input, the flat `inputs/<circuit>.json` layout works too.
+> Circomkit falls back to it when `inputs/<circuit>/<input>.json` is missing.

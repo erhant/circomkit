@@ -19,4 +19,3 @@
 
 - [Examples](./examples.md)
 - [Learn Circom](./learn-circom.md)
-- [Project Layout](./architecture.md)

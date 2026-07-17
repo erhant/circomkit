@@ -1,11 +1,10 @@
 # Rust Library
 
-The `Circomkit` orchestrator exposes the same operations as the CLI. Add the
-umbrella crate:
+The `Circomkit` orchestrator exposes the same operations as the CLI.
 
 ```toml
 [dependencies]
-circomkit = { git = "https://github.com/erhant/circomkit" }
+circomkit = { git = "https://github.com/erhant/circomkit" } # FIXME: add crate name
 ```
 
 Load config from a file (or construct it directly), then drive the lifecycle:
@@ -30,34 +29,23 @@ let proof = ck.prove("multiplier_3", "my_input", Some(&input), None)?;
 assert!(ck.verify("multiplier_3", "my_input")?);
 ```
 
-## Operations
-
-The struct mirrors the CLI: `instantiate`, `compile`, `info`, `clear`, `ptau`,
-`setup`, `vkey`, `contract`, `witness`, `prove`, `verify`, `calldata`,
-`load_input`, plus the testers `witness_tester` and `proof_tester` (see
-[Testing](./testing.md)).
-
-The design is intentionally FFI-friendly: no generics, owned return types. This
-is what makes the [Node.js & Bun](./bindings.md) bindings a thin wrapper.
-
 ## Native proving backends
 
-Enable the native backends via Cargo features on the umbrella crate:
+Enable the native backends via Cargo features:
 
 ```toml
 [dependencies]
 circomkit = { git = "...", features = ["prove-arkworks", "prove-lambdaworks"] }
 ```
 
-Then pass a backend override to `prove` (or leave `None` to use the configured
-one):
+Then pass a backend override to `prove` (or leave `None` to use the configured one):
 
 ```rust
 use circomkit::ProvingBackendKind;
 ck.prove("my_circuit", "my_input", None, Some(ProvingBackendKind::Arkworks))?;
 ```
 
-See [Backends](./backends.md) for the capability matrix.
+See [Backends](./backends.md) for options.
 
 ## Runnable example
 

@@ -84,34 +84,36 @@ impl WitnessTester {
     }
 
     /// Expect the input to produce a valid witness.
-    ///
-    /// If `output` is provided, also checks that the output signals match.
-    pub fn expect_pass(
+    pub fn expect_pass(&self, input: &CircuitSignals) -> Result<(), TestError> {
+        self.calculate_witness(input)?;
+        Ok(())
+    }
+
+    /// Expect the input to produce a valid witness whose output signals match `output`.
+    pub fn expect_pass_with(
         &self,
         input: &CircuitSignals,
-        output: Option<&CircuitSignals>,
+        output: &CircuitSignals,
     ) -> Result<(), TestError> {
         let witness = self.calculate_witness(input)?;
 
-        if let Some(expected) = output {
-            let symbols = self.symbols()?;
-            let signal_names: Vec<&str> = expected.keys().map(|s| s.as_str()).collect();
-            let actual = read_witness_signals(&witness, &symbols, &signal_names)?;
+        let symbols = self.symbols()?;
+        let signal_names: Vec<&str> = output.keys().map(|s| s.as_str()).collect();
+        let actual = read_witness_signals(&witness, &symbols, &signal_names)?;
 
-            for (name, expected_val) in expected {
-                let actual_val = actual.get(name).ok_or_else(|| TestError::OutputMismatch {
+        for (name, expected_val) in output {
+            let actual_val = actual.get(name).ok_or_else(|| TestError::OutputMismatch {
+                signal: name.clone(),
+                expected: format!("{expected_val:?}"),
+                actual: "not found".to_string(),
+            })?;
+
+            if expected_val != actual_val {
+                return Err(TestError::OutputMismatch {
                     signal: name.clone(),
                     expected: format!("{expected_val:?}"),
-                    actual: "not found".to_string(),
-                })?;
-
-                if expected_val != actual_val {
-                    return Err(TestError::OutputMismatch {
-                        signal: name.clone(),
-                        expected: format!("{expected_val:?}"),
-                        actual: format!("{actual_val:?}"),
-                    });
-                }
+                    actual: format!("{actual_val:?}"),
+                });
             }
         }
 

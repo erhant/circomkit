@@ -1,12 +1,10 @@
 name: Deploy Book
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "book/**"
-      - ".github/workflows/docs.yml"
+  # Publish the book manually, or automatically when a release is published.
   workflow_dispatch:
+  release:
+    types: [published]
 
 permissions:
   contents: read
@@ -22,7 +20,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     env:
-      MDBOOK_VERSION: "0.4.40"
+      MDBOOK_VERSION: "0.5.4"
     steps:
       - uses: actions/checkout@v4
       - name: Install mdBook

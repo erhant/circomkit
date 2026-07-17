@@ -1,8 +1,6 @@
 # Examples
 
-The repository ships a self-contained example under `examples/multiplier/` — the
-`Multiplier(3)` circuit demonstrated three ways, all driving the same
-`circomkit.json`, circuit, and input.
+The repository ships a self-contained example under `examples/multiplier/` — the `Multiplier(3)` circuit demonstrated three ways, all driving the same `circomkit.json`, circuit, and input.
 
 ## CLI
 
@@ -19,9 +17,6 @@ A shell walkthrough that builds the CLI and runs each command
 ```sh
 cargo run -p circomkit --example multiplier
 ```
-
-Uses the `circomkit` crate directly — see
-`crates/circomkit/examples/multiplier.rs`.
 
 ## TypeScript (Node & Bun)
 

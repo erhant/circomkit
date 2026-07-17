@@ -1,17 +1,15 @@
 # Node.js & Bun
 
-The `circomkit` npm package (built with [napi-rs](https://napi.rs)) is **both**
-the native library and the CLI, in one package:
+The `circomkit` npm package (built with [napi-rs](https://napi.rs)) is **both** the native library and the CLI, in one package:
 
 ```sh
-# library
 npm install circomkit
-# CLI
-npm install -g circomkit      # or: bun add -g circomkit
+bun add circomkit
 ```
 
-The CLI (`circomkit …`) is the same native Rust binary described in the
-[CLI Reference](./cli.md), launched from the package. Below is the library.
+> [!NOTE]
+>
+> The CLI (`circomkit …`) is the same native Rust binary described in the [CLI Reference](./cli.md), launched from the package.
 
 ## Library usage
 
@@ -28,15 +26,16 @@ const ck = Circomkit.fromFile("./circomkit.json");
 
 ck.compile("multiplier_3");
 
-const info = ck.info("multiplier_3");   // { wires, constraints, primeName, ... }
+const info = ck.info("multiplier_3");
+// { wires, constraints, primeName, ... }
 
 // Inline input signals as a JSON string:
 const input = JSON.stringify({ in: [2, 4, 10] });
 ck.witness("multiplier_3", "default", input);
 
-ck.setup("multiplier_3");               // auto-downloads PTAU for bn128
+ck.setup("multiplier_3"); // auto-downloads PTAU for bn128
 ck.prove("multiplier_3", "default", input);
-const ok = ck.verify("multiplier_3", "default");   // boolean
+const ok = ck.verify("multiplier_3", "default"); // boolean
 ```
 
 ## API surface
