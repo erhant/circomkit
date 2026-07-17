@@ -65,7 +65,7 @@ curl --proto '=https' --tlsv1.2 -LsSf https://github.com/erhant/circomkit/releas
 
 **2. Write the circuit** at `circuits/multiplier.circom`:
 
-```circom
+```cs
 pragma circom 2.0.0;
 
 template Multiplier(n) {
