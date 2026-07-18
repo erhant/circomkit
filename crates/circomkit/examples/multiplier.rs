@@ -53,6 +53,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("   proof valid: {ok}");
     assert!(ok, "proof should verify");
 
-    println!("Done. Artifacts under {}/build/{circuit}", project.display());
+    println!(
+        "Done. Artifacts under {}/build/{circuit}",
+        project.display()
+    );
     Ok(())
 }

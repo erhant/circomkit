@@ -9,6 +9,7 @@ members = [
   "crates/circomkit-test",
   "crates/circomkit",
   "crates/circomkit-cli",
+  "crates/circomkit-tests",
   "bindings/napi",
 ]
 
@@ -24,6 +25,7 @@ default-members = [
   "crates/circomkit-test",
   "crates/circomkit",
   "crates/circomkit-cli",
+  "crates/circomkit-tests",
 ]
 
 [workspace.package]
@@ -110,6 +112,13 @@ ark-std = { version = "0.6", default-features = false, features = [
   "std",
 ] }
 rand = "0.8"
+
+# Solidity verifier integration test (circomkit `test-solidity` feature).
+# alloy = Paradigm's Solidity ABI encoding; revm = in-process EVM to run the
+# snarkjs-exported verifier. Only compiled when the feature is enabled.
+alloy-sol-types = "1"
+alloy-primitives = "1"
+revm = "41"
 
 # Release tooling for the `circomkit` CLI binary (cargo-dist / `dist`).
 # `dist init` will confirm/complete this and generate the GitHub Actions

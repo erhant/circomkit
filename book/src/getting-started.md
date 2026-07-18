@@ -101,7 +101,7 @@ circomkit verify  multiplier_3 default
 That's it — you've compiled a circuit, run a trusted setup, and produced and
 verified a proof. Artifacts land under `build/multiplier_3/`.
 
-Next, export a Solidity verifier and its calldata:
+Optionally, export a Solidity verifier and its calldata:
 
 ```sh
 circomkit contract multiplier_3

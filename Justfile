@@ -18,7 +18,7 @@ lint:
 
 # Lint including the native proving backends
 lint-all:
-    cargo clippy --workspace --all-targets --features "prove-arkworks,prove-lambdaworks"
+    cargo clippy --workspace --all-targets --all-features
 
 # Run the test suite (e2e needs `circom` + `snarkjs` on PATH)
 test:
@@ -26,7 +26,7 @@ test:
 
 # Run tests including the native proving backends
 test-all:
-    cargo test --workspace --features "prove-arkworks,prove-lambdaworks"
+    cargo test --workspace --all-features
 
 # Regenerate schema.json from the config types
 schema:

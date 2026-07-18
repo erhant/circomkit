@@ -370,7 +370,17 @@ just test-all
 just check-all
 ```
 
-Integration tests require `circom` and `snarkjs` on your `PATH`. Test circuits live under `tests/circuits/` and are configured via `tests/circomkit.json`; end-to-end tests are in `crates/circomkit/tests/e2e/`.
+Integration tests require `circom` and `snarkjs` on your `PATH`. Test circuits live under `tests/circuits/` and are configured via `tests/circomkit.json`; end-to-end tests live in the unpublished `circomkit-tests` crate (`crates/circomkit-tests/tests/e2e/`).
+
+### Solidity verifier tests
+
+An optional end-to-end test compiles the snarkjs-exported Groth16 verifier, deploys it into an in-process EVM ([`revm`](https://github.com/bluealloy/revm)), and checks that the calldata circomkit emits makes `verifyProof` return `true` (with a tampered public signal rejected). ABI encoding uses [`alloy`](https://github.com/alloy-rs/alloy).
+
+It is gated behind the `circomkit-tests` crate's `test-solidity` feature (so `revm`/`alloy` aren't compiled by default) and additionally requires the [`solc`](https://docs.soliditylang.org/en/latest/installing-solidity.html) binary on your `PATH` — the test skips with a notice if `solc` is missing.
+
+```sh
+cargo test -p circomkit-tests --features test-solidity --test e2e
+```
 
 ## Acknowledgements
 

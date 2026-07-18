@@ -11,3 +11,7 @@ mod compile;
 mod config;
 mod prove;
 mod witness;
+
+// Solidity verifier + calldata test — opt-in, pulls in alloy + revm.
+#[cfg(feature = "test-solidity")]
+mod solidity;

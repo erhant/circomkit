@@ -49,8 +49,18 @@ impl DoctorReport {
                 tool("circom", "--version", REQUIRED, "circuit compiler"),
                 tool("snarkjs", "--version", REQUIRED, "proving / setup / verify"),
                 tool("node", "--version", OPTIONAL, "runtime for snarkjs"),
-                tool("nasm", "--version", OPTIONAL, "needed for the C witness backend"),
-                tool("make", "--version", OPTIONAL, "needed for the C witness backend"),
+                tool(
+                    "nasm",
+                    "--version",
+                    OPTIONAL,
+                    "needed for the C witness backend",
+                ),
+                tool(
+                    "make",
+                    "--version",
+                    OPTIONAL,
+                    "needed for the C witness backend",
+                ),
             ],
         }
     }
@@ -158,10 +168,11 @@ fn print_text(r: &DoctorReport) {
     println!("\nTools");
     for t in &r.tools {
         let mark = if t.found { "[ok]" } else { "[--]" };
-        let version = t
-            .version
-            .as_deref()
-            .unwrap_or(if t.found { "(version unknown)" } else { "not found" });
+        let version = t.version.as_deref().unwrap_or(if t.found {
+            "(version unknown)"
+        } else {
+            "not found"
+        });
         let path = t
             .path
             .as_ref()
