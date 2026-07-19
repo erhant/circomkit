@@ -1,8 +1,6 @@
 # circomkit
 
-The `circomkit` npm package — a Circom development & testing toolkit. It is
-**both** a native library (napi-rs bindings to the Rust orchestrator) **and**
-the `circomkit` CLI (the Rust binary, shipped inside the same package).
+The `circomkit` npm package — a Circom development & testing toolkit. It is **both** a native library (napi-rs bindings to the Rust orchestrator) **and** the `circomkit` CLI (the Rust binary, shipped inside the same package).
 
 - `import { Circomkit } from "circomkit"` — the library.
 - `bun add -g circomkit` (or `npm i -g circomkit`), then `circomkit …`; `bunx circomkit` for one-offs — the CLI.
@@ -75,4 +73,4 @@ bun scripts/bundle-cli.mjs <platform-key> target/<rust-triple>/release/circomkit
 # then: napi prepublish -t npm  (publishes main + platform packages)
 ```
 
-The non-npm channels (GitHub Releases, `curl | sh`, Homebrew, `cargo install circomkit-cli`) are handled separately by [`dist`](https://opensource.axo.dev/cargo-dist/) (config in the workspace `Cargo.toml`).
+The only other distribution channel is crates.io — `cargo install circomkit-cli` builds the same CLI from source.

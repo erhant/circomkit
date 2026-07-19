@@ -56,7 +56,7 @@ const binary = resolveBinary();
 if (!binary) {
   console.error(
     `circomkit: no native CLI binary for ${process.platform}-${process.arch}. ` +
-      `This platform may be unsupported, or the optional platform package failed to install.`
+      `This platform may be unsupported, or the optional platform package failed to install.`,
   );
   process.exit(1);
 }

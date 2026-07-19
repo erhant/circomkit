@@ -24,12 +24,6 @@ cargo install circomkit-cli
 # npm / Bun (from npm)
 npm install -g circomkit
 bun add -g circomkit
-
-# Homebrew
-brew install erhant/tap/circomkit
-
-# the shell installer (from GitHub Releases)
-curl --proto '=https' --tlsv1.2 -LsSf https://github.com/erhant/circomkit/releases/latest/download/circomkit-installer.sh | sh
 ```
 
 > [!NOTE]
