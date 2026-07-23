@@ -11,12 +11,12 @@ circomkit --config ./other.json list
 ## Environment & inspection
 
 ```sh
-circomkit doctor [--json]     # check circom/snarkjs, OS, memory, max PTAU
+circomkit doctor [--json]     # check circom/snarkjs and OS
 circomkit list                # list configured circuits
 circomkit config              # print the resolved configuration
 ```
 
-`doctor` verifies your toolchain and estimates the largest PTAU power your machine can handle from available memory. It exits non-zero if a required tool (circom, snarkjs) is missing, so it works in CI too.
+`doctor` verifies your toolchain. It exits non-zero if a required tool (circom, snarkjs) is missing, so it works in CI too.
 
 ## Building
 

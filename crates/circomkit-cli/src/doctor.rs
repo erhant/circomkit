@@ -1,11 +1,10 @@
-//! `circomkit doctor` — inspect the environment: external tool versions,
-//! OS/arch, CPU, and memory (to gauge the largest usable PTAU).
+//! `circomkit doctor` — inspect the environment: external tool versions
+//! and OS/arch.
 
 use std::path::PathBuf;
 use std::process::Command;
 
 use regex::Regex;
-use sysinfo::System;
 
 const REQUIRED: bool = true;
 const OPTIONAL: bool = false;
@@ -25,26 +24,14 @@ struct ToolStatus {
 struct DoctorReport {
     os: &'static str,
     arch: &'static str,
-    cpu_cores: Option<usize>,
-    total_memory: u64,
-    available_memory: u64,
-    max_ptau_power: u32,
     tools: Vec<ToolStatus>,
 }
 
 impl DoctorReport {
     fn gather() -> Self {
-        let mut sys = System::new();
-        sys.refresh_memory();
-        let total_memory = sys.total_memory();
-
         DoctorReport {
             os: std::env::consts::OS,
             arch: std::env::consts::ARCH,
-            cpu_cores: std::thread::available_parallelism().ok().map(|n| n.get()),
-            total_memory,
-            available_memory: sys.available_memory(),
-            max_ptau_power: max_ptau_power(total_memory),
             tools: vec![
                 tool("circom", "--version", REQUIRED, "circuit compiler"),
                 tool("snarkjs", "--version", REQUIRED, "proving / setup / verify"),
@@ -123,47 +110,11 @@ fn find_on_path(cmd: &str) -> Option<PathBuf> {
     })
 }
 
-/// Rough upper bound on the PTAU power (2^k constraints) the device can handle,
-/// based on total memory.
-///
-/// Heuristic only: Groth16 setup/proving peak memory scales with the constraint
-/// count; this assumes snarkjs-class usage (~2.5 KiB/constraint, 70% of RAM
-/// usable). Native backends (arkworks / lambdaworks / rapidsnark) allow larger.
-/// Clamped to circomkit's PTAU floor (2^8) and the Perpetual Powers of Tau
-/// ceiling (2^28).
-fn max_ptau_power(total_memory: u64) -> u32 {
-    const BYTES_PER_CONSTRAINT: f64 = 2560.0;
-    let usable = total_memory as f64 * 0.7;
-    let max_constraints = (usable / BYTES_PER_CONSTRAINT).max(1.0);
-    (max_constraints.log2().floor() as i64).clamp(8, 28) as u32
-}
-
-/// Human-readable byte size.
-fn human_bytes(bytes: u64) -> String {
-    const GIB: f64 = 1024.0 * 1024.0 * 1024.0;
-    const MIB: f64 = 1024.0 * 1024.0;
-    let b = bytes as f64;
-    if b >= GIB {
-        format!("{:.1} GiB", b / GIB)
-    } else {
-        format!("{:.0} MiB", b / MIB)
-    }
-}
-
 fn print_text(r: &DoctorReport) {
     println!("Circomkit doctor\n");
 
     println!("System");
     println!("  OS:                {} ({})", r.os, r.arch);
-    if let Some(cores) = r.cpu_cores {
-        println!("  CPU cores:         {cores}");
-    }
-    println!("  Total memory:      {}", human_bytes(r.total_memory));
-    println!("  Available memory:  {}", human_bytes(r.available_memory));
-    println!(
-        "  Max PTAU power:    ~2^{} (rough estimate; snarkjs-class memory use)",
-        r.max_ptau_power
-    );
 
     println!("\nTools");
     for t in &r.tools {
@@ -208,10 +159,6 @@ fn print_json(r: &DoctorReport) {
     let out = serde_json::json!({
         "os": r.os,
         "arch": r.arch,
-        "cpuCores": r.cpu_cores,
-        "totalMemoryBytes": r.total_memory,
-        "availableMemoryBytes": r.available_memory,
-        "maxPtauPower": r.max_ptau_power,
         "allRequiredPresent": r.all_required_present(),
         "tools": tools,
     });

@@ -18,7 +18,6 @@ env_logger.workspace = true
 log.workspace = true
 serde_json.workspace = true
 regex.workspace = true
-sysinfo.workspace = true
 
 [features]
 default = []

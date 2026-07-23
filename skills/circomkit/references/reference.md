@@ -73,7 +73,7 @@ Notes:
 The binary reads `./circomkit.json` (override with the global `--config` flag).
 
 ```sh
-circomkit doctor [--json]          # check circom/snarkjs, OS, memory, max PTAU
+circomkit doctor [--json]          # check circom/snarkjs and OS
 circomkit list                     # list configured circuits
 circomkit config                   # print the resolved config
 

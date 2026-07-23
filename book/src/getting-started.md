@@ -11,7 +11,7 @@ Both must be on your `PATH`.
 
 > [!TIP]
 >
-> Run `circomkit doctor` at any time to check your environment (tool versions, OS, memory, and the largest PTAU your machine can likely handle).
+> Run `circomkit doctor` at any time to check your environment (tool versions and OS).
 
 ## Installation
 

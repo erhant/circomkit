@@ -134,8 +134,8 @@ circomkit list
 # Print the effective (resolved) configuration
 circomkit config
 
-# Diagnose your environment: circom/snarkjs versions, OS, memory, and the
-# largest PTAU power your machine can likely handle (add --json for machine output)
+# Diagnose your environment: circom/snarkjs versions and OS
+# (add --json for machine output)
 circomkit doctor
 ```
 
