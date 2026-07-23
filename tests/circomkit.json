@@ -1,0 +1,46 @@
+{
+  "$schema": "../schema.json",
+  "compiler": {
+    "srcDir": "./tests/circuits",
+    "outDir": "./tests/build",
+    "optimization": 0,
+    "verbose": false
+  },
+  "prover": {
+    "protocol": "groth16",
+    "ptauDir": "./tests/ptau",
+    "inputDir": "./tests/inputs",
+    "verbose": false
+  },
+  "logLevel": "silent",
+  "circuits": {
+    "multiplier_3": {
+      "file": "multiplier",
+      "template": "Multiplier",
+      "params": [3]
+    },
+    "arrays_2_3": {
+      "file": "arrays",
+      "template": "Arrays",
+      "params": [2, 3],
+      "pubs": ["in1D", "in2D"]
+    },
+    "errors": {
+      "file": "errors",
+      "template": "Errors"
+    },
+    "custom_mul": {
+      "file": "custom",
+      "template": "CustomMultiplier",
+      "usesCustomTemplates": true
+    },
+    "bounded_add_8": {
+      "file": "tags",
+      "template": "BoundedAdd_wrapper",
+      "params": [8],
+      "overrides": {
+        "version": "2.2.0"
+      }
+    }
+  }
+}

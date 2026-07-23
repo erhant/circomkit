@@ -1,0 +1,21 @@
+{
+  "name": "circomkit-example-multiplier-ts",
+  "private": true,
+  "type": "module",
+  "description": "End-to-end Circomkit example using the native npm library",
+  "dependencies": {
+    "circomkit": "file:../../../bindings/napi"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.0"
+  },
+  "scripts": {
+    "start": "bun index.ts",
+    "start:node": "node index.ts",
+    "test": "bun test"
+  },
+  "module": "index.ts",
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

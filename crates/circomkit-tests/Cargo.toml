@@ -1,0 +1,33 @@
+[package]
+name = "circomkit-tests"
+description = "End-to-end integration tests for circomkit."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+publish = false
+
+[dependencies]
+# `circomkit` is a normal (non-dev) dependency so the [features] table below can
+# forward to its features. The lib target is empty — everything lives in tests/.
+circomkit.workspace = true
+# Optional, enabled by `test-solidity`: alloy (Solidity ABI) + revm (in-process
+# EVM) to drive the snarkjs-exported verifier. Requires `solc` on PATH at
+# runtime; the test skips with a notice otherwise. Kept optional so revm/alloy
+# aren't compiled unless the Solidity test is requested.
+alloy-sol-types = { workspace = true, optional = true }
+alloy-primitives = { workspace = true, optional = true }
+revm = { workspace = true, optional = true }
+
+[dev-dependencies]
+num-bigint.workspace = true
+serde_json.workspace = true
+
+[features]
+default = []
+# Forward the native proving-backend features to circomkit (these gate tests in
+# tests/e2e/prove.rs).
+prove-arkworks = ["circomkit/prove-arkworks"]
+prove-lambdaworks = ["circomkit/prove-lambdaworks"]
+# Solidity verifier + calldata e2e test (tests/e2e/solidity.rs).
+test-solidity = ["dep:alloy-sol-types", "dep:alloy-primitives", "dep:revm"]

@@ -1,0 +1,24 @@
+[package]
+name = "circomkit"
+description = "Circom testing & development toolkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+circomkit-core.workspace = true
+circomkit-codegen.workspace = true
+circomkit-witness.workspace = true
+circomkit-prove.workspace = true
+circomkit-test.workspace = true
+log.workspace = true
+serde_json.workspace = true
+num-bigint.workspace = true
+thiserror.workspace = true
+
+[features]
+default = []
+# Native proving backends (forwarded to circomkit-prove).
+prove-arkworks = ["circomkit-prove/prove-arkworks"]
+prove-lambdaworks = ["circomkit-prove/prove-lambdaworks"]

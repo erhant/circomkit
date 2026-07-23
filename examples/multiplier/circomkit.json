@@ -1,0 +1,19 @@
+{
+  "$schema": "https://raw.githubusercontent.com/erhant/circomkit/refs/heads/erhant/riwr-attempts/schema.json",
+  "prover": {
+    "protocol": "groth16",
+    "backend": "snarkjs"
+  },
+  "compiler": {
+    "prime": "bn128",
+    "srcDir": "./circuits",
+    "outDir": "./build"
+  },
+  "circuits": {
+    "multiplier_3": {
+      "file": "multiplier",
+      "template": "Multiplier",
+      "params": [3]
+    }
+  }
+}

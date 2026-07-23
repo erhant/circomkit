@@ -1,0 +1,40 @@
+[package]
+name = "circomkit-prove"
+description = "Proving backend trait and implementations for Circomkit"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[dependencies]
+circomkit-core.workspace = true
+thiserror.workspace = true
+log.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+num-bigint.workspace = true
+tempfile.workspace = true
+
+# Lambdaworks (optional)
+lambdaworks-math = { workspace = true, optional = true }
+lambdaworks-circom-adapter = { workspace = true, optional = true }
+lambdaworks-groth16 = { workspace = true, optional = true }
+
+# Arkworks (optional)
+ark-circom = { workspace = true, optional = true }
+ark-bn254 = { workspace = true, optional = true }
+ark-groth16 = { workspace = true, optional = true }
+ark-ff = { workspace = true, optional = true }
+ark-ec = { workspace = true, optional = true }
+ark-relations = { workspace = true, optional = true }
+ark-serialize = { workspace = true, optional = true }
+ark-std = { workspace = true, optional = true }
+rand = { workspace = true, optional = true }
+
+[features]
+default = []
+prove-arkworks = [
+  "ark-circom", "ark-bn254", "ark-groth16", "ark-ff", "ark-ec",
+  "ark-relations", "ark-serialize", "ark-std", "rand",
+]
+prove-lambdaworks = ["lambdaworks-math", "lambdaworks-circom-adapter", "lambdaworks-groth16"]

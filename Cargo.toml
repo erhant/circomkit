@@ -1,0 +1,120 @@
+[workspace]
+resolver = "3"
+members = [
+  "crates/circomkit-core",
+  "crates/circomkit-parser",
+  "crates/circomkit-codegen",
+  "crates/circomkit-witness",
+  "crates/circomkit-prove",
+  "crates/circomkit-test",
+  "crates/circomkit",
+  "crates/circomkit-cli",
+  "crates/circomkit-tests",
+  "bindings/napi",
+]
+
+# Keep the bare `cargo build`/`cargo test` (no `-p`/`--workspace`) lean — they
+# skip the napi addon. Full `--workspace` runs (e.g. `just check`, CI) still
+# build it.
+default-members = [
+  "crates/circomkit-core",
+  "crates/circomkit-parser",
+  "crates/circomkit-codegen",
+  "crates/circomkit-witness",
+  "crates/circomkit-prove",
+  "crates/circomkit-test",
+  "crates/circomkit",
+  "crates/circomkit-cli",
+  "crates/circomkit-tests",
+]
+
+[workspace.package]
+version = "0.4.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/erhant/circomkit"
+authors = ["erhant"]
+
+[workspace.dependencies]
+# Internal crates
+circomkit-core = { path = "crates/circomkit-core" }
+circomkit-parser = { path = "crates/circomkit-parser" }
+circomkit-codegen = { path = "crates/circomkit-codegen" }
+circomkit-witness = { path = "crates/circomkit-witness" }
+circomkit-prove = { path = "crates/circomkit-prove" }
+circomkit-test = { path = "crates/circomkit-test" }
+circomkit = { path = "crates/circomkit" }
+
+# Serialization
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+schemars = "0.8"
+
+# Numeric
+num-bigint = { version = "0.4", features = ["serde"] }
+num-traits = "0.2"
+
+# Error handling
+thiserror = "2"
+anyhow = "1"
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+# CLI
+clap = { version = "4", features = ["derive"] }
+
+# HTTP (PTAU download)
+ureq = "2"
+
+# Temp files
+tempfile = "3"
+
+# Regex
+regex = "1"
+
+# System info (circomkit doctor: memory, CPU)
+
+# Circom source parsing (circomkit-parser)
+pest = "2"
+pest_derive = "2"
+
+# Node.js bindings (circomkit-napi)
+napi = { version = "3", features = ["napi9"] }
+napi-derive = "3"
+napi-build = "1"
+
+# WASM runtime (witness calculation)
+wasmtime = "31"
+
+# Lambdaworks (proving)
+lambdaworks-math = { git = "https://github.com/erhant/lambdaworks", branch = "erhant/fix-circom-adapter" }
+lambdaworks-circom-adapter = { git = "https://github.com/erhant/lambdaworks", branch = "erhant/fix-circom-adapter" }
+lambdaworks-groth16 = { git = "https://github.com/erhant/lambdaworks", branch = "erhant/fix-circom-adapter" }
+
+# Arkworks (proving)
+ark-circom = { version = "0.6", default-features = false }
+ark-bn254 = "0.6"
+ark-groth16 = { version = "0.6", default-features = false, features = [
+  "parallel",
+] }
+ark-ff = { version = "0.6", default-features = false, features = [
+  "parallel",
+  "asm",
+] }
+ark-ec = { version = "0.6", default-features = false, features = ["parallel"] }
+ark-relations = { version = "0.6", default-features = false }
+ark-serialize = { version = "0.6", default-features = false }
+ark-std = { version = "0.6", default-features = false, features = [
+  "parallel",
+  "std",
+] }
+rand = "0.8"
+
+# Solidity verifier integration test (circomkit `test-solidity` feature).
+# alloy = Paradigm's Solidity ABI encoding; revm = in-process EVM to run the
+# snarkjs-exported verifier. Only compiled when the feature is enabled.
+alloy-sol-types = "1"
+alloy-primitives = "1"
+revm = "41"

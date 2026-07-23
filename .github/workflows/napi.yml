@@ -1,0 +1,162 @@
+name: Publish npm package
+
+# Builds the native addon AND the CLI binary for each desktop target, bundles
+# the CLI into the per-platform packages, and publishes `circomkit` to npm.
+#
+# Runs on a published GitHub release (and manual dispatch). Requires an
+# `NPM_TOKEN` repository secret.
+#
+# NOTE: napi multi-platform publishing is fiddly and cannot be validated in this
+# sandbox — verify the `napi` command incantations against `napi --help` and the
+# current napi-rs package template on a real run before relying on it.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+env:
+  # Uses native runners per target — no cross-compilation.
+  DEBUG: napi:*
+
+defaults:
+  run:
+    working-directory: bindings/napi
+
+jobs:
+  build:
+    name: build ${{ matrix.target }}
+    runs-on: ${{ matrix.host }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            key: linux-x64-gnu
+            bin: circomkit
+          - host: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            key: linux-arm64-gnu
+            bin: circomkit
+          - host: macos-13
+            target: x86_64-apple-darwin
+            key: darwin-x64
+            bin: circomkit
+          - host: macos-latest
+            target: aarch64-apple-darwin
+            key: darwin-arm64
+            bin: circomkit
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+            key: win32-x64-msvc
+            bin: circomkit.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install deps
+        run: npm install
+
+      - name: Build addon
+        run: npx napi build --release --platform --target ${{ matrix.target }} --js binding.js --dts binding.d.ts
+
+      - name: Build CLI binary
+        working-directory: .
+        run: cargo build --release -p circomkit-cli --target ${{ matrix.target }}
+
+      - name: Upload addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: addon-${{ matrix.key }}
+          path: bindings/napi/circomkit.*.node
+          if-no-files-found: error
+
+      - name: Upload CLI binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-${{ matrix.key }}
+          path: target/${{ matrix.target }}/release/${{ matrix.bin }}
+          if-no-files-found: error
+
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: "https://registry.npmjs.org"
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install deps
+        run: npm install
+
+      # Generate the platform-agnostic root-package files that live in the main
+      # `circomkit` package: `binding.js`/`binding.d.ts` (napi loader) and
+      # `index.js`/`index.d.ts` (compiled TypeScript facade). The .node built
+      # here is discarded — per-platform .node files come from the build matrix.
+      - name: Build facade (binding + TS)
+        run: npm run build
+
+      - name: Scaffold platform packages
+        run: npx napi create-npm-dirs
+
+      - name: Download addon artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: addon-*
+          path: bindings/napi/artifacts
+          merge-multiple: true
+
+      - name: Move addons into platform packages
+        run: npx napi artifacts
+
+      - name: Download CLI binaries
+        uses: actions/download-artifact@v4
+        with:
+          pattern: cli-*
+          path: bindings/napi/cli-artifacts
+
+      - name: Bundle CLI binaries into platform packages
+        shell: bash
+        run: |
+          set -euo pipefail
+          for key in linux-x64-gnu linux-arm64-gnu darwin-x64 darwin-arm64 win32-x64-msvc; do
+            bin="cli-artifacts/cli-$key/circomkit"
+            [ "$key" = "win32-x64-msvc" ] && bin="cli-artifacts/cli-$key/circomkit.exe"
+            if [ -f "$bin" ]; then
+              node scripts/bundle-cli.mjs "$key" "$bin"
+            else
+              echo "::warning::missing CLI binary for $key ($bin)"
+            fi
+          done
+
+      - name: List packages
+        run: ls -R ./npm
+
+      - name: Publish
+        run: |
+          npm config set provenance true
+          npx napi prepublish -t npm
+          npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

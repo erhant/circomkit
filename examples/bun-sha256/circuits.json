@@ -1,7 +1,0 @@
-{
-  "sha256_32": {
-    "file": "sha256",
-    "template": "Sha256Bytes",
-    "params": [32]
-  }
-}

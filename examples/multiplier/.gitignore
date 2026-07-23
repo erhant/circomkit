@@ -1,0 +1,11 @@
+# Circomkit build artifacts and downloaded PTAU
+/build
+/ptau
+
+# Auto-generated main components (created by `circomkit compile`/`instantiate`)
+/circuits/main
+
+# TypeScript example dependencies
+/ts/node_modules
+/ts/bun.lock
+/ts/bun.lockb

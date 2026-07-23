@@ -1,0 +1,451 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CircomkitConfig",
+  "description": "Top-level circomkit configuration.",
+  "type": "object",
+  "properties": {
+    "circuits": {
+      "description": "Circuit definitions, keyed by circuit name.",
+      "default": {},
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/CircuitConfig"
+      }
+    },
+    "compiler": {
+      "description": "Compiler settings.",
+      "default": {
+        "c": false,
+        "circomPath": "circom",
+        "include": ["./node_modules"],
+        "inspect": true,
+        "optimization": 1,
+        "outDir": "./build",
+        "prime": "bn128",
+        "r1cs": true,
+        "srcDir": "./circuits",
+        "sym": true,
+        "verbose": true,
+        "wasm": true
+      },
+      "allOf": [
+        {
+          "$ref": "#/definitions/CompilerConfig"
+        }
+      ]
+    },
+    "logLevel": {
+      "description": "Log level.",
+      "default": "info",
+      "allOf": [
+        {
+          "$ref": "#/definitions/LogLevel"
+        }
+      ]
+    },
+    "prover": {
+      "description": "Prover settings.",
+      "default": {
+        "backend": "snarkjs",
+        "groth16": {
+          "askForEntropy": false,
+          "numContributions": 1
+        },
+        "inputDir": "./inputs",
+        "protocol": "groth16",
+        "ptauDir": "./ptau",
+        "verbose": true
+      },
+      "allOf": [
+        {
+          "$ref": "#/definitions/ProverConfig"
+        }
+      ]
+    },
+    "version": {
+      "description": "Circom version for pragma.",
+      "default": "2.1.0",
+      "type": "string"
+    },
+    "witness": {
+      "description": "Witness generation settings.",
+      "default": {
+        "calculator": "wasm"
+      },
+      "allOf": [
+        {
+          "$ref": "#/definitions/WitnessConfig"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "CircuitConfig": {
+      "description": "Per-circuit configuration.",
+      "type": "object",
+      "required": ["file", "template"],
+      "properties": {
+        "file": {
+          "description": "Path to the circuit template file (relative to `src_dir`, without extension).",
+          "type": "string"
+        },
+        "overrides": {
+          "description": "Per-circuit config overrides.",
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/CircuitOverrides"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "params": {
+          "description": "Template parameters.",
+          "default": [],
+          "type": "array",
+          "items": true
+        },
+        "pubs": {
+          "description": "Public input signal names.",
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "template": {
+          "description": "Name of the circom template to instantiate.",
+          "type": "string"
+        },
+        "usesCustomTemplates": {
+          "description": "Whether the circuit uses custom templates (custom pragma).",
+          "default": false,
+          "type": "boolean"
+        }
+      }
+    },
+    "CircuitOverrides": {
+      "description": "Per-circuit overrides that merge on top of global config.",
+      "type": "object",
+      "properties": {
+        "compiler": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PartialCompilerConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "prover": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/PartialProverConfig"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "version": {
+          "default": null,
+          "type": ["string", "null"]
+        }
+      }
+    },
+    "CompilerConfig": {
+      "description": "Compiler configuration.",
+      "type": "object",
+      "properties": {
+        "c": {
+          "description": "Generate C witness calculator.",
+          "default": false,
+          "type": "boolean"
+        },
+        "circomPath": {
+          "description": "Path to the circom binary.",
+          "default": "circom",
+          "type": "string"
+        },
+        "include": {
+          "description": "Include paths for circom (e.g. `node_modules`).",
+          "default": ["./node_modules"],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "inspect": {
+          "description": "Run constraint inspection during compilation.",
+          "default": true,
+          "type": "boolean"
+        },
+        "optimization": {
+          "description": "Optimization level (0, 1, 2, or higher for O2round).",
+          "default": 1,
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "outDir": {
+          "description": "Output directory for build artifacts.",
+          "default": "./build",
+          "type": "string"
+        },
+        "prime": {
+          "description": "Prime field for circuit compilation.",
+          "default": "bn128",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Prime"
+            }
+          ]
+        },
+        "r1cs": {
+          "description": "Generate R1CS file.",
+          "default": true,
+          "type": "boolean"
+        },
+        "srcDir": {
+          "description": "Source directory for circuit templates.",
+          "default": "./circuits",
+          "type": "string"
+        },
+        "sym": {
+          "description": "Generate symbol file.",
+          "default": true,
+          "type": "boolean"
+        },
+        "verbose": {
+          "description": "Whether circom should output verbose logs.",
+          "default": true,
+          "type": "boolean"
+        },
+        "wasm": {
+          "description": "Generate WASM witness calculator.",
+          "default": true,
+          "type": "boolean"
+        }
+      }
+    },
+    "Groth16Options": {
+      "description": "Groth16-specific prover options.",
+      "type": "object",
+      "properties": {
+        "askForEntropy": {
+          "description": "Whether to prompt for entropy during contributions.",
+          "default": false,
+          "type": "boolean"
+        },
+        "numContributions": {
+          "description": "Number of phase-2 contributions.",
+          "default": 1,
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        }
+      }
+    },
+    "LogLevel": {
+      "description": "Log level for circomkit operations.",
+      "type": "string",
+      "enum": ["trace", "debug", "info", "warn", "error", "silent"]
+    },
+    "PartialCompilerConfig": {
+      "type": "object",
+      "properties": {
+        "c": {
+          "default": null,
+          "type": ["boolean", "null"]
+        },
+        "circomPath": {
+          "default": null,
+          "type": ["string", "null"]
+        },
+        "inspect": {
+          "default": null,
+          "type": ["boolean", "null"]
+        },
+        "optimization": {
+          "default": null,
+          "type": ["integer", "null"],
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "outDir": {
+          "default": null,
+          "type": ["string", "null"]
+        },
+        "prime": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Prime"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "r1cs": {
+          "default": null,
+          "type": ["boolean", "null"]
+        },
+        "srcDir": {
+          "default": null,
+          "type": ["string", "null"]
+        },
+        "sym": {
+          "default": null,
+          "type": ["boolean", "null"]
+        },
+        "verbose": {
+          "default": null,
+          "type": ["boolean", "null"]
+        },
+        "wasm": {
+          "default": null,
+          "type": ["boolean", "null"]
+        }
+      }
+    },
+    "PartialProverConfig": {
+      "type": "object",
+      "properties": {
+        "backend": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/ProvingBackendKind"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "inputDir": {
+          "default": null,
+          "type": ["string", "null"]
+        },
+        "protocol": {
+          "default": null,
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Protocol"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ptauDir": {
+          "default": null,
+          "type": ["string", "null"]
+        },
+        "verbose": {
+          "default": null,
+          "type": ["boolean", "null"]
+        }
+      }
+    },
+    "Prime": {
+      "description": "Finite field / elliptic curve prime.",
+      "type": "string",
+      "enum": [
+        "bn128",
+        "bls12381",
+        "goldilocks",
+        "grumpkin",
+        "pallas",
+        "vesta",
+        "secq256r1"
+      ]
+    },
+    "Protocol": {
+      "description": "Zero-knowledge proof protocol.",
+      "type": "string",
+      "enum": ["groth16", "plonk", "fflonk"]
+    },
+    "ProverConfig": {
+      "description": "Prover configuration.",
+      "type": "object",
+      "properties": {
+        "backend": {
+          "description": "Proving backend.",
+          "default": "snarkjs",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ProvingBackendKind"
+            }
+          ]
+        },
+        "groth16": {
+          "description": "Groth16-specific options.",
+          "default": {
+            "askForEntropy": false,
+            "numContributions": 1
+          },
+          "allOf": [
+            {
+              "$ref": "#/definitions/Groth16Options"
+            }
+          ]
+        },
+        "inputDir": {
+          "description": "Directory for circuit input JSON files.",
+          "default": "./inputs",
+          "type": "string"
+        },
+        "protocol": {
+          "description": "Proof protocol to use.",
+          "default": "groth16",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Protocol"
+            }
+          ]
+        },
+        "ptauDir": {
+          "description": "Directory for Powers of Tau files.",
+          "default": "./ptau",
+          "type": "string"
+        },
+        "verbose": {
+          "description": "Whether snarkjs should log verbosely.",
+          "default": true,
+          "type": "boolean"
+        }
+      }
+    },
+    "ProvingBackendKind": {
+      "description": "Proving backend kind.",
+      "type": "string",
+      "enum": ["snarkjs", "arkworks", "lambdaworks"]
+    },
+    "WitnessBackend": {
+      "description": "Witness calculator backend.",
+      "type": "string",
+      "enum": ["wasm", "c"]
+    },
+    "WitnessConfig": {
+      "description": "Witness generation configuration.",
+      "type": "object",
+      "properties": {
+        "calculator": {
+          "description": "Which witness calculator backend to use.",
+          "default": "wasm",
+          "allOf": [
+            {
+              "$ref": "#/definitions/WitnessBackend"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
