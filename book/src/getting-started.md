@@ -76,7 +76,7 @@ template Multiplier(n) {
 }
 ```
 
-**3. Provide an input** at `inputs/multiplier_3/default.json`:
+**3. Provide an input** at `inputs/multiplier_3/default.json` (or just `inputs/multiplier_3.json`):
 
 ```json
 { "in": [2, 4, 10] }
@@ -85,7 +85,7 @@ template Multiplier(n) {
 **4. Run the lifecycle:**
 
 ```sh
-circomkit compile multiplier_3      # circom → r1cs, wasm, sym
+circomkit compile multiplier_3      # circom -> r1cs, wasm, sym
 circomkit setup   multiplier_3      # trusted setup (auto-downloads PTAU for bn128)
 circomkit witness multiplier_3 default
 circomkit prove   multiplier_3 default
@@ -95,12 +95,14 @@ circomkit verify  multiplier_3 default
 That's it — you've compiled a circuit, run a trusted setup, and produced and
 verified a proof. Artifacts land under `build/multiplier_3/`.
 
-Optionally, export a Solidity verifier and its calldata:
-
-```sh
-circomkit contract multiplier_3
-circomkit calldata multiplier_3 default --pretty
-```
+> [!TIP]
+>
+> Optionally, export a Solidity verifier and its calldata:
+>
+> ```sh
+> circomkit contract multiplier_3
+> circomkit calldata multiplier_3 default --pretty
+> ```
 
 See the [CLI Reference](./cli.md) for every command, and [Testing](./testing.md)
 to lock in behavior with real tests.

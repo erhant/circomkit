@@ -14,6 +14,7 @@ circomkit.workspace = true
 napi.workspace = true
 napi-derive.workspace = true
 serde_json.workspace = true
+num-bigint.workspace = true
 
 [build-dependencies]
 napi-build.workspace = true

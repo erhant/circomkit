@@ -29,6 +29,47 @@ fn parse_signals(data: Option<String>) -> napi::Result<Option<CircuitSignals>> {
     }
 }
 
+/// Parse a required JSON string of circuit signals.
+fn signals_from_json(json: &str) -> napi::Result<CircuitSignals> {
+    serde_json::from_str(json).map_err(err)
+}
+
+/// Parse a JSON object of `symbol -> value` overrides into BigInts. Values may
+/// be decimal strings or JSON integers.
+fn bigint_map_from_json(
+    json: &str,
+) -> napi::Result<std::collections::HashMap<String, num_bigint::BigInt>> {
+    let raw: std::collections::HashMap<String, serde_json::Value> =
+        serde_json::from_str(json).map_err(err)?;
+    let mut out = std::collections::HashMap::with_capacity(raw.len());
+    for (k, v) in raw {
+        let bi = match v {
+            serde_json::Value::String(s) => s.parse::<num_bigint::BigInt>().map_err(err)?,
+            serde_json::Value::Number(n) => {
+                n.to_string().parse::<num_bigint::BigInt>().map_err(err)?
+            }
+            other => return Err(err(format!("invalid override value for `{k}`: {other}"))),
+        };
+        out.insert(k, bi);
+    }
+    Ok(out)
+}
+
+/// Map a core `R1CSInfo` into the napi object.
+fn r1cs_info_to_napi(i: circomkit::R1CSInfo) -> R1csInfo {
+    R1csInfo {
+        wires: i.wires,
+        constraints: i.constraints,
+        private_inputs: i.private_inputs,
+        public_inputs: i.public_inputs,
+        public_outputs: i.public_outputs,
+        uses_custom_gates: i.uses_custom_gates,
+        labels: i.labels as i64,
+        prime: i.prime.to_string(),
+        prime_name: i.prime_name.map(|p| p.to_string()),
+    }
+}
+
 /// R1CS metadata (returned by [`Circomkit::info`]).
 #[napi(object)]
 pub struct R1csInfo {
@@ -70,12 +111,25 @@ impl Circomkit {
     }
 
     /// Load Circomkit from a JSON config string.
+    ///
+    /// Auto-detects and converts the legacy Circomkit v0.3 flat config format.
+    /// Relative paths it references resolve against the current directory.
     #[napi(factory)]
     pub fn from_config(json: String) -> napi::Result<Self> {
-        let config = serde_json::from_str(&json).map_err(err)?;
+        let config =
+            circomkit::CircomkitConfig::from_json_str(&json, Path::new(".")).map_err(err)?;
         Ok(Self {
             inner: Inner::new(config).map_err(err)?,
         })
+    }
+
+    /// The active config, normalized to the v0.4 nested format, as a JSON string.
+    ///
+    /// Lets the TypeScript facade read back a legacy config after conversion so
+    /// later inline-tester merges operate on the canonical shape.
+    #[napi]
+    pub fn config_json(&self) -> napi::Result<String> {
+        serde_json::to_string(&self.inner.config).map_err(err)
     }
 
     /// Generate the main component `.circom` file for a circuit. Returns its path.
@@ -93,18 +147,35 @@ impl Circomkit {
     /// Read R1CS metadata (wires, constraints, I/O counts, prime).
     #[napi]
     pub fn info(&self, circuit: String) -> napi::Result<R1csInfo> {
-        let i = self.inner.info(&circuit).map_err(err)?;
-        Ok(R1csInfo {
-            wires: i.wires,
-            constraints: i.constraints,
-            private_inputs: i.private_inputs,
-            public_inputs: i.public_inputs,
-            public_outputs: i.public_outputs,
-            uses_custom_gates: i.uses_custom_gates,
-            labels: i.labels as i64,
-            prime: i.prime.to_string(),
-            prime_name: i.prime_name.map(|p| p.to_string()),
-        })
+        Ok(r1cs_info_to_napi(self.inner.info(&circuit).map_err(err)?))
+    }
+
+    /// Create a `WitnessTester` for a circuit (compiles it first if needed).
+    #[napi]
+    pub fn witness_tester(&self, circuit: String) -> napi::Result<WitnessTester> {
+        let config = self
+            .inner
+            .config
+            .circuits
+            .get(&circuit)
+            .ok_or_else(|| err(format!("circuit `{circuit}` not found in config")))?
+            .clone();
+        let inner = self.inner.witness_tester(&circuit, config).map_err(err)?;
+        Ok(WitnessTester { inner })
+    }
+
+    /// Create a `ProofTester` for a circuit and protocol
+    /// (`"groth16" | "plonk" | "fflonk"`). Run `setup` first.
+    #[napi]
+    pub fn proof_tester(&self, circuit: String, protocol: String) -> napi::Result<ProofTester> {
+        let proto = match protocol.as_str() {
+            "groth16" => circomkit::Protocol::Groth16,
+            "plonk" => circomkit::Protocol::Plonk,
+            "fflonk" => circomkit::Protocol::Fflonk,
+            other => return Err(err(format!("unknown protocol `{other}`"))),
+        };
+        let inner = self.inner.proof_tester(&circuit, proto).map_err(err)?;
+        Ok(ProofTester { inner })
     }
 
     /// Remove all build artifacts for a circuit.
@@ -209,5 +280,183 @@ impl Circomkit {
     pub fn load_input(&self, circuit: String, input: String) -> napi::Result<String> {
         let signals = self.inner.load_input(&circuit, &input).map_err(err)?;
         serde_json::to_string(&signals).map_err(err)
+    }
+}
+
+/// An opaque handle to a computed witness (a vector of field elements).
+///
+/// Produced by [`WitnessTester::calculate_witness`] / `edit_witness` and
+/// consumed by `edit_witness` / `read_witness*`. The values stay on the Rust
+/// side unless read explicitly, so the soundness flow (compute → edit → assert)
+/// never converts the whole witness.
+#[napi(js_name = "Witness")]
+pub struct WitnessHandle {
+    inner: circomkit::Witness,
+}
+
+/// Witness-level circuit tester (constructed via `Circomkit.witnessTester`).
+#[napi]
+pub struct WitnessTester {
+    inner: circomkit::WitnessTester,
+}
+
+#[napi]
+impl WitnessTester {
+    /// Assert the input produces a valid witness.
+    #[napi]
+    pub fn expect_pass(&self, input: String) -> napi::Result<()> {
+        self.inner
+            .expect_pass(&signals_from_json(&input)?)
+            .map_err(err)
+    }
+
+    /// Assert the input passes and its output signals match `output` (JSON string).
+    #[napi]
+    pub fn expect_pass_with(&self, input: String, output: String) -> napi::Result<()> {
+        self.inner
+            .expect_pass_with(&signals_from_json(&input)?, &signals_from_json(&output)?)
+            .map_err(err)
+    }
+
+    /// Assert the input is rejected; returns the circuit error message.
+    #[napi]
+    pub fn expect_fail(&self, input: String) -> napi::Result<String> {
+        self.inner
+            .expect_fail(&signals_from_json(&input)?)
+            .map_err(err)
+    }
+
+    /// Assert the constraint count (exact, or a lower bound when `exact` is false).
+    #[napi]
+    pub fn expect_constraint_count(&self, count: u32, exact: bool) -> napi::Result<()> {
+        self.inner
+            .expect_constraint_count(count, exact)
+            .map_err(err)
+    }
+
+    /// The circuit's constraint count.
+    #[napi]
+    pub fn constraint_count(&self) -> napi::Result<u32> {
+        self.inner.constraint_count().map_err(err)
+    }
+
+    /// R1CS metadata for the circuit.
+    #[napi]
+    pub fn r1cs_info(&self) -> napi::Result<R1csInfo> {
+        Ok(r1cs_info_to_napi(self.inner.r1cs_info().map_err(err)?))
+    }
+
+    /// Compute a witness and read the named output signals (JSON string).
+    #[napi]
+    pub fn compute(&self, input: String, signals: Vec<String>) -> napi::Result<String> {
+        let names: Vec<&str> = signals.iter().map(String::as_str).collect();
+        let out = self
+            .inner
+            .compute(&signals_from_json(&input)?, &names)
+            .map_err(err)?;
+        serde_json::to_string(&out).map_err(err)
+    }
+
+    /// Compute a witness handle from inputs (for soundness testing).
+    #[napi]
+    pub fn calculate_witness(&self, input: String) -> napi::Result<WitnessHandle> {
+        let w = self
+            .inner
+            .calculate_witness(&signals_from_json(&input)?)
+            .map_err(err)?;
+        Ok(WitnessHandle { inner: w })
+    }
+
+    /// Return a new witness with the given `symbol -> value` overrides applied
+    /// (values as decimal strings or integers). A tampered witness that still
+    /// satisfies the constraints means the circuit is under-constrained.
+    #[napi]
+    pub fn edit_witness(
+        &self,
+        witness: &WitnessHandle,
+        overrides: String,
+    ) -> napi::Result<WitnessHandle> {
+        let ov = bigint_map_from_json(&overrides)?;
+        let w = self.inner.edit_witness(&witness.inner, &ov).map_err(err)?;
+        Ok(WitnessHandle { inner: w })
+    }
+
+    /// Read named signal values from a witness handle (JSON string).
+    #[napi]
+    pub fn read_witness_signals(
+        &self,
+        witness: &WitnessHandle,
+        signals: Vec<String>,
+    ) -> napi::Result<String> {
+        let names: Vec<&str> = signals.iter().map(String::as_str).collect();
+        let out = self
+            .inner
+            .read_witness_signals(&witness.inner, &names)
+            .map_err(err)?;
+        serde_json::to_string(&out).map_err(err)
+    }
+
+    /// Read raw values from a witness handle by full symbol name (JSON string of
+    /// `symbol -> decimal string`).
+    #[napi]
+    pub fn read_witness(
+        &self,
+        witness: &WitnessHandle,
+        symbols: Vec<String>,
+    ) -> napi::Result<String> {
+        let names: Vec<&str> = symbols.iter().map(String::as_str).collect();
+        let out = self
+            .inner
+            .read_witness(&witness.inner, &names)
+            .map_err(err)?;
+        let map: std::collections::HashMap<String, String> =
+            out.into_iter().map(|(k, v)| (k, v.to_string())).collect();
+        serde_json::to_string(&map).map_err(err)
+    }
+}
+
+/// Proof-level circuit tester (constructed via `Circomkit.proofTester`; run
+/// `setup` first).
+#[napi]
+pub struct ProofTester {
+    inner: circomkit::ProofTester,
+}
+
+#[napi]
+impl ProofTester {
+    /// Generate a proof. Returns `{ proof, publicSignals }` as a JSON string.
+    #[napi]
+    pub fn prove(&self, input: String) -> napi::Result<String> {
+        let out = self.inner.prove(&signals_from_json(&input)?).map_err(err)?;
+        serde_json::to_string(&serde_json::json!({
+            "proof": out.proof,
+            "publicSignals": out.public_signals,
+        }))
+        .map_err(err)
+    }
+
+    /// Verify a proof (proof as a JSON string, plus its public signals).
+    #[napi]
+    pub fn verify(&self, proof: String, public_signals: Vec<String>) -> napi::Result<bool> {
+        let proof_val: serde_json::Value = serde_json::from_str(&proof).map_err(err)?;
+        self.inner.verify(&proof_val, &public_signals).map_err(err)
+    }
+
+    /// Assert verification passes.
+    #[napi]
+    pub fn expect_pass(&self, proof: String, public_signals: Vec<String>) -> napi::Result<()> {
+        let proof_val: serde_json::Value = serde_json::from_str(&proof).map_err(err)?;
+        self.inner
+            .expect_pass(&proof_val, &public_signals)
+            .map_err(err)
+    }
+
+    /// Assert verification fails.
+    #[napi]
+    pub fn expect_fail(&self, proof: String, public_signals: Vec<String>) -> napi::Result<()> {
+        let proof_val: serde_json::Value = serde_json::from_str(&proof).map_err(err)?;
+        self.inner
+            .expect_fail(&proof_val, &public_signals)
+            .map_err(err)
     }
 }

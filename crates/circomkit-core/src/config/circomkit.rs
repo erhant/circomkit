@@ -62,11 +62,23 @@ impl CircomkitConfig {
             return Ok(Self::default());
         }
         let contents = std::fs::read_to_string(path)?;
-        let value: serde_json::Value = serde_json::from_str(&contents)?;
+        let config_dir = path.parent().unwrap_or(Path::new("."));
+        Self::from_json_str(&contents, config_dir)
+    }
 
+    /// Parse a JSON config string, auto-detecting and converting the legacy
+    /// Circomkit v0.3 flat format. `config_dir` resolves any relative paths the
+    /// legacy format references (e.g. its external `circuits.json`).
+    pub fn from_json_str(json: &str, config_dir: &Path) -> Result<Self> {
+        let value: serde_json::Value = serde_json::from_str(json)?;
+        Self::from_json_value(value, config_dir)
+    }
+
+    /// Parse a JSON config value, auto-detecting and converting the legacy
+    /// Circomkit v0.3 flat format.
+    pub fn from_json_value(value: serde_json::Value, config_dir: &Path) -> Result<Self> {
         let config = if super::legacy::is_legacy_format(&value) {
             log::info!("detected legacy Circomkit v0.3 config format, converting...");
-            let config_dir = path.parent().unwrap_or(Path::new("."));
             super::legacy::from_legacy(&value, config_dir)?
         } else {
             serde_json::from_value(value)?

@@ -100,16 +100,30 @@ fn default_one() -> u32 {
     1
 }
 
-/// Detect whether a JSON value is in legacy format.
+/// Detect whether a JSON value is in the legacy v0.3 flat format.
 ///
-/// Legacy configs have top-level `dirCircuits` or `dirBuild` fields.
-/// New configs have a nested `compiler` object.
+/// The new (v0.4) format nests everything under `compiler`/`prover`/`witness`,
+/// so any of these *top-level scalar* fields unambiguously marks a legacy
+/// config: the `dir*` paths, a string-valued `circuits` (an external file
+/// path), or the flat settings `prime`/`protocol`/`verbose`/`inspect`/
+/// `cWitness`/`wasmWitness` (all of which live under a nested object in v0.4).
+/// This lets a minimal flat config like `{ "verbose": false, "inspect": true }`
+/// convert through the v0.3 → v0.4 path instead of being silently dropped.
 pub fn is_legacy_format(value: &serde_json::Value) -> bool {
+    const FLAT_MARKERS: [&str; 6] = [
+        "prime",
+        "protocol",
+        "verbose",
+        "inspect",
+        "cWitness",
+        "wasmWitness",
+    ];
     value.get("dirCircuits").is_some()
         || value.get("dirBuild").is_some()
         || value.get("dirPtau").is_some()
         || value.get("dirInputs").is_some()
-        || (value.get("circuits").is_some_and(|v| v.is_string()))
+        || value.get("circuits").is_some_and(|v| v.is_string())
+        || FLAT_MARKERS.iter().any(|k| value.get(k).is_some())
 }
 
 /// Convert a legacy config JSON into a new `CircomkitConfig`.
@@ -200,6 +214,26 @@ mod tests {
             "circuits": { "mul": { "file": "mul", "template": "Mul" } }
         });
         assert!(!is_legacy_format(&new));
+    }
+
+    #[test]
+    fn detect_flat_settings_as_legacy() {
+        // A minimal flat config (e.g. the old `new Circomkit({ verbose, inspect })`)
+        // is legacy: its scalars live under nested objects in the v0.4 format.
+        assert!(is_legacy_format(
+            &serde_json::json!({ "verbose": false, "inspect": true })
+        ));
+        assert!(is_legacy_format(&serde_json::json!({ "prime": "bn128" })));
+        assert!(is_legacy_format(
+            &serde_json::json!({ "protocol": "groth16" })
+        ));
+
+        // An empty object is not legacy — it's just an all-defaults v0.4 config.
+        assert!(!is_legacy_format(&serde_json::json!({})));
+        // Top-level version/logLevel exist in v0.4 too, so they must NOT trigger.
+        assert!(!is_legacy_format(
+            &serde_json::json!({ "version": "2.1.0", "logLevel": "info" })
+        ));
     }
 
     #[test]

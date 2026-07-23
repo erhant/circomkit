@@ -67,7 +67,7 @@ jobs:
         run: npm install
 
       - name: Build addon
-        run: npx napi build --release --target ${{ matrix.target }}
+        run: npx napi build --release --platform --target ${{ matrix.target }} --js binding.js --dts binding.d.ts
 
       - name: Build CLI binary
         working-directory: .
@@ -102,8 +102,18 @@ jobs:
           node-version: 20
           registry-url: "https://registry.npmjs.org"
 
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
       - name: Install deps
         run: npm install
+
+      # Generate the platform-agnostic root-package files that live in the main
+      # `circomkit` package: `binding.js`/`binding.d.ts` (napi loader) and
+      # `index.js`/`index.d.ts` (compiled TypeScript facade). The .node built
+      # here is discarded — per-platform .node files come from the build matrix.
+      - name: Build facade (binding + TS)
+        run: npm run build
 
       - name: Scaffold platform packages
         run: npx napi create-npm-dirs

@@ -1355,6 +1355,7 @@ dependencies = [
  "napi",
  "napi-build 1.2.1",
  "napi-derive",
+ "num-bigint",
  "serde_json",
 ]
 

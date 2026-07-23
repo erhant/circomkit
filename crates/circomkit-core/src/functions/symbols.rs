@@ -32,7 +32,9 @@ pub fn parse_symbols_str(content: &str) -> Result<Symbols> {
         let label_idx: usize = parts[0]
             .parse()
             .map_err(|_| CoreError::InvalidSymbols(format!("invalid label_idx: {}", parts[0])))?;
-        let var_idx: usize = parts[1]
+
+        // Signed: circom writes `-1` for signals removed from the witness.
+        let var_idx: isize = parts[1]
             .parse()
             .map_err(|_| CoreError::InvalidSymbols(format!("invalid var_idx: {}", parts[1])))?;
         let component_idx: usize = parts[2].parse().map_err(|_| {
@@ -68,11 +70,10 @@ pub fn read_witness_signals(
         let full_name = format!("main.{signal}");
 
         // Check for a direct match first
-        if let Some(info) = symbols.get(&full_name) {
-            result.insert(
-                signal.to_string(),
-                SignalValue::Single(witness[info.var_idx].clone()),
-            );
+        if let Some(info) = symbols.get(&full_name)
+            && let Some(w) = info.witness_index()
+        {
+            result.insert(signal.to_string(), SignalValue::Single(witness[w].clone()));
             continue;
         }
 
@@ -85,8 +86,9 @@ pub fn read_witness_signals(
                 .strip_prefix(&prefix)
                 .and_then(|rest| rest.strip_suffix(']'))
                 .and_then(|s| s.parse::<usize>().ok())
+                && let Some(w) = info.witness_index()
             {
-                indexed.push((idx, witness[info.var_idx].clone()));
+                indexed.push((idx, witness[w].clone()));
             }
         }
 
@@ -117,7 +119,10 @@ pub fn read_witness_raw(
         let info = symbols
             .get(name)
             .ok_or_else(|| CoreError::SignalNotFound(name.to_string()))?;
-        result.insert(name.to_string(), witness[info.var_idx].clone());
+        let w = info
+            .witness_index()
+            .ok_or_else(|| CoreError::SignalNotFound(name.to_string()))?;
+        result.insert(name.to_string(), witness[w].clone());
     }
 
     Ok(result)
@@ -135,7 +140,10 @@ pub fn edit_witness(
         let info = symbols
             .get(name)
             .ok_or_else(|| CoreError::SignalNotFound(name.clone()))?;
-        edited[info.var_idx] = value.clone();
+        let w = info
+            .witness_index()
+            .ok_or_else(|| CoreError::SignalNotFound(name.clone()))?;
+        edited[w] = value.clone();
     }
 
     Ok(edited)
@@ -147,12 +155,17 @@ mod tests {
 
     #[test]
     fn parse_sym_content() {
-        let content = "1,1,0,main.in[0]\n2,2,0,main.in[1]\n3,3,0,main.out\n";
+        // The last line has var_idx -1 (optimized out of the witness); it must
+        // parse without error rather than aborting the whole file.
+        let content = "1,1,0,main.in[0]\n2,2,0,main.in[1]\n3,3,0,main.out\n4,-1,0,main.tmp\n";
         let symbols = parse_symbols_str(content).unwrap();
 
-        assert_eq!(symbols.len(), 3);
+        assert_eq!(symbols.len(), 4);
         assert_eq!(symbols["main.out"].var_idx, 3);
         assert_eq!(symbols["main.in[0]"].var_idx, 1);
+        assert_eq!(symbols["main.tmp"].var_idx, -1);
+        assert_eq!(symbols["main.tmp"].witness_index(), None);
+        assert_eq!(symbols["main.out"].witness_index(), Some(3));
     }
 
     #[test]

@@ -77,6 +77,16 @@ pub fn instantiate_circuit(
         std::fs::create_dir_all(parent)?;
     }
 
+    // Idempotent write: if the on-disk content is already identical, leave the
+    // file (and its mtime) untouched so the compile mtime-cache stays valid.
+    // When the template/params change, the content differs → the rewrite bumps
+    // the mtime → `compile` recompiles instead of reusing a stale build.
+    if let Ok(existing) = std::fs::read_to_string(target_path)
+        && existing == source
+    {
+        return Ok(());
+    }
+
     std::fs::write(target_path, source)?;
     Ok(())
 }

@@ -9,7 +9,7 @@
   "bin": {
     "circomkit": "bin.js"
   },
-  "files": ["index.js", "index.d.ts", "bin.js", "*.node"],
+  "files": ["index.js", "index.d.ts", "binding.js", "binding.d.ts", "bin.js", "*.node"],
   "napi": {
     "binaryName": "circomkit",
     "targets": [
@@ -24,11 +24,13 @@
     "node": ">= 20"
   },
   "devDependencies": {
-    "@napi-rs/cli": "^3.0.0"
+    "@napi-rs/cli": "^3.0.0",
+    "@types/bun": "^1.3.14",
+    "typescript": "^5.5.0"
   },
   "scripts": {
-    "build": "napi build --release",
-    "build:debug": "napi build",
+    "build": "napi build --release --platform --js binding.js --dts binding.d.ts && tsc",
+    "build:debug": "napi build --platform --js binding.js --dts binding.d.ts && tsc",
     "artifacts": "napi artifacts",
     "prepublishOnly": "napi prepublish -t npm"
   }

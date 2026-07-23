@@ -1,4 +1,5 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use num_bigint::BigInt;
 use num_traits::Zero;
@@ -13,8 +14,22 @@ use crate::traits::WitnessCalculator;
 ///
 /// Loads a circom-generated WASM module and implements the circom
 /// witness calculation protocol (shared RW memory, FNV signal hashing, etc.).
+///
+/// Compiling the WASM module (wasmtime's Cranelift JIT) is by far the most
+/// expensive step, so the compiled [`Module`], its [`Engine`], and the host
+/// [`Linker`] are built once (lazily, on the first `calculate`) and reused
+/// across every subsequent witness computation on this calculator — only a
+/// fresh [`Store`]/[`Instance`] is created per call.
 pub struct WasmWitnessCalculator {
     wasm_path: PathBuf,
+    prepared: OnceLock<Prepared>,
+}
+
+/// Compiled, reusable wasmtime artifacts (see [`WasmWitnessCalculator`]).
+struct Prepared {
+    engine: Engine,
+    module: Module,
+    linker: Linker<HostState>,
 }
 
 impl WasmWitnessCalculator {
@@ -25,8 +40,99 @@ impl WasmWitnessCalculator {
                 wasm_path.display()
             )));
         }
-        Ok(Self { wasm_path })
+        Ok(Self {
+            wasm_path,
+            prepared: OnceLock::new(),
+        })
     }
+
+    /// Compiled module + linker, built once and cached for reuse.
+    ///
+    /// Uses a manual get-or-init (stable `OnceLock` has no fallible init): a
+    /// benign race may build twice, but the result is identical and idempotent.
+    fn prepared(&self) -> Result<&Prepared, WitnessError> {
+        if let Some(p) = self.prepared.get() {
+            return Ok(p);
+        }
+        let prepared = Self::build(&self.wasm_path)?;
+        let _ = self.prepared.set(prepared);
+        Ok(self.prepared.get().expect("prepared was just set"))
+    }
+
+    /// Create the engine, JIT-compile the module, and build the host linker.
+    fn build(wasm_path: &Path) -> Result<Prepared, WitnessError> {
+        let engine = Engine::default();
+        let module = Module::from_file(&engine, wasm_path)
+            .map_err(|e| WitnessError::Other(format!("failed to load WASM module: {e}")))?;
+
+        let mut linker = Linker::<HostState>::new(&engine);
+        register_runtime(&mut linker)?;
+
+        Ok(Prepared {
+            engine,
+            module,
+            linker,
+        })
+    }
+}
+
+/// Register the circom runtime host functions on a linker (independent of any
+/// per-call state, so this is done once when the module is prepared).
+fn register_runtime(linker: &mut Linker<HostState>) -> Result<(), WitnessError> {
+    linker
+        .func_wrap(
+            "runtime",
+            "exceptionHandler",
+            |mut caller: wasmtime::Caller<'_, HostState>, code: i32| {
+                caller.data_mut().exception = Some(code as u32);
+            },
+        )
+        .map_err(|e| WitnessError::Other(format!("linker error: {e}")))?;
+
+    linker
+        .func_wrap(
+            "runtime",
+            "printErrorMessage",
+            |mut caller: wasmtime::Caller<'_, HostState>| {
+                let msg = get_message_from_wasm(&mut caller);
+                let state = caller.data_mut();
+                state.error_message.push_str(&msg);
+                state.error_message.push('\n');
+            },
+        )
+        .map_err(|e| WitnessError::Other(format!("linker error: {e}")))?;
+
+    linker
+        .func_wrap(
+            "runtime",
+            "writeBufferMessage",
+            |mut caller: wasmtime::Caller<'_, HostState>| {
+                let msg = get_message_from_wasm(&mut caller);
+                let state = caller.data_mut();
+                if msg == "\n" {
+                    log::info!("{}", state.log_buffer);
+                    state.log_buffer.clear();
+                } else {
+                    if !state.log_buffer.is_empty() {
+                        state.log_buffer.push(' ');
+                    }
+                    state.log_buffer.push_str(&msg);
+                }
+            },
+        )
+        .map_err(|e| WitnessError::Other(format!("linker error: {e}")))?;
+
+    linker
+        .func_wrap(
+            "runtime",
+            "showSharedRWMemory",
+            |_caller: wasmtime::Caller<'_, HostState>| {
+                // Debug callback — no-op in production
+            },
+        )
+        .map_err(|e| WitnessError::Other(format!("linker error: {e}")))?;
+
+    Ok(())
 }
 
 /// State stored inside the wasmtime Store, shared with host functions.
@@ -39,70 +145,15 @@ struct HostState {
 
 impl WitnessCalculator for WasmWitnessCalculator {
     fn calculate(&self, input: &CircuitSignals) -> Result<Witness, WitnessError> {
-        let engine = Engine::default();
-        let module = Module::from_file(&engine, &self.wasm_path)
-            .map_err(|e| WitnessError::Other(format!("failed to load WASM module: {e}")))?;
+        // Reuse the cached engine/module/linker; only the store and instance are
+        // per-call. This avoids re-compiling the WASM module on every witness.
+        let prepared = self.prepared()?;
 
-        let mut linker = Linker::<HostState>::new(&engine);
+        let mut store = Store::new(&prepared.engine, HostState::default());
 
-        // Register circom runtime host functions
-        linker
-            .func_wrap(
-                "runtime",
-                "exceptionHandler",
-                |mut caller: wasmtime::Caller<'_, HostState>, code: i32| {
-                    caller.data_mut().exception = Some(code as u32);
-                },
-            )
-            .map_err(|e| WitnessError::Other(format!("linker error: {e}")))?;
-
-        linker
-            .func_wrap(
-                "runtime",
-                "printErrorMessage",
-                |mut caller: wasmtime::Caller<'_, HostState>| {
-                    let msg = get_message_from_wasm(&mut caller);
-                    let state = caller.data_mut();
-                    state.error_message.push_str(&msg);
-                    state.error_message.push('\n');
-                },
-            )
-            .map_err(|e| WitnessError::Other(format!("linker error: {e}")))?;
-
-        linker
-            .func_wrap(
-                "runtime",
-                "writeBufferMessage",
-                |mut caller: wasmtime::Caller<'_, HostState>| {
-                    let msg = get_message_from_wasm(&mut caller);
-                    let state = caller.data_mut();
-                    if msg == "\n" {
-                        log::info!("{}", state.log_buffer);
-                        state.log_buffer.clear();
-                    } else {
-                        if !state.log_buffer.is_empty() {
-                            state.log_buffer.push(' ');
-                        }
-                        state.log_buffer.push_str(&msg);
-                    }
-                },
-            )
-            .map_err(|e| WitnessError::Other(format!("linker error: {e}")))?;
-
-        linker
-            .func_wrap(
-                "runtime",
-                "showSharedRWMemory",
-                |_caller: wasmtime::Caller<'_, HostState>| {
-                    // Debug callback — no-op in production
-                },
-            )
-            .map_err(|e| WitnessError::Other(format!("linker error: {e}")))?;
-
-        let mut store = Store::new(&engine, HostState::default());
-
-        let instance = linker
-            .instantiate(&mut store, &module)
+        let instance = prepared
+            .linker
+            .instantiate(&mut store, &prepared.module)
             .map_err(|e| WitnessError::Other(format!("WASM instantiation failed: {e}")))?;
 
         // Get metadata

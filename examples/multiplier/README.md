@@ -45,7 +45,10 @@ cd ts
 bun install
 bun run start          # Bun
 bun run start:node     # Node (23.6+ runs .ts directly; on 22.x add --experimental-strip-types)
+bun test               # circuit tests via WitnessTester + ProofTester
 ```
 
-Uses `import { Circomkit } from "circomkit"` (see [`ts/index.ts`](./ts/index.ts)).
-The `circomkit` dependency is linked locally to `bindings/napi` via `file:`.
+Uses `import { Circomkit } from "circomkit"` — the lifecycle walkthrough is in
+[`ts/index.ts`](./ts/index.ts) and the tests (WitnessTester + ProofTester) in
+[`ts/multiplier.test.ts`](./ts/multiplier.test.ts). The `circomkit` dependency is
+linked locally to `bindings/napi` via `file:`.

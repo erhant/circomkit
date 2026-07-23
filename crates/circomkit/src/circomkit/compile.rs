@@ -58,18 +58,22 @@ impl Circomkit {
         true
     }
 
-    /// Compile a circuit. Auto-instantiates if the main file doesn't exist.
+    /// Compile a circuit, (re)generating its main component first.
     ///
     /// When `recompile` is `false` (the default), compilation is skipped if the
-    /// build artifacts are newer than the source file. Set `recompile` to `true`
-    /// to always recompile.
+    /// build artifacts are newer than both the source file and the generated
+    /// main component. Regenerating the main component is idempotent, so a
+    /// changed template/params invalidates the cache while an unchanged config
+    /// reuses the build. Set `recompile` to `true` to always recompile.
     pub fn compile(&self, circuit: &str) -> Result<PathBuf> {
         let resolved = self.resolve(circuit)?;
-        let main_path = self.paths.circuit_main(circuit);
 
-        if !main_path.exists() {
-            self.instantiate(circuit)?;
-        }
+        // Always (re)generate the main component. The write is idempotent, so an
+        // unchanged config keeps the same mtime (freshness cache stays valid),
+        // while a changed template/params bumps the mtime and forces a recompile
+        // below — this is what lets one circuit name be reused for different
+        // templates across tests.
+        let main_path = self.instantiate(circuit)?;
 
         let out_dir = self.paths.circuit_dir(circuit);
         // TODO: maybe we hide wasm and c compiler options and just enable w.r.t chosen witness config?
