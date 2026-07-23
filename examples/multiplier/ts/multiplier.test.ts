@@ -13,7 +13,7 @@ import { dirname, join } from "node:path";
 import { chdir } from "node:process";
 import { fileURLToPath } from "node:url";
 
-import { Circomkit } from "circomkit";
+import { Circomkit, type ProofTester } from "circomkit";
 
 // Run from the shared example project so the config's relative paths resolve.
 chdir(join(dirname(fileURLToPath(import.meta.url)), ".."));
@@ -45,7 +45,8 @@ describe("WitnessTester", () => {
   });
 
   test("has the expected constraint count", () => {
-    t.expectConstraintCount(15, true);
+    // 3 × IsZero (2 constraints each) + 2 multiplications.
+    t.expectConstraintCount(8, true);
   });
 
   test("computes named output signals", () => {
@@ -68,7 +69,14 @@ describe("WitnessTester", () => {
 });
 
 describe("ProofTester", () => {
-  const pt = ck.ProofTester(CIRCUIT, "groth16");
+  // Built inside `beforeAll`, i.e. *after* `setup()`: the tester reads the
+  // verification key once when constructed, and each trusted setup produces a
+  // fresh key. Constructing it at module scope would capture the previous
+  // run's key and every verification would fail.
+  let pt: ProofTester;
+  beforeAll(() => {
+    pt = ck.ProofTester(CIRCUIT, "groth16");
+  });
 
   test("proves and verifies a valid proof", () => {
     const { proof, publicSignals } = pt.prove(INPUT);
@@ -78,7 +86,7 @@ describe("ProofTester", () => {
   test("rejects a proof with tampered public signals", () => {
     const { proof, publicSignals } = pt.prove(INPUT);
     const tampered = [...publicSignals];
-    tampered[0] = String(BigInt(tampered[0]) + 1n); // corrupt the public output
+    tampered[0] = String(BigInt(tampered[0] ?? "0") + 1n); // corrupt the public output
     pt.expectFail(proof, tampered);
   });
 });

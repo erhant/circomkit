@@ -50,7 +50,11 @@ tester factories `WitnessTester` and `ProofTester`.
   `primeName`).
 - `setup` returns `{ pkeyPath, vkeyPath }`.
 - `prove` / `witness` take optional inline signals (an object); `prove` also
-  takes an optional backend override (`"snarkjs" | "arkworks" | "lambdaworks"`).
+  takes an optional backend override, which is `"snarkjs"` here. The native
+  backends listed in [Backends](./backends.md) are not shipped in the npm
+  addon — they cover only groth16 on a single curve each and cannot verify, so
+  they stay behind Rust feature flags. Reach for the crate or the CLI if you
+  need them.
 
 `circom` and `snarkjs` must be on your `PATH` at runtime, exactly as with the
 CLI. See `index.d.ts` for exact types.

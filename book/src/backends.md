@@ -29,6 +29,10 @@ circomkit prove my_circuit my_input --backend arkworks
 >
 > Even with a native backend selected, `setup`, `vkey`, `contract`, and `verify` currently route through `snarkjs`.
 
+> [!NOTE]
+>
+> The native backends are Rust-only. The npm addon ([Bindings](./bindings.md)) ships with `snarkjs` alone, so its `ProvingBackend` type has just that one variant.
+
 ## Witness backends
 
 Set with `witness.calculator`:

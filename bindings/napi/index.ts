@@ -28,7 +28,17 @@ export type Prime =
   | "vesta"
   | "secq256r1";
 export type Protocol = "groth16" | "plonk" | "fflonk";
-export type ProvingBackend = "snarkjs" | "arkworks" | "lambdaworks";
+/**
+ * Proving backends reachable from the npm addon.
+ *
+ * Circomkit also has native, in-process backends (arkworks on bn128,
+ * lambdaworks on bls12381), but they are deliberately not shipped here: they
+ * only cover groth16 on a single curve each and cannot verify, so they would
+ * add build weight and API surface for very little gain. They remain available
+ * from the Rust crate behind the `prove-arkworks` / `prove-lambdaworks`
+ * features.
+ */
+export type ProvingBackend = "snarkjs";
 export type WitnessCalculator = "wasm" | "c";
 
 /** A signal value: a field element (number/bigint/decimal string) or a nested array. */
