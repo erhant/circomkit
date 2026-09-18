@@ -4,6 +4,7 @@ import {readFileSync} from 'fs';
 import type {CircuitSignals} from '../types/';
 import type {CircomkitConfig} from '../configs';
 import {AssertionError} from 'node:assert';
+import {isBun} from '../utils';
 
 /** A tester that is able to generate proofs & verify them.
  * Use `expectFail` and `expectPass` to test out evaluations. */
@@ -34,7 +35,13 @@ export class ProofTester<IN extends string[] = [], P extends CircomkitConfig['pr
     | {proof: PlonkProof; publicSignals: PublicSignals}
     | {proof: FflonkProof; publicSignals: PublicSignals}
   > {
-    return snarkjs[this.protocol].fullProve(input, this.wasmPath, this.pkeyPath, undefined);
+    return snarkjs[this.protocol].fullProve(
+      input,
+      this.wasmPath,
+      this.pkeyPath,
+      undefined,
+      isBun() ? {singleThread: true} : undefined
+    );
   }
 
   /** Returns the verification result of a proof for some public signals. */

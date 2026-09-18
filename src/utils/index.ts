@@ -39,3 +39,9 @@ export const primeToName: Record<`${bigint}`, CircomkitConfig['prime']> = {
 export function prettyStringify(obj: unknown): string {
   return JSON.stringify(obj, undefined, 2);
 }
+
+/** Check if running under Bun runtime. */
+export function isBun(): boolean {
+  // @ts-ignore
+  return typeof Bun !== 'undefined';
+}
