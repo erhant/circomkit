@@ -13,7 +13,7 @@ import loglevel from 'loglevel';
 import {downloadPtau, getPtauName} from '../utils/ptau';
 import type {CircuitConfig, CircuitSignals, CircomTester} from '../types';
 import {WitnessTester, ProofTester} from '../testers';
-import {prettyStringify} from '../utils';
+import {prettyStringify, isBun} from '../utils';
 import {CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
 import {compileCircuit, instantiateCircuit, readR1CSInfo, getCalldata} from '../functions';
 import {CircomkitPath} from './pathing';
@@ -307,7 +307,8 @@ export class Circomkit {
       jsonInput,
       wasmPath,
       pkeyPath,
-      this.snarkjsLogger
+      this.snarkjsLogger,
+      isBun() ? {singleThread: true} : undefined
     );
 
     const dir = this.path.ofCircuitWithInput(circuit, input, 'dir');
