@@ -13,7 +13,7 @@ import loglevel from 'loglevel';
 import {downloadPtau, getPtauName} from '../utils/ptau';
 import type {CircuitConfig, CircuitSignals, CircomTester} from '../types';
 import {WitnessTester, ProofTester} from '../testers';
-import {prettyStringify} from '../utils';
+import {getSnarkjsOptions, prettyStringify} from '../utils';
 import {CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
 import {compileCircuit, instantiateCircuit, readR1CSInfo, getCalldata} from '../functions';
 import {CircomkitPath} from './pathing';
@@ -302,12 +302,24 @@ export class Circomkit {
     }
 
     const jsonInput = data ?? JSON.parse(readFileSync(this.path.ofCircuitWithInput(circuit, input, 'in'), 'utf-8'));
+    const snarkjsOptions = getSnarkjsOptions();
+    const fullProve = snarkjs[this.config.protocol].fullProve as unknown as (
+      input: CircuitSignals,
+      wasmFile: string,
+      zkeyFile: string,
+      logger: loglevel.Logger | undefined,
+      wtnsCalcOptions: undefined,
+      proverOptions: {singleThread: boolean} | undefined
+    ) => Promise<{proof: unknown; publicSignals: unknown[]}>;
 
-    const {proof, publicSignals} = await snarkjs[this.config.protocol].fullProve(
+    // @types/snarkjs omits fullProve's runtime proverOptions argument.
+    const {proof, publicSignals} = await fullProve(
       jsonInput,
       wasmPath,
       pkeyPath,
-      this.snarkjsLogger
+      this.snarkjsLogger,
+      undefined,
+      snarkjsOptions
     );
 
     const dir = this.path.ofCircuitWithInput(circuit, input, 'dir');
