@@ -39,3 +39,8 @@ export const primeToName: Record<`${bigint}`, CircomkitConfig['prime']> = {
 export function prettyStringify(obj: unknown): string {
   return JSON.stringify(obj, undefined, 2);
 }
+
+/** Returns the prover options needed by Bun's JavaScript runtime. */
+export function getSnarkjsOptions(runtime: object = globalThis): {singleThread: true} | undefined {
+  return 'Bun' in runtime ? {singleThread: true} : undefined;
+}
