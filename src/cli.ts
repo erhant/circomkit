@@ -3,7 +3,7 @@ import {Command} from '@commander-js/extra-typings';
 import {Circomkit} from './core';
 import {existsSync, readFileSync, readdirSync, writeFileSync} from 'fs';
 import {prettyStringify} from './utils';
-import {exec} from 'child_process';
+import {execFile} from 'child_process';
 import {teardown} from './utils/teardown';
 
 const CONFIG_PATH = './circomkit.json';
@@ -74,11 +74,11 @@ function cli(args: string[]) {
     .description('initialize a new Circomkit project')
     .argument('[dir]', 'Directory')
     .action(async dir => {
-      const cmd = `git clone https://github.com/erhant/circomkit-examples.git ${dir ?? '.'}`;
-      circomkit.log.info(cmd);
+      const args = ['clone', 'https://github.com/erhant/circomkit-examples.git', dir ?? '.'];
+      circomkit.log.info('git ' + args.join(' '));
 
       const result = await new Promise<{stdout: string; stderr: string}>((resolve, reject) =>
-        exec(cmd, (error, stdout, stderr) => (error ? reject(error) : resolve({stdout, stderr})))
+        execFile('git', args, (error, stdout, stderr) => (error ? reject(error) : resolve({stdout, stderr})))
       );
 
       circomkit.log.info(result.stdout);
@@ -233,7 +233,7 @@ function cli(args: string[]) {
 
     const circuits = circomkit.readCircuits();
     circomkit.log.info(
-      `\nCircuit Names (${circomkit.config.circuits}):\n` +
+      `\nCircuit Names (${typeof circomkit.config.circuits === 'string' ? circomkit.config.circuits : 'inline'}):\n` +
         Object.keys(circuits)
           .map((c, i) => `  ${i + 1}. ${c}`)
           .join('\n')

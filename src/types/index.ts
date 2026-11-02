@@ -1,3 +1,5 @@
+import type {CircomkitConfig} from '../configs';
+
 /** An integer value is a numerical string, a number, or a bigint. */
 export type IntegerValueType = `${number}` | number | bigint;
 
@@ -30,6 +32,9 @@ export type SymbolsType = {
   };
 };
 
+/** Circomkit configurations that can be overridden for a single circuit. */
+export type CircuitOverrides = Partial<Omit<CircomkitConfig, 'circuits' | 'logLevel'>>;
+
 /** A configuration object for circuit main components. */
 export type CircuitConfig = {
   /** File to read the template from */
@@ -46,6 +51,8 @@ export type CircuitConfig = {
   params?: (number | bigint)[];
   /** Include `pragma custom_templates;` in instantiation */
   usesCustomTemplates?: boolean;
+  /** Circomkit configurations for this circuit only, e.g. `{"protocol": "plonk"}` */
+  overrides?: CircuitOverrides;
 };
 
 /**

@@ -10,6 +10,7 @@
     "cli:nb": "node ./dist/cli.cjs",
     "cli": "pnpm build && pnpm cli:nb",
     "test": "jest",
+    "test:bun": "bun test --timeout 100000 ./tests/",
     "check": "npx tsc --noEmit",
     "lint": "npx eslint '**/*.ts' && echo 'All good!'",
     "format": "npx prettier --check ./src/**/*.ts ./tests/**/*.ts"
@@ -43,6 +44,7 @@
   "dependencies": {
     "circom_tester": "^0.0.23",
     "commander": "^12.1.0",
+    "ffjavascript": "^0.3.1",
     "loglevel": "^1.9.2"
   },
   "devDependencies": {

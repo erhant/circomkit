@@ -11,11 +11,12 @@ import {readFile, rm, writeFile} from 'fs/promises';
 import {randomBytes} from 'crypto';
 import loglevel from 'loglevel';
 import {downloadPtau, getPtauName} from '../utils/ptau';
+import {singleThreadOnBun} from '../utils/teardown';
 import type {CircuitConfig, CircuitSignals, CircomTester} from '../types';
 import {WitnessTester, ProofTester} from '../testers';
 import {prettyStringify} from '../utils';
 import {CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
-import {compileCircuit, instantiateCircuit, readR1CSInfo, getCalldata} from '../functions';
+import {compileCircuit, instantiateCircuit, readR1CSInfo, getCalldata, type MainComponentConfig} from '../functions';
 import {CircomkitPath} from './pathing';
 
 /**
@@ -58,52 +59,83 @@ export class Circomkit {
     // logger for SnarkJS, accepted as an optional argument within their functions
     this.snarkjsLogger = this.config.verbose ? this.log : undefined;
 
-    // sanity checks
-    if (!PRIMES.includes(this.config.prime)) {
+    this.sanitize(this.config, (...msg) => this.log.warn(...msg));
+    this.path = new CircomkitPath(this.config, circuit => this.resolve(circuit));
+  }
+
+  /** Validates a configuration in place, fixing what can be fixed with a log message. */
+  private sanitize(config: CircomkitConfig, logFix: (...msg: unknown[]) => void): CircomkitConfig {
+    if (!PRIMES.includes(config.prime)) {
       throw new Error('Invalid prime in configuration.');
     }
-    if (!PROTOCOLS.includes(this.config.protocol)) {
+    if (!PROTOCOLS.includes(config.protocol)) {
       throw new Error('Invalid protocol in configuration.');
     }
-    if (this.config.optimization !== undefined && typeof this.config.optimization !== 'number') {
+    if (config.optimization !== undefined && typeof config.optimization !== 'number') {
       throw new Error('Invalid optimization level.');
     }
-    if (typeof this.config.optimization === 'number' && this.config.optimization < 0) {
-      this.log.warn('Optimization level must be at least 0, setting it to 0.');
-      this.config.optimization = 0;
+    if (typeof config.optimization === 'number' && config.optimization < 0) {
+      logFix('Optimization level must be at least 0, setting it to 0.');
+      config.optimization = 0;
     }
 
     // PLONK protocol requires optimization level to be 1
-    if (this.config.protocol === 'plonk' && this.config.optimization !== 1) {
-      this.log.warn(
+    if (config.protocol === 'plonk' && config.optimization !== 1) {
+      logFix(
         'Optimization level for PLONK must be 1.\n',
         'See: https://docs.circom.io/circom-language/circom-insight/simplification/'
       );
-      this.config.optimization = 1;
+      config.optimization = 1;
     }
 
-    this.path = new CircomkitPath(this.config);
+    return config;
   }
 
-  /** Returns the contents of `circuits.json`. */
+  /** Returns the configuration of a circuit, i.e. the global configuration with the circuit's `overrides` applied.
+   *
+   * If `circuitConfig` is omitted, the circuit config is looked up from `circuits`; a circuit that is not found
+   * there simply uses the global configuration.
+   */
+  resolve(circuit: string, circuitConfig?: CircuitConfig): CircomkitConfig {
+    const overrides = (circuitConfig ?? this.findCircuitConfig(circuit))?.overrides;
+    if (!overrides) return this.config;
+
+    // fixes are logged at debug level, as this runs for every path of the circuit
+    return this.sanitize({...this.config, ...JSON.parse(JSON.stringify(overrides))}, (...msg) =>
+      this.log.debug(...msg)
+    );
+  }
+
+  /** Returns the circuit configurations, read from `circuits.json` unless they are given inline in the config. */
   readCircuits(): Record<string, CircuitConfig> {
-    return JSON.parse(readFileSync(this.config.circuits, 'utf-8'));
+    const {circuits} = this.config;
+    return typeof circuits === 'string' ? JSON.parse(readFileSync(circuits, 'utf-8')) : circuits;
   }
 
-  /** Returns a single circuit config from `circuits.json`. */
+  /** Returns a single circuit config from `circuits.json` (or the inline circuits). */
   readCircuitConfig(circuit: string): CircuitConfig {
-    const circuits = this.readCircuits();
-    if (!(circuit in circuits)) {
-      throw new Error('No such circuit in ' + this.config.circuits);
+    const circuitConfig = this.findCircuitConfig(circuit);
+    if (!circuitConfig) {
+      const where = typeof this.config.circuits === 'string' ? this.config.circuits : 'circuits';
+      throw new Error(`No such circuit "${circuit}" in ${where}`);
     }
-    return circuits[circuit] as CircuitConfig;
+    return circuitConfig;
+  }
+
+  /** Like {@link readCircuitConfig}, but returns `undefined` when there is no such circuit, or no `circuits.json`. */
+  private findCircuitConfig(circuit: string): CircuitConfig | undefined {
+    if (typeof this.config.circuits === 'string' && !existsSync(this.config.circuits)) return undefined;
+    const circuits = this.readCircuits();
+    return circuit in circuits ? circuits[circuit] : undefined;
   }
 
   /** Clear build files and the `main` component of a circuit. */
   async clear(circuit: string): Promise<void> {
+    // the main component is under the circuit's `dir`, see `instantiate`
+    const dir = this.findCircuitConfig(circuit)?.dir || 'main';
     await Promise.all([
       rm(this.path.ofCircuit(circuit, 'dir'), {recursive: true, force: true}),
-      rm(this.path.ofCircuit(circuit, 'main'), {force: true}),
+      rm(`${this.resolve(circuit).dirCircuits}/${dir}/${circuit}.circom`, {force: true}),
     ]);
   }
 
@@ -121,6 +153,7 @@ export class Circomkit {
     }
 
     // extract it
+    await singleThreadOnBun();
     const vkey = await snarkjs.zKey.exportVerificationKey(pkeyPath, this.snarkjsLogger);
     writeFileSync(vkeyPath, prettyStringify(vkey));
 
@@ -142,25 +175,24 @@ export class Circomkit {
    * @returns path of the downloaded PTAU file
    */
   async ptau(circuit: string): Promise<string> {
-    // @todo check for performance gains when larger PTAUs are found instead of the target PTAU
-    const {constraints} = await this.info(circuit);
-    const ptauName = getPtauName(constraints);
-    const ptauPath = this.path.ofPtau(ptauName);
-
-    if (existsSync(ptauPath)) {
-      // return if ptau exists already
-      return ptauPath;
-    } else {
-      /// otherwise download it
-      if (this.config.prime !== 'bn128') {
-        throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
-      }
-
-      mkdirSync(this.config.dirPtau, {recursive: true});
-
-      this.log.info(`Downloading ${ptauName}, this may take a while.`);
-      return await downloadPtau(ptauName, this.config.dirPtau);
+    // checked first, as the PTAU files are for bn128 only, even if one exists locally
+    const config = this.resolve(circuit);
+    if (config.prime !== 'bn128') {
+      throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
     }
+
+    // Groth16 needs 2^p > constraints + public signals, see `newZKey` of SnarkJS
+    // ponytail: PLONK & FFLONK need more (additions count too), `setup` throws if this is too small
+    const {constraints, publicInputs, publicOutputs} = await this.info(circuit);
+    const ptauName = getPtauName(constraints + publicInputs + publicOutputs + 1);
+    const ptauPath = `${config.dirPtau}/${ptauName}`;
+    if (existsSync(ptauPath)) {
+      return ptauPath;
+    }
+
+    mkdirSync(config.dirPtau, {recursive: true});
+    this.log.info(`Downloading ${ptauName}, this may take a while.`);
+    return await downloadPtau(ptauName, config.dirPtau);
   }
 
   /** Compile the circuit.
@@ -170,14 +202,15 @@ export class Circomkit {
    *
    * @returns path of the build directory
    */
-  async compile(circuit: string, config?: CircuitConfig) {
-    const targetPath = this.instantiate(circuit, config);
+  async compile(circuit: string, circuitConfig?: CircuitConfig) {
+    const config = this.resolve(circuit, circuitConfig);
+    const targetPath = this.instantiate(circuit, circuitConfig);
     this.log.debug('Main component created at: ' + targetPath);
 
-    const outDir = this.path.ofCircuit(circuit, 'dir');
+    const outDir = new CircomkitPath(config).ofCircuit(circuit, 'dir');
 
-    const {stdout, stderr} = await compileCircuit(this.config, targetPath, outDir);
-    if (this.config.verbose) {
+    const {stdout, stderr} = await compileCircuit(config, targetPath, outDir);
+    if (config.verbose) {
       this.log.info(stdout);
     }
     if (stderr) {
@@ -190,13 +223,11 @@ export class Circomkit {
    * @returns path of the exported Solidity contract
    */
   async contract(circuit: string) {
+    const {protocol} = this.resolve(circuit);
     const pkey = this.path.ofCircuit(circuit, 'pkey');
-    const template = readFileSync(`./node_modules/snarkjs/templates/verifier_${this.config.protocol}.sol.ejs`, 'utf-8');
-    const contractCode = await snarkjs.zKey.exportSolidityVerifier(
-      pkey,
-      {[this.config.protocol]: template},
-      this.snarkjsLogger
-    );
+    await singleThreadOnBun();
+    const template = readFileSync(`./node_modules/snarkjs/templates/verifier_${protocol}.sol.ejs`, 'utf-8');
+    const contractCode = await snarkjs.zKey.exportSolidityVerifier(pkey, {[protocol]: template}, this.snarkjsLogger);
 
     const contractPath = this.path.ofCircuit(circuit, 'sol');
     writeFileSync(contractPath, contractCode);
@@ -215,7 +246,7 @@ export class Circomkit {
       await readFile(this.path.ofCircuitWithInput(circuit, input, 'proof'), 'utf-8')
     );
 
-    const res = getCalldata(proof, pubs, pretty ?? this.config.prettyCalldata);
+    const res = getCalldata(proof, pubs, pretty ?? this.resolve(circuit).prettyCalldata);
     return res;
   }
 
@@ -232,16 +263,16 @@ export class Circomkit {
    * @returns path of the created main component
    */
   instantiate(circuit: string, circuitConfig?: CircuitConfig) {
+    const {dirCircuits, version} = this.resolve(circuit, circuitConfig);
     if (!circuitConfig) {
       const circuitConfigFile = this.readCircuitConfig(circuit);
       circuitConfig = {
         ...circuitConfigFile,
         dir: circuitConfigFile.dir || 'main',
-        version: circuitConfigFile.version || this.config.version,
       };
     }
 
-    const circomSource = readFileSync(`${this.config.dirCircuits}/${circuitConfig.file}.circom`, 'utf8');
+    const circomSource = readFileSync(`${dirCircuits}/${circuitConfig.file}.circom`, 'utf8');
 
     // TODO: do we need regex here?
     const usesCustomTemplates =
@@ -261,18 +292,18 @@ export class Circomkit {
       file = '../'.repeat(filePrefixMatches.length) + file;
     }
 
-    const config: Required<CircuitConfig> = {
+    const config: MainComponentConfig = {
       file: file,
       template: circuitConfig.template,
-      // Precedence: per-circuit override > this.config.version > "2.0.0". See #123.
-      version: circuitConfig.version || this.config.version || '2.0.0',
+      // Precedence: circuit `version` > `overrides.version` > global `version` > "2.0.0". See #123.
+      version: circuitConfig.version || version || '2.0.0',
       dir: directory,
       pubs: circuitConfig.pubs || [],
       params: circuitConfig.params || [],
       usesCustomTemplates,
     };
 
-    const targetDir = `${this.config.dirCircuits}/${directory}`;
+    const targetDir = `${dirCircuits}/${directory}`;
     const targetPath = `${targetDir}/${circuit}.circom`;
 
     instantiateCircuit(config, targetDir, targetPath);
@@ -303,7 +334,8 @@ export class Circomkit {
 
     const jsonInput = data ?? JSON.parse(readFileSync(this.path.ofCircuitWithInput(circuit, input, 'in'), 'utf-8'));
 
-    const {proof, publicSignals} = await snarkjs[this.config.protocol].fullProve(
+    await singleThreadOnBun();
+    const {proof, publicSignals} = await snarkjs[this.resolve(circuit).protocol].fullProve(
       jsonInput,
       wasmPath,
       pkeyPath,
@@ -339,9 +371,6 @@ export class Circomkit {
 
     // get ptau path
     if (ptauPath === undefined) {
-      if (this.config.prime !== 'bn128') {
-        throw new Error('Can not download PTAU file when using a prime field other than bn128');
-      }
       ptauPath = await this.ptau(circuit);
     } else if (!existsSync(ptauPath)) {
       // if the provided path does not exist, we can download it anyways
@@ -351,15 +380,21 @@ export class Circomkit {
 
     // circuit specific setup
     this.log.info('Beginning setup phase!');
-    if (this.config.protocol === 'groth16') {
+    await singleThreadOnBun();
+    const config = this.resolve(circuit);
+    // SnarkJS returns -1 on failure (e.g. PTAU too small) and only says why to its logger
+    const setupError = new Error(`Setup failed for ${circuit}, the PTAU may be too small: ${ptauPath}`);
+    if (config.protocol === 'groth16') {
       // Groth16 needs a circuit specific setup
 
       // generate genesis zKey
       let curZkey = this.path.ofZkey(circuit, 0);
-      await snarkjs.zKey.newZKey(r1csPath, ptauPath, curZkey, this.snarkjsLogger);
+      if ((await snarkjs.zKey.newZKey(r1csPath, ptauPath, curZkey, this.snarkjsLogger)) === -1) {
+        throw setupError;
+      }
 
       // make contributions
-      for (let contrib = 1; contrib <= this.config.groth16numContributions; contrib++) {
+      for (let contrib = 1; contrib <= config.groth16numContributions; contrib++) {
         const nextZkey = this.path.ofZkey(circuit, contrib);
 
         // entropy, if user wants to prompt give undefined
@@ -368,7 +403,7 @@ export class Circomkit {
           curZkey,
           nextZkey,
           `${circuit}_${contrib}`,
-          this.config.groth16askForEntropy ? undefined : randomBytes(32), // entropy
+          config.groth16askForEntropy ? undefined : randomBytes(32), // entropy
           this.snarkjsLogger
         );
 
@@ -381,7 +416,11 @@ export class Circomkit {
       renameSync(curZkey, pkeyPath);
     } else {
       // PLONK or FFLONK don't need specific setup
-      await snarkjs[this.config.protocol].setup(r1csPath, ptauPath, pkeyPath, this.snarkjsLogger);
+      if (
+        ((await snarkjs[config.protocol].setup(r1csPath, ptauPath, pkeyPath, this.snarkjsLogger)) as unknown) === -1
+      ) {
+        throw setupError;
+      }
     }
 
     // export verification key
@@ -404,7 +443,8 @@ export class Circomkit {
       )
     ).map(content => JSON.parse(content));
 
-    return await snarkjs[this.config.protocol].verify(vkey, pubs, proof, this.snarkjsLogger);
+    await singleThreadOnBun();
+    return await snarkjs[this.resolve(circuit).protocol].verify(vkey, pubs, proof, this.snarkjsLogger);
   }
 
   /** Calculates the witness for the given circuit and input.
@@ -467,11 +507,12 @@ export class Circomkit {
       // Prover key
       case 'zkey': {
         // must be groth16, others give error (tested at snarkjs v0.7.0)
-        if (this.config.protocol !== 'groth16') {
+        if (this.resolve(circuit).protocol !== 'groth16') {
           throw new Error('Exporting zKey to JSON is only supported for Groth16 at the moment.');
         }
 
         path = this.path.ofCircuit(circuit, 'pkey');
+        await singleThreadOnBun();
         json = await snarkjs.zKey.exportJson(path);
         break;
       }
@@ -501,14 +542,15 @@ export class Circomkit {
   ) {
     circuitConfig.dir ??= 'test'; // defaults to test directory
 
+    const config = this.resolve(circuit, circuitConfig);
     const targetPath = this.instantiate(circuit, circuitConfig);
     const circomWasmTester: CircomTester = await (tester === 'wasm' ? wasm_tester : c_tester)(targetPath, {
       output: undefined, // this makes tests to be created under /tmp
-      prime: this.config.prime,
-      verbose: this.config.verbose,
-      O: typeof this.config.optimization === 'number' ? Math.min(this.config.optimization, 1) : undefined, // tester doesnt have O2
+      prime: config.prime,
+      verbose: config.verbose,
+      O: typeof config.optimization === 'number' ? Math.min(config.optimization, 1) : undefined, // tester doesnt have O2
       json: false,
-      include: this.config.include,
+      include: config.include,
       wasm: true,
       sym: true,
       recompile: circuitConfig.recompile ?? true,
@@ -531,6 +573,7 @@ export class Circomkit {
       throw new Error('Missing files: ' + missingPaths.join(', '));
     }
 
+    await singleThreadOnBun();
     return new ProofTester<IN, P>(wasmPath, pkeyPath, vkeyPath, protocol);
   }
 }

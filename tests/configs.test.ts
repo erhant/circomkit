@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import {Circomkit} from '../src';
-import {existsSync, rmSync} from 'fs';
+import {existsSync, readFileSync, rmSync, statSync} from 'fs';
 
 describe('overriding configurations', () => {
   it('should override default configs', () => {
@@ -70,7 +70,8 @@ describe('configuring the C witness generator', () => {
   });
 
   it('should generate the C witness calculators if specified', async () => {
-    const circomKitCWitness = new Circomkit({...CONFIG, cWitness: true});
+    // separate build dir, otherwise the C witness calculator may leak into other tests
+    const circomKitCWitness = new Circomkit({...CONFIG, cWitness: true, dirBuild: './tests/build/cwitness'});
     const outPath = await circomKitCWitness.compile(CIRCUIT_NAME);
     expect(existsSync(`${outPath}/${CIRCUIT_NAME}_cpp`)).toBe(true);
 
@@ -158,4 +159,54 @@ describe('compiling under different directories', () => {
       })
     )
   );
+});
+
+describe('inline circuits with per-circuit overrides', () => {
+  const circomkit = new Circomkit({
+    protocol: 'groth16',
+    verbose: false,
+    logLevel: 'silent',
+    dirPtau: './tests/ptau',
+    dirCircuits: './tests/circuits',
+    dirInputs: './tests/inputs',
+    dirBuild: './tests/build/overrides',
+    circuits: {
+      mul_plonk: {file: 'multiplier', template: 'Multiplier', params: [3], overrides: {protocol: 'plonk'}},
+      mul_groth16: {file: 'multiplier', template: 'Multiplier', params: [3], dir: 'test/overrides'},
+    },
+  });
+
+  afterAll(() => circomkit.clear('mul_plonk'));
+
+  it('should apply overrides on top of the global config', () => {
+    const config = circomkit.resolve('mul_plonk');
+    expect(config.protocol).toBe('plonk');
+    expect(config.optimization).toBe(1); // required by PLONK
+    expect(circomkit.config.protocol).toBe('groth16');
+    expect(circomkit.resolve('mul_groth16')).toBe(circomkit.config);
+  });
+
+  it('should setup, prove & verify with the overridden protocol', async () => {
+    const {verifierKeyPath} = await circomkit.setup('mul_plonk');
+    expect(verifierKeyPath).toBe('./tests/build/overrides/mul_plonk/plonk_vkey.json');
+    expect(JSON.parse(readFileSync(verifierKeyPath, 'utf-8')).protocol).toBe('plonk');
+
+    await circomkit.prove('mul_plonk', 'default', {in: [2, 3, 5]});
+    expect(await circomkit.verify('mul_plonk', 'default')).toBe(true);
+  });
+
+  it('should not rewrite an unchanged main component', async () => {
+    const path = circomkit.instantiate('mul_groth16');
+    const mtime = statSync(path).mtimeMs;
+    await new Promise(resolve => setTimeout(resolve, 20));
+    circomkit.instantiate('mul_groth16');
+    expect(statSync(path).mtimeMs).toBe(mtime);
+  });
+
+  it('should clear the main component under the circuit dir', async () => {
+    const path = circomkit.instantiate('mul_groth16');
+    expect(path).toBe('./tests/circuits/test/overrides/mul_groth16.circom');
+    await circomkit.clear('mul_groth16');
+    expect(existsSync(path)).toBe(false);
+  });
 });

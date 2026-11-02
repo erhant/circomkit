@@ -1,5 +1,7 @@
-import {createWriteStream} from 'fs';
+import {createWriteStream, renameSync, rmSync} from 'fs';
 import {get} from 'https';
+import type {IncomingMessage} from 'http';
+import {pipeline} from 'stream/promises';
 
 /** Base PTAU URL as seen in [SnarkJS docs](https://github.com/iden3/snarkjs#7-prepare-phase-2). */
 const PTAU_URL_BASE = 'https://storage.googleapis.com/zkevm/ptau';
@@ -36,16 +38,25 @@ export function getPtauName(n: number): string {
  * @param ptauDir directory to download to
  * @returns path to downloaded PTAU file
  */
-export function downloadPtau(ptauName: string, ptauDir: string): Promise<string> {
+export async function downloadPtau(ptauName: string, ptauDir: string): Promise<string> {
   const ptauPath = `${ptauDir}/${ptauName}`;
-  const file = createWriteStream(ptauPath);
-  return new Promise<string>(resolve => {
-    get(`${PTAU_URL_BASE}/${ptauName}`, response => {
-      response.pipe(file);
-      file.on('finish', () => {
-        file.close();
-        resolve(ptauPath);
-      });
-    });
-  });
+  // downloaded to a temporary file first, so that a failed download is never mistaken for a PTAU file
+  const tmpPath = `${ptauPath}.download`;
+
+  const response = await new Promise<IncomingMessage>((resolve, reject) =>
+    get(`${PTAU_URL_BASE}/${ptauName}`, resolve).on('error', reject)
+  );
+  if (response.statusCode !== 200) {
+    response.resume();
+    throw new Error(`Could not download ${ptauName}: HTTP ${response.statusCode}`);
+  }
+
+  try {
+    await pipeline(response, createWriteStream(tmpPath));
+  } catch (err) {
+    rmSync(tmpPath, {force: true});
+    throw err;
+  }
+  renameSync(tmpPath, ptauPath);
+  return ptauPath;
 }
