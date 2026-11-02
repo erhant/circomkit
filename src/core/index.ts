@@ -1,14 +1,11 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-expect-error
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+import {createHash, randomBytes} from 'node:crypto';
+import {existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync} from 'node:fs';
+import {readFile, rm, writeFile} from 'node:fs/promises';
 // @ts-expect-error
 import {c as c_tester, wasm as wasm_tester} from 'circom_tester';
-import {createHash, randomBytes} from 'crypto';
-import {writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, renameSync} from 'fs';
-import {readFile, rm, writeFile} from 'fs/promises';
 import loglevel from 'loglevel';
 import * as snarkjs from 'snarkjs';
-import {CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
+import {type CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
 import {
   compileCircuit,
   getCalldata,
@@ -23,6 +20,9 @@ import {prettyStringify} from '../utils';
 import {downloadPtau, getPtauName} from '../utils/ptau';
 import {singleThreadOnBun} from '../utils/teardown';
 import {CircomkitPath} from './pathing';
+
+/** Length of the hash in witness tester build directory names. */
+const WITNESS_TESTER_HASH_LENGTH = 8;
 
 /**
  * Circomkit is an opinionated wrapper around many SnarkJS functions.
@@ -138,13 +138,24 @@ export class Circomkit {
     return circuit in circuits ? circuits[circuit] : undefined;
   }
 
-  /** Clear build files and the `main` component of a circuit. */
+  /** Clear build files, witness tester builds and the `main` component of a circuit. */
   async clear(circuit: string): Promise<void> {
+    const config = this.resolve(circuit);
     // the main component is under the circuit's `dir`, see `instantiate`
     const dir = this.findCircuitConfig(circuit)?.dir || 'main';
+
+    // witness tester builds are named `<circuit>-<hash>`, see `WitnessTester`
+    const testerDir = `${config.dirBuild}/.witness-tester`;
+    const testerBuilds = existsSync(testerDir)
+      ? readdirSync(testerDir).filter(
+          name => name.startsWith(`${circuit}-`) && name.length === circuit.length + 1 + WITNESS_TESTER_HASH_LENGTH
+        )
+      : [];
+
     await Promise.all([
       rm(this.path.ofCircuit(circuit, 'dir'), {recursive: true, force: true}),
-      rm(`${this.resolve(circuit).dirCircuits}/${dir}/${circuit}.circom`, {force: true}),
+      rm(`${config.dirCircuits}/${dir}/${circuit}.circom`, {force: true}),
+      ...testerBuilds.map(name => rm(`${testerDir}/${name}`, {recursive: true, force: true})),
     ]);
   }
 
@@ -191,7 +202,7 @@ export class Circomkit {
     }
 
     // Groth16 needs 2^p > constraints + public signals, see `newZKey` of SnarkJS
-    // ponytail: PLONK & FFLONK need more (additions count too), `setup` throws if this is too small
+    // TODO: PLONK & FFLONK need more (additions count too), `setup` throws if this is too small
     const {constraints, publicInputs, publicOutputs} = await this.info(circuit);
     const ptauName = getPtauName(constraints + publicInputs + publicOutputs + 1);
     const ptauPath = `${config.dirPtau}/${ptauName}`;
@@ -214,7 +225,7 @@ export class Circomkit {
   async compile(circuit: string, circuitConfig?: CircuitConfig) {
     const config = this.resolve(circuit, circuitConfig);
     const targetPath = this.instantiate(circuit, circuitConfig);
-    this.log.debug('Main component created at: ' + targetPath);
+    this.log.debug(`Main component created at: ${targetPath}`);
 
     const outDir = new CircomkitPath(config).ofCircuit(circuit, 'dir');
 
@@ -534,12 +545,12 @@ export class Circomkit {
       }
       default:
         target satisfies never;
-        throw new Error('Unknown export target: ' + target);
+        throw new Error(`Unknown export target: ${target}`);
     }
 
     return {
       json,
-      path: path + '.json',
+      path: `${path}.json`,
     };
   }
 
@@ -569,8 +580,7 @@ export class Circomkit {
     const hash = createHash('sha256')
       .update(JSON.stringify([tester, options, readFileSync(targetPath, 'utf-8')]))
       .digest('hex')
-      .slice(0, 8);
-    // ponytail: builds of old parameters are left behind, `clear` does not remove them
+      .slice(0, WITNESS_TESTER_HASH_LENGTH);
     const output = `${config.dirBuild}/.witness-tester/${circuit}-${hash}`;
     const artifact =
       tester === 'wasm' ? `${output}/${circuit}_js/${circuit}.wasm` : `${output}/${circuit}_cpp/${circuit}`;
@@ -599,7 +609,7 @@ export class Circomkit {
 
     const missingPaths = [wasmPath, pkeyPath, vkeyPath].filter(p => !existsSync(p));
     if (missingPaths.length !== 0) {
-      throw new Error('Missing files: ' + missingPaths.join(', '));
+      throw new Error(`Missing files: ${missingPaths.join(', ')}`);
     }
 
     await singleThreadOnBun();

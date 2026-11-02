@@ -1,7 +1,7 @@
-import {createWriteStream, renameSync, rmSync} from 'fs';
-import {get} from 'https';
-import type {IncomingMessage} from 'http';
-import {pipeline} from 'stream/promises';
+import {createWriteStream, renameSync, rmSync} from 'node:fs';
+import type {IncomingMessage} from 'node:http';
+import {get} from 'node:https';
+import {pipeline} from 'node:stream/promises';
 
 /** Base PTAU URL as seen in [SnarkJS docs](https://github.com/iden3/snarkjs#7-prepare-phase-2). */
 const PTAU_URL_BASE = 'https://storage.googleapis.com/zkevm/ptau';

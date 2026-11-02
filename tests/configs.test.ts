@@ -1,7 +1,6 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
+import {existsSync, readFileSync, rmSync, statSync} from 'node:fs';
 import {Circomkit} from '../src';
 import {DEFAULT} from '../src/configs';
-import {existsSync, readFileSync, rmSync, statSync} from 'fs';
 
 describe('overriding configurations', () => {
   it('should override default configs', () => {
@@ -66,7 +65,7 @@ describe('circomkit with custom circuits dir', () => {
     });
 
     await circomkit.info(testcase.circuit);
-    expect(existsSync(dirCircuits + '/test/' + testcase.circuit + '.circom')).toBe(true);
+    expect(existsSync(`${dirCircuits}/test/${testcase.circuit}.circom`)).toBe(true);
   });
 });
 

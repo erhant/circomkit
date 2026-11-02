@@ -40,7 +40,7 @@ export class CircomkitPath {
         return `${dir}/${config.protocol}_verifier.sol`;
       default:
         kind satisfies never;
-        throw new Error('Invalid kind: ' + kind);
+        throw new Error(`Invalid kind: ${kind}`);
     }
   }
 
@@ -67,7 +67,7 @@ export class CircomkitPath {
         return `${config.dirInputs}/${circuit}/${input}.json`;
       default:
         kind satisfies never;
-        throw new Error('Invalid type: ' + kind);
+        throw new Error(`Invalid type: ${kind}`);
     }
   }
 

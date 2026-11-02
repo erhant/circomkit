@@ -1,4 +1,4 @@
-import {openSync, ReadPosition, readSync} from 'fs';
+import {openSync, type ReadPosition, readSync} from 'node:fs';
 import {primeToName} from '../utils';
 
 /**
@@ -106,7 +106,7 @@ export async function readR1CSInfo(r1csPath: string): Promise<R1CSInfoType> {
  * @param length The number of bytes to read.
  * @param position Where to begin reading from in the file.
  */
-export function readBytesFromFile(fd: number, offset: number, length: number, position: ReadPosition): BigInt {
+export function readBytesFromFile(fd: number, offset: number, length: number, position: ReadPosition): bigint {
   const buffer = Buffer.alloc(length);
 
   readSync(fd, buffer, offset, length, position);

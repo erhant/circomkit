@@ -1,9 +1,9 @@
 #!/usr/bin/env node
+import {execFile} from 'node:child_process';
+import {existsSync, readdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {Command} from '@commander-js/extra-typings';
 import {Circomkit} from './core';
-import {existsSync, readFileSync, readdirSync, writeFileSync} from 'fs';
 import {prettyStringify} from './utils';
-import {execFile} from 'child_process';
 import {teardown} from './utils/teardown';
 
 const CONFIG_PATH = './circomkit.json';
@@ -75,7 +75,7 @@ function cli(args: string[]) {
     .argument('[dir]', 'Directory')
     .action(async dir => {
       const args = ['clone', 'https://github.com/erhant/circomkit-examples.git', dir ?? '.'];
-      circomkit.log.info('git ' + args.join(' '));
+      circomkit.log.info(`git ${args.join(' ')}`);
 
       const result = await new Promise<{stdout: string; stderr: string}>((resolve, reject) =>
         execFile('git', args, (error, stdout, stderr) => (error ? reject(error) : resolve({stdout, stderr})))
@@ -103,7 +103,7 @@ function cli(args: string[]) {
             console.log(prettyStringify(json));
           } else {
             writeFileSync(path, prettyStringify(json));
-            circomkit.log.info('Exported R1CS at: ' + path);
+            circomkit.log.info(`Exported R1CS at: ${path}`);
           }
         })
     )
@@ -118,7 +118,7 @@ function cli(args: string[]) {
             console.log(prettyStringify(json));
           } else {
             writeFileSync(path, prettyStringify(json));
-            circomkit.log.info('Exported prover key at: ' + path);
+            circomkit.log.info(`Exported prover key at: ${path}`);
           }
         })
     )
@@ -134,7 +134,7 @@ function cli(args: string[]) {
             console.log(prettyStringify(json));
           } else {
             writeFileSync(path, prettyStringify(json));
-            circomkit.log.info('Exported witness at: ' + path);
+            circomkit.log.info(`Exported witness at: ${path}`);
           }
         })
     );
@@ -145,7 +145,7 @@ function cli(args: string[]) {
     .argument('<circuit>', 'Circuit name')
     .action(async circuit => {
       const path = await circomkit.contract(circuit);
-      circomkit.log.info('Created at: ' + path);
+      circomkit.log.info(`Created at: ${path}`);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -165,7 +165,7 @@ function cli(args: string[]) {
     .argument('[pkeyPath]', 'Prover key path')
     .action(async (circuit, pkeyPath) => {
       const path = await circomkit.vkey(circuit, pkeyPath);
-      circomkit.log.info('Created at: ' + path);
+      circomkit.log.info(`Created at: ${path}`);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -175,7 +175,7 @@ function cli(args: string[]) {
     .argument('<input>', 'Input name')
     .action(async (circuit, input) => {
       const path = await circomkit.prove(circuit, input);
-      circomkit.log.info('Generated at: ' + path);
+      circomkit.log.info(`Generated at: ${path}`);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -199,7 +199,7 @@ function cli(args: string[]) {
     .argument('<input>', 'Input name')
     .action(async (circuit, input) => {
       const path = await circomkit.witness(circuit, input);
-      circomkit.log.info('Witness created: ' + path);
+      circomkit.log.info(`Witness created: ${path}`);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -209,8 +209,8 @@ function cli(args: string[]) {
     .argument('[ptauPath]', 'Path to PTAU')
     .action(async (circuit, ptauPath) => {
       const {proverKeyPath, verifierKeyPath} = await circomkit.setup(circuit, ptauPath);
-      circomkit.log.info('Prover key created: ' + proverKeyPath);
-      circomkit.log.info('Verifier key created: ' + verifierKeyPath);
+      circomkit.log.info(`Prover key created: ${proverKeyPath}`);
+      circomkit.log.info(`Verifier key created: ${verifierKeyPath}`);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -219,7 +219,7 @@ function cli(args: string[]) {
     .argument('<circuit>', 'Circuit name')
     .action(async circuit => {
       const path = await circomkit.ptau(circuit);
-      circomkit.log.info('PTAU ready at: ' + path);
+      circomkit.log.info(`PTAU ready at: ${path}`);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -228,7 +228,7 @@ function cli(args: string[]) {
       .filter(path => path.endsWith('.circom'))
       .map(path => path.slice(0, -'.circom'.length));
     circomkit.log.info(
-      `Template Files (${circomkit.config.dirCircuits}):\n` + templates.map((c, i) => `  ${i + 1}. ${c}`).join('\n')
+      `Template Files (${circomkit.config.dirCircuits}):\n${templates.map((c, i) => `  ${i + 1}. ${c}`).join('\n')}`
     );
 
     const circuits = circomkit.readCircuits();
@@ -282,7 +282,6 @@ function cli(args: string[]) {
    * See https://github.com/iden3/snarkjs/blob/master/cli.js#L348
    */
   // function exit(code: number) {
-  //   // eslint-disable-next-line no-process-exit
   //   process.exit(code);
   // }
 

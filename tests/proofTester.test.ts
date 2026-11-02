@@ -1,4 +1,4 @@
-import {Circomkit, ProofTester} from '../src';
+import {Circomkit, type ProofTester} from '../src';
 import {PTAU_PATH, prepareMultiplier} from './common';
 
 describe('proof tester', () => {

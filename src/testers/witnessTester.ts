@@ -1,7 +1,7 @@
 import {AssertionError} from 'node:assert';
-import type {CircomTester, WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/';
-import path from 'node:path';
 import fs from 'node:fs';
+import path from 'node:path';
+import type {CircomTester, CircuitSignals, SignalValueType, SymbolsType, WitnessType} from '../types/';
 
 // @todo detect optimized symbols https://github.com/erhant/circomkit/issues/80
 
@@ -167,7 +167,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
       // get corresponding symbol
       const symbolInfo = this.symbols![symbolName];
       if (symbolInfo === undefined) {
-        throw new Error('Invalid symbol name: ' + symbolName);
+        throw new Error(`Invalid symbol name: ${symbolName}`);
       }
 
       // override with user value
@@ -186,7 +186,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
       // get corresponding symbol
       const symbolInfo = this.symbols![symbolName];
       if (symbolInfo === undefined) {
-        throw new Error('Invalid symbol name: ' + symbolName);
+        throw new Error(`Invalid symbol name: ${symbolName}`);
       }
 
       // override with user value
@@ -243,7 +243,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
       if (matchedSymbols.length === 0) {
         // no matches!
-        throw new Error('No symbols matched for signal: ' + signal);
+        throw new Error(`No symbols matched for signal: ${signal}`);
       } else if (matchedSymbols.length === 1) {
         // easy case, just return the witness of this symbol
         entries.push([signal, witness[this.symbols![matchedSymbols[0]].varIdx]]);
@@ -258,11 +258,10 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
         const splits = matchedSymbols.at(-1)!.split('[');
 
         // since we chose the last symbol, we have something like `main.signal[dim1][dim2]...[dimN]` which we can parse
-        const dims = splits.slice(1).map(dim => parseInt(dim.slice(0, -1)) + 1); // +1 is needed because the final value is 0-indexed
+        const dims = splits.slice(1).map(dim => parseInt(dim.slice(0, -1), 10) + 1); // +1 is needed because the final value is 0-indexed
 
         // at this point, we have an array of signals like `main.signal[0..dim1][0..dim2]..[0..dimN]`
         // and we must construct the necessary multi-dimensional array out of it.
-        // eslint-disable-next-line no-inner-declarations
         function processDepth(d: number): SignalValueType {
           const acc: SignalValueType = [];
           if (d === dims.length - 1) {
@@ -329,7 +328,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
     // Read the symbols file into memory
     const symbolsFile = await fs.promises.readFile(
-      path.join(this.circomTester.dir, this.circomTester.baseName + '.sym'),
+      path.join(this.circomTester.dir, `${this.circomTester.baseName}.sym`),
       'utf8'
     );
 

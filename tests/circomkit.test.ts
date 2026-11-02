@@ -1,16 +1,15 @@
+import {existsSync, readFileSync, rmSync} from 'node:fs';
 import hre from 'hardhat';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+// @ts-expect-error
 import solc from 'solc';
 import {Circomkit} from '../src';
-import {existsSync, rmSync, readFileSync} from 'fs';
-import {PTAU_PATH, prepareMultiplier} from './common';
 import {PROTOCOLS} from '../src/configs';
+import {PTAU_PATH, prepareMultiplier} from './common';
 
 describe('circomkit', () => {
   // we are not testing all curves because PTAU is only available for bn128
   PROTOCOLS.map(protocol =>
-    describe('protocol: ' + protocol, () => {
+    describe(`protocol: ${protocol}`, () => {
       let circomkit: Circomkit;
       const {circuit, signals, inputName} = prepareMultiplier(3);
 
@@ -134,8 +133,7 @@ describe('circomkit', () => {
           .filter(x => !!x)
           .map(x => JSON.parse(x));
 
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
+        //@ts-expect-error
         expect(await contract.verifyProof(...args)).toBe(true);
       });
 

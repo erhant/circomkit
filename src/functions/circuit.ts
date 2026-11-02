@@ -1,6 +1,6 @@
-import {execFile} from 'child_process';
-import {existsSync, mkdirSync, readFileSync, statSync, writeFileSync} from 'fs';
-import {dirname, resolve} from 'path';
+import {execFile} from 'node:child_process';
+import {existsSync, mkdirSync, readFileSync, statSync, writeFileSync} from 'node:fs';
+import {dirname, resolve} from 'node:path';
 import type {CircuitConfig} from '../types';
 
 /** Circuit configuration with all fields required, except `overrides` which are not used here. */
@@ -39,7 +39,7 @@ export async function compileCircuit(config: CircomkitConfig, targetPath: string
   args.push(targetPath);
 
   // `circomPath` may be a command with arguments such as `npx circom2`, unless it is an existing file
-  // ponytail: Windows `.cmd` shims (e.g. `npx`) need a shell, use the `circom` binary there
+  // TODO: Windows `.cmd` shims (e.g. `npx`) need a shell, use the `circom` binary there
   const [command, ...commandArgs] = existsSync(config.circomPath) ? [config.circomPath] : config.circomPath.split(' ');
 
   // call `circom` as a sub-process
@@ -56,7 +56,7 @@ export async function compileCircuit(config: CircomkitConfig, targetPath: string
 
     return {...result};
   } catch (e) {
-    throw new Error('Compiler error:\n' + e);
+    throw new Error(`Compiler error:\n${e}`);
   }
 }
 
@@ -92,7 +92,7 @@ pragma circom ${version};
 ${usesCustomTemplates ? 'pragma custom_templates;\n' : ''}
 include "../${file}.circom";
 
-component main${pubs.length === 0 ? '' : ' {public[' + pubs.join(', ') + ']}'} = ${template}(${params.join(', ')});
+component main${pubs.length === 0 ? '' : ` {public[${pubs.join(', ')}]}`} = ${template}(${params.join(', ')});
 `;
 }
 

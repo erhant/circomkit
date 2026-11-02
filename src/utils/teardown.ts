@@ -1,12 +1,9 @@
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-import {buildBn128, buildBls12381} from 'ffjavascript';
+// @ts-expect-error
+import {buildBls12381, buildBn128} from 'ffjavascript';
 
 type Curve = {terminate: () => Promise<void>};
 declare global {
-  // eslint-disable-next-line no-var
   var curve_bn128: Curve | undefined;
-  // eslint-disable-next-line no-var
   var curve_bls12381: Curve | undefined;
 }
 

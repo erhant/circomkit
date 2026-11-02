@@ -1,4 +1,4 @@
-import {randomBytes} from 'crypto';
+import {randomBytes} from 'node:crypto';
 import type {CircuitConfig, CircuitSignals} from '../../src';
 import {primes} from '../../src/utils';
 
@@ -31,7 +31,7 @@ type PreparedTestCircuit<S extends Record<string, CircuitSignals>> = {
  * @param order order of the finite field, defaults to order for `bn128` prime option.
  * This is important when you have many numbers, as the product will respect the modular arithmetic.
  */
-export function prepareMultiplier(N: number, order: bigint = primes['bn128']) {
+export function prepareMultiplier(N: number, order: bigint = primes.bn128) {
   const name = `multiplier_${N}`;
   const config: CircuitConfig = {
     file: 'multiplier',
@@ -45,7 +45,7 @@ export function prepareMultiplier(N: number, order: bigint = primes['bn128']) {
   // TOTAL: 3*N - 1
   const size = 3 * N - 1;
 
-  const numbers: bigint[] = Array.from({length: N}, () => BigInt(2) + BigInt('0x' + randomBytes(8).toString('hex')));
+  const numbers: bigint[] = Array.from({length: N}, () => BigInt(2) + BigInt(`0x${randomBytes(8).toString('hex')}`));
   const product: bigint = numbers.reduce((prev, acc) => acc * prev) % order;
   const malicious: bigint[] = Array.from({length: N}, () => BigInt(1));
   malicious[0] = product;

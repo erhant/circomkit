@@ -1,5 +1,5 @@
-import {Circomkit, WitnessTester} from '../src';
-import {mkdirSync, readdirSync, statSync, utimesSync, writeFileSync} from 'fs';
+import {mkdirSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync} from 'node:fs';
+import {Circomkit, type WitnessTester} from '../src';
 import {prepareMultiplier} from './common';
 
 // TODO: add C tester
@@ -158,6 +158,17 @@ describe('witness tester recompilation', () => {
 
     await circomkit.WitnessTester('top', {...config});
     expect(builtAt()).toBeGreaterThan(before);
+  });
+
+  it('should clear witness tester builds of the circuit only', async () => {
+    mkdirSync(`${dirBuild}/.witness-tester/top-other-12345678`); // a circuit named `top-other`
+    await circomkit.clear('top');
+    expect(readdirSync(`${dirBuild}/.witness-tester`)).toEqual(['top-other-12345678']);
+
+    // compiles again after clearing
+    const circuit = await circomkit.WitnessTester('top', {...config});
+    await circuit.expectPass({in: 3}, {out: 9});
+    rmSync(`${dirBuild}/.witness-tester/top-other-12345678`, {recursive: true});
   });
 
   it('should always recompile with recompile: true', async () => {

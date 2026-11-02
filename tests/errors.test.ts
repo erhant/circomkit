@@ -1,4 +1,4 @@
-import {Circomkit, WitnessTester} from '../src';
+import {Circomkit, type WitnessTester} from '../src';
 
 describe('errors', () => {
   let circuit: WitnessTester<['in', 'inin'], ['out']>;
@@ -32,14 +32,12 @@ describe('errors', () => {
   });
 
   it('should fail due to missing signal', async () => {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     await circuit.expectFail({inin: [1, 2]});
     // Not all inputs have been set. Only 2 out of 3.
   });
 
   it('should fail due to extra signal', async () => {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     await circuit.expectFail({inin: [1, 2, 3], idontexist: 1});
     // Too many values for input signal inin

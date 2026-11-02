@@ -1,14 +1,14 @@
+import {AssertionError} from 'node:assert';
+import {readFileSync} from 'node:fs';
 import type {FflonkProof, Groth16Proof, PlonkProof, PublicSignals} from 'snarkjs';
 import * as snarkjs from 'snarkjs';
-import {readFileSync} from 'fs';
-import type {CircuitSignals} from '../types/';
 import type {CircomkitConfig} from '../configs';
-import {AssertionError} from 'node:assert';
+import type {CircuitSignals} from '../types/';
 
 /** A tester that is able to generate proofs & verify them.
  * Use `expectFail` and `expectPass` to test out evaluations. */
 export class ProofTester<IN extends string[] = [], P extends CircomkitConfig['protocol'] = 'groth16'> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // biome-ignore lint/suspicious/noExplicitAny: verification keys differ per protocol
   public readonly verificationKey: any;
 
   constructor(
