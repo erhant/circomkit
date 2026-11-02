@@ -167,7 +167,7 @@ dependencies = [
  "rustc-hash 2.1.2",
  "secp256k1",
  "serde",
- "sha3 0.11.0",
+ "sha3",
 ]
 
 [[package]]
@@ -230,7 +230,7 @@ dependencies = [
  "proc-macro-error3",
  "proc-macro2",
  "quote",
- "sha3 0.11.0",
+ "sha3",
  "syn 2.0.117",
  "syn-solidity",
 ]
@@ -1381,9 +1381,6 @@ dependencies = [
  "ark-serialize 0.6.0",
  "ark-std 0.6.0",
  "circomkit-core",
- "lambdaworks-circom-adapter",
- "lambdaworks-groth16",
- "lambdaworks-math",
  "log",
  "num-bigint",
  "rand 0.8.5",
@@ -3179,50 +3176,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4933f3f57a8e9d9da04db23fb153356ecaf00cbd14aee46279c33dc80925c37"
 
 [[package]]
-name = "lambdaworks-circom-adapter"
-version = "0.11.0"
-source = "git+https://github.com/erhant/lambdaworks?branch=erhant%2Ffix-circom-adapter#14f46222a52943dbb98fca8a9713e05718419dcf"
-dependencies = [
- "lambdaworks-groth16",
- "lambdaworks-math",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "lambdaworks-crypto"
-version = "0.11.0"
-source = "git+https://github.com/erhant/lambdaworks?branch=erhant%2Ffix-circom-adapter#14f46222a52943dbb98fca8a9713e05718419dcf"
-dependencies = [
- "lambdaworks-math",
- "sha2",
- "sha3 0.10.8",
-]
-
-[[package]]
-name = "lambdaworks-groth16"
-version = "0.11.0"
-source = "git+https://github.com/erhant/lambdaworks?branch=erhant%2Ffix-circom-adapter#14f46222a52943dbb98fca8a9713e05718419dcf"
-dependencies = [
- "lambdaworks-crypto",
- "lambdaworks-math",
- "rand 0.8.5",
- "rand_chacha 0.3.1",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "lambdaworks-math"
-version = "0.11.0"
-source = "git+https://github.com/erhant/lambdaworks?branch=erhant%2Ffix-circom-adapter#14f46222a52943dbb98fca8a9713e05718419dcf"
-dependencies = [
- "rayon",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "lazy_static"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4983,16 +4936,6 @@ dependencies = [
  "cfg-if",
  "cpufeatures 0.2.17",
  "digest 0.10.7",
-]
-
-[[package]]
-name = "sha3"
-version = "0.10.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "75872d278a8f37ef87fa0ddbda7802605cb18344497949862c0d4dcb291eba60"
-dependencies = [
- "digest 0.10.7",
- "keccak 0.1.6",
 ]
 
 [[package]]

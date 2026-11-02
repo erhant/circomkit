@@ -24,7 +24,7 @@ fn arkworks_prove_with_binary_r1cs() {
         )
         .expect("prove with binary r1cs should succeed");
 
-    // Unlike Lambdaworks, Arkworks reports only the circuit's public output:
+    // Arkworks reports only the circuit's public output:
     // 2^30 = 1073741824.
     assert_eq!(public_signals, vec!["1073741824"]);
 
@@ -52,13 +52,31 @@ fn arkworks_full_prove_unsupported() {
     assert!(result.is_err());
 }
 
+/// Prove natively, then verify natively against the snarkjs-exported vkey JSON;
+/// a tampered public signal must be rejected.
 #[test]
-fn arkworks_verify_from_json_unsupported() {
+fn arkworks_verifies_snarkjs_vkey() {
     let backend = ArkworksBackend;
+    let data = test_data_dir();
 
-    // Native verification from snarkjs-format JSON is not implemented yet;
-    // verification should be delegated to snarkjs.
-    let result = backend.verify(&serde_json::json!({}), &[], &serde_json::json!({}));
+    let ProofOutput {
+        proof,
+        public_signals,
+    } = backend
+        .prove(
+            &data.join("witness.wtns"),
+            &data.join("multiplier_30.r1cs"),
+            &data.join("groth16_pkey.zkey"),
+        )
+        .unwrap();
+    let vkey: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(data.join("groth16_vkey.json")).unwrap())
+            .unwrap();
 
-    assert!(result.is_err());
+    assert!(backend.verify(&vkey, &public_signals, &proof).unwrap());
+    assert!(!backend.verify(&vkey, &["1".to_string()], &proof).unwrap());
+    // wrong number of public signals
+    assert!(!backend.verify(&vkey, &[], &proof).unwrap());
+    // malformed JSON is an error, not a panic
+    assert!(backend.verify(&serde_json::json!({}), &[], &proof).is_err());
 }

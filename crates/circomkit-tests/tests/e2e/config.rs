@@ -5,12 +5,13 @@ use super::common::test_circomkit;
 #[test]
 fn load_test_config() {
     let (ck, _guard) = test_circomkit();
-    assert_eq!(ck.config.circuits.len(), 5);
+    assert_eq!(ck.config.circuits.len(), 6);
     assert!(ck.config.circuits.contains_key("multiplier_3"));
     assert!(ck.config.circuits.contains_key("arrays_2_3"));
     assert!(ck.config.circuits.contains_key("errors"));
     assert!(ck.config.circuits.contains_key("custom_mul"));
     assert!(ck.config.circuits.contains_key("bounded_add_8"));
+    assert!(ck.config.circuits.contains_key("bounded_add_auto"));
 }
 
 #[test]
@@ -51,4 +52,13 @@ fn load_input_from_file() {
     let (ck, _guard) = test_circomkit();
     let input = ck.load_input("multiplier_3", "default").unwrap();
     assert!(input.contains_key("in"));
+}
+
+#[test]
+fn input_roundtrips_through_load_input() {
+    let (ck, _guard) = test_circomkit();
+    let data = circomkit::signals! { "in" => vec![6_i64, 7, 8] };
+    let path = ck.input("multiplier_3", "saved_input", &data).unwrap();
+    assert_eq!(ck.load_input("multiplier_3", "saved_input").unwrap(), data);
+    std::fs::remove_file(path).unwrap();
 }

@@ -34,7 +34,7 @@ For a circuit with a single input you may use the flat `inputs/<circuit>.json`in
   "$schema": "./schema.json",
   "prover": {
     "protocol": "groth16", // groth16 | plonk | fflonk
-    "backend": "snarkjs", // snarkjs | arkworks | lambdaworks
+    "backend": "snarkjs", // snarkjs | arkworks
     "ptauDir": "./ptau",
     "inputDir": "./inputs"
   },
@@ -67,12 +67,22 @@ Notes:
   (only `bn128` auto-downloads via the Perpetual Powers of Tau, up to 2^28).
 - `pubs` lists which _inputs_ are public; outputs are always public.
 - Per-circuit `overrides` merge on top of the global sections.
+- WASM is always emitted; circom's `--c` output is enabled automatically when
+  `witness.calculator` is `c`.
+- Tagged inputs: `component main` can't have them, so if the template has tagged
+  inputs (e.g. `signal input {maxbits} a;`) Circomkit generates and instantiates
+  a `<Template>_circomkit_main` wrapper. `params` are then the template's own
+  params followed by one value per distinct tag (first-seen order), e.g.
+  `{ "file": "tags", "template": "BoundedAdd", "params": [8] }` →
+  `component main = BoundedAdd_circomkit_main(8);`. Needs `"version": "2.2.0"`;
+  only templates in the circuit's own file are wrapped.
 
 ## CLI commands
 
 The binary reads `./circomkit.json` (override with the global `--config` flag).
 
 ```sh
+circomkit init [dir]               # scaffold a minimal project (never overwrites)
 circomkit doctor [--json]          # check circom/snarkjs and OS
 circomkit list                     # list configured circuits
 circomkit config                   # print the resolved config
@@ -88,10 +98,17 @@ circomkit vkey <circuit>           # export the verification key
 circomkit contract <circuit>       # export a Solidity verifier
 
 circomkit witness <circuit> <input>
-circomkit prove <circuit> <input> [--backend snarkjs|arkworks|lambdaworks]
-circomkit verify <circuit> <input>
+circomkit prove <circuit> <input> [--backend snarkjs|arkworks]
+circomkit verify <circuit> <input>  # uses the configured prover.backend
 circomkit calldata <circuit> <input> [--pretty]   # Solidity calldata
-circomkit json r1cs <circuit>      # export R1CS metadata as JSON
+
+# export via snarkjs to <artifact>.json (e.g. build/<c>/<c>.r1cs.json); -p also prints
+circomkit json r1cs <circuit> [-p|--print]
+circomkit json zkey <circuit> [-p]            # groth16 only
+circomkit json wtns <circuit> <input> [-p]
+
+circomkit codegen input <circuit> [--save <name>]  # zero-filled input JSON (--save → inputs/<circuit>/<name>.json)
+circomkit codegen wrapper <circuit>                # print the tag wrapper for tagged inputs
 ```
 
 `compile` takes a **regex**, so `circomkit compile ".*"` builds everything and
@@ -117,11 +134,13 @@ strings for large values (beyond JS safe integers); arrays for signal arrays:
 
 Proving (`prover.backend`):
 
-| backend       | curves       | protocols            | notes                                                       |
-| ------------- | ------------ | -------------------- | ----------------------------------------------------------- |
-| `snarkjs`     | all 7 primes | groth16/plonk/fflonk | default; also does setup/vkey/contract/verify               |
-| `arkworks`    | bn254        | groth16              | Cargo feature `prove-arkworks`; loads a snarkjs zkey        |
-| `lambdaworks` | bls12381     | groth16              | Cargo feature `prove-lambdaworks`; trusted setup on the fly |
+| backend    | curves       | protocols            | notes                                                                   |
+| ---------- | ------------ | -------------------- | ----------------------------------------------------------------------- |
+| `snarkjs`  | all 7 primes | groth16/plonk/fflonk | default; also does setup/vkey/contract/json                             |
+| `arkworks` | bn254        | groth16              | Cargo feature `prove-arkworks`; loads a snarkjs zkey, verifies natively |
+
+`verify` follows `prover.backend`: arkworks verifies in-process from the snarkjs
+JSON (vkey/proof/public), snarkjs via its CLI.
 
 Witness (`witness.calculator`):
 
@@ -155,18 +174,24 @@ Soundness testing — tamper with a witness and assert constraints now fail:
 
 ```rust
 let witness = tester.calculate_witness(&input)?;
+tester.expect_constraint_pass(&witness)?; // A·B = C mod p holds
 let mut overrides = std::collections::HashMap::new();
 overrides.insert("main.out".to_string(), 1234.into());
 let bad = tester.edit_witness(&witness, &overrides)?;
-// assert `bad` no longer satisfies the constraints -> circuit is sound
+tester.expect_constraint_fail(&bad)?; // passes -> circuit rejects the forgery
 ```
 
 `ProofTester` runs a full prove+verify end-to-end (needs `setup` first).
 
+Orchestrator helpers: `ck.input(circuit, name, &data)` saves
+`inputs/<circuit>/<name>.json`; `ck.json(JsonTarget::{R1cs,Zkey,Wtns}, circuit,
+input)` exports JSON next to the artifact; `ck.scaffold_input(circuit)`,
+`ck.tag_wrapper(circuit)`, `ck.template_interface(circuit)`.
+
 ## Testing / usage (Node & Bun)
 
-The `circomkit` npm package (napi bindings) exposes the lifecycle, not the
-`WitnessTester` (that's Rust-only for now). Drive it directly:
+The `circomkit` npm package (napi bindings) exposes the lifecycle and typed
+testers. Drive it directly:
 
 ```ts
 import { Circomkit } from "circomkit";
@@ -174,11 +199,19 @@ import { Circomkit } from "circomkit";
 const ck = Circomkit.fromFile("circomkit.json");
 ck.compile("multiplier_3");
 ck.setup("multiplier_3"); // auto-downloads PTAU for bn128
-ck.witness("multiplier_3", "default", JSON.stringify({ in: [2, 4, 10] }));
-ck.prove("multiplier_3", "default", JSON.stringify({ in: [2, 4, 10] }));
+ck.witness("multiplier_3", "default", { in: [2, 4, 10] });
+ck.prove("multiplier_3", "default", { in: [2, 4, 10] });
 const ok = ck.verify("multiplier_3", "default"); // boolean
 const info = ck.info("multiplier_3"); // { wires, constraints, primeName, ... }
+ck.input("multiplier_3", "other", { in: [3, 5, 7] }); // save inputs/multiplier_3/other.json
+ck.json("r1cs", "multiplier_3"); // "r1cs" | "zkey" | "wtns" (wtns takes an input name)
+ck.scaffoldInput("multiplier_3"); // zero-filled input object
 ```
 
-Inputs and inline config cross as JSON strings; path-returning methods return a
-string path. The `circomkit` package also ships the CLI as a `bin`.
+Testers: `const t = ck.WitnessTester("multiplier_3")`, then `t.expectPass(...)`,
+`t.calculateWitness(...)`, `t.editWitness(w, { "main.out": "1234" })`, and
+`t.expectConstraintPass(w)` / `t.expectConstraintFail(w)` to check a witness
+against the R1CS constraints.
+
+Inputs and inline config are plain objects (with `bigint` support);
+path-returning methods return a string path. The `circomkit` package also ships the CLI as a `bin`.

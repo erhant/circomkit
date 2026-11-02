@@ -39,7 +39,7 @@ Print the resolved configuration with `circomkit config`:
 | Field      | Values                               | Notes                         |
 | ---------- | ------------------------------------ | ----------------------------- |
 | `protocol` | `groth16`, `plonk`, `fflonk`         | proving system                |
-| `backend`  | `snarkjs`, `arkworks`, `lambdaworks` | see [Backends](./backends.md) |
+| `backend`  | `snarkjs`, `arkworks`                | see [Backends](./backends.md) |
 | `ptauDir`  | path                                 | where PTAU files live         |
 | `inputDir` | path                                 | where input JSONs live        |
 
@@ -60,7 +60,8 @@ Print the resolved configuration with `circomkit config`:
 ### `witness`
 
 `calculator` selects the witness backend: `wasm` (default) or `c`. See
-[Backends](./backends.md).
+[Backends](./backends.md). WASM is always emitted at compile time (snarkjs needs
+it); circom's `--c` output is enabled automatically when `calculator` is `c`.
 
 ### `circuits`
 
@@ -79,6 +80,26 @@ Each entry is keyed by the circuit's instance name:
 `pubs` and `params` may be omitted. Per-circuit `overrides` merge on top of the
 global sections — handy for, e.g., bumping the circom `version` for a single
 circuit that needs newer language features.
+
+#### Tagged inputs
+
+`component main` can't have tagged inputs. If the configured template has them
+(e.g. `signal input {maxbits} a;`), `instantiate` / `compile` emit a wrapper
+template `<Template>_circomkit_main` into the generated main file and
+instantiate that instead. `params` are then the template's own params followed
+by one value per distinct tag, in first-seen order:
+
+```json
+"bounded_add": {
+  "file": "tags",
+  "template": "BoundedAdd",   // BoundedAdd() takes no params; inputs tagged {maxbits}
+  "params": [8]               // → component main = BoundedAdd_circomkit_main(8);
+}
+```
+
+Tagged templates need the circom ≥ 2.2 pragma (`"version": "2.2.0"`). Only the
+circuit's own file is parsed, so a template defined in an included file isn't
+auto-wrapped. Print the wrapper with `circomkit codegen wrapper <circuit>`.
 
 ## File layout
 

@@ -59,6 +59,21 @@ fn constraint_count() {
 }
 
 #[test]
+fn constraints_pass_then_fail_after_edit() {
+    let (tester, _guard) = multiplier_tester();
+
+    let input = signals! { "in" => vec![2_i64, 4, 10] };
+    let witness = tester.calculate_witness(&input).unwrap();
+    tester.expect_constraint_pass(&witness).unwrap();
+
+    // Forge the output: the witness must no longer satisfy the R1CS.
+    let overrides = [("main.out".to_string(), BigInt::from(81))].into();
+    let bad = tester.edit_witness(&witness, &overrides).unwrap();
+    tester.expect_constraint_fail(&bad).unwrap();
+    assert!(tester.expect_constraint_pass(&bad).is_err());
+}
+
+#[test]
 fn constraint_count_at_least() {
     let (tester, _guard) = multiplier_tester();
     tester.expect_constraint_count(5, false).unwrap();

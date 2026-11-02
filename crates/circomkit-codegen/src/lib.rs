@@ -7,6 +7,9 @@
 //! - [`scaffold_input`] / [`scaffold_input_string`] — emit a placeholder input
 //!   JSON object with correctly-shaped, zero-filled arrays.
 //!
+//! TODO: TypeScript type generation for circuit inputs/outputs (e.g.
+//! `{ in: bigint[]; out: bigint }`) from the same parsed signal declarations.
+//!
 //! Plus config-independent main-component generation:
 //!
 //! - [`make_circuit_source`] / [`instantiate_circuit`] — generate the
@@ -38,7 +41,9 @@ pub use wrapper::{generate_tag_wrapper, generate_tag_wrapper_with_suffix, genera
 
 // Re-export the AST types these functions operate on, so downstream crates
 // don't need a direct dependency on circomkit-parser just to name them.
-pub use circomkit_parser::{CircomProgram, MainComponent, Signal, SignalDirection, Template};
+pub use circomkit_parser::{
+    CircomProgram, MainComponent, ParseError, Signal, SignalDirection, Template, parse, parse_file,
+};
 
 /// Errors produced during code generation.
 #[derive(Debug, thiserror::Error)]

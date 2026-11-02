@@ -93,6 +93,10 @@ impl CircomkitConfig {
         if self.prover.protocol == Protocol::Plonk && self.compiler.optimization != 1 {
             return Err(CoreError::PlonkOptimization);
         }
+        // Per-circuit overrides can switch protocol/optimization too.
+        for name in self.circuits.keys() {
+            self.resolve_circuit(name)?;
+        }
         Ok(())
     }
 
@@ -117,6 +121,10 @@ impl CircomkitConfig {
             if let Some(v) = &overrides.version {
                 version = v.clone();
             }
+        }
+
+        if prover.protocol == Protocol::Plonk && compiler.optimization != 1 {
+            return Err(CoreError::PlonkOptimization);
         }
 
         Ok(ResolvedCircuitConfig {
@@ -151,6 +159,35 @@ mod tests {
         config.prover.protocol = Protocol::Plonk;
         config.compiler.optimization = 0;
         assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn plonk_override_requires_opt_1() {
+        use crate::config::circuit::PartialProverConfig;
+
+        let mut config = CircomkitConfig::default();
+        config.compiler.optimization = 0;
+        config.circuits.insert(
+            "test".to_string(),
+            CircuitConfig {
+                file: "test".to_string(),
+                template: "Test".to_string(),
+                pubs: vec![],
+                params: vec![],
+                uses_custom_templates: false,
+                overrides: Some(CircuitOverrides {
+                    prover: Some(PartialProverConfig {
+                        protocol: Some(Protocol::Plonk),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                }),
+            },
+        );
+        assert!(matches!(
+            config.validate(),
+            Err(CoreError::PlonkOptimization)
+        ));
     }
 
     #[test]

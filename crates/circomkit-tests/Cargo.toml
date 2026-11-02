@@ -28,6 +28,5 @@ default = []
 # Forward the native proving-backend features to circomkit (these gate tests in
 # tests/e2e/prove.rs).
 prove-arkworks = ["circomkit/prove-arkworks"]
-prove-lambdaworks = ["circomkit/prove-lambdaworks"]
 # Solidity verifier + calldata e2e test (tests/e2e/solidity.rs).
 test-solidity = ["dep:alloy-sol-types", "dep:alloy-primitives", "dep:revm"]

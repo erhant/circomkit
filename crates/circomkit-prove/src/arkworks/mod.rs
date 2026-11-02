@@ -12,13 +12,15 @@ use crate::error::ProveError;
 use crate::traits::ProvingBackend;
 use crate::types::ProofOutput;
 
-use self::convert::proof_to_snarkjs_json;
+use self::convert::{
+    proof_from_snarkjs_json, proof_to_snarkjs_json, public_from_snarkjs, vkey_from_snarkjs_json,
+};
 use self::core::{load_proving_key, load_r1cs, load_witness, prove_circuit, verify};
 
 /// Native Groth16 proving backend using Arkworks (BN254).
 ///
-/// Supports proving with existing witnesses and proving keys.
-/// Setup is not yet supported natively — use `SnarkjsBackend` for setup.
+/// Proves from an existing witness + snarkjs `.zkey`, and verifies snarkjs-format
+/// proofs natively. Setup is not supported natively — use `SnarkjsBackend`.
 pub struct ArkworksBackend;
 
 impl ProvingBackend for ArkworksBackend {
@@ -67,7 +69,7 @@ impl ProvingBackend for ArkworksBackend {
         let proof = prove_circuit(circom, &pkey)?;
 
         debug_assert!(
-            verify(&proof, &public_inputs, &pkey).unwrap_or(false),
+            verify(&proof, &public_inputs, &pkey.vk).unwrap_or(false),
             "proof verification failed internally"
         );
 
@@ -85,13 +87,13 @@ impl ProvingBackend for ArkworksBackend {
         public_signals: &[String],
         proof: &serde_json::Value,
     ) -> Result<bool, ProveError> {
-        // For native verification we'd need to deserialize the snarkjs JSON back
-        // into Arkworks types. For now, delegate to snarkjs for verification.
-        let _ = (vkey, public_signals, proof);
-        Err(ProveError::VerificationFailed(
-            "native Arkworks verification from snarkjs JSON not yet implemented; \
-             use SnarkjsBackend for verification"
-                .to_string(),
-        ))
+        let vk = vkey_from_snarkjs_json(vkey)?;
+        let proof = proof_from_snarkjs_json(proof)?;
+        let inputs = public_from_snarkjs(public_signals)?;
+        // A wrong number of public signals is a failed verification, not an error.
+        if inputs.len() + 1 != vk.gamma_abc_g1.len() {
+            return Ok(false);
+        }
+        verify(&proof, &inputs, &vk)
     }
 }

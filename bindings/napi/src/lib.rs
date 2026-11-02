@@ -235,7 +235,7 @@ impl Circomkit {
 
     /// Generate a proof. `data` is optional inline signals (JSON string);
     /// `backend` optionally overrides the configured prover
-    /// (`"snarkjs" | "arkworks" | "lambdaworks"`). Returns the proof path.
+    /// (`"snarkjs" | "arkworks"`). Returns the proof path.
     #[napi]
     pub fn prove(
         &self,
@@ -280,6 +280,51 @@ impl Circomkit {
     pub fn load_input(&self, circuit: String, input: String) -> napi::Result<String> {
         let signals = self.inner.load_input(&circuit, &input).map_err(err)?;
         serde_json::to_string(&signals).map_err(err)
+    }
+
+    /// Save input signals (JSON string) as `inputs/{circuit}/{input}.json`.
+    /// Returns its path.
+    #[napi]
+    pub fn input(&self, circuit: String, input: String, data: String) -> napi::Result<String> {
+        let signals = signals_from_json(&data)?;
+        Ok(path_string(
+            self.inner.input(&circuit, &input, &signals).map_err(err)?,
+        ))
+    }
+
+    /// Export a binary artifact to JSON via snarkjs (`"r1cs" | "zkey" | "wtns"`;
+    /// `wtns` needs `input`). Returns the JSON file path.
+    #[napi]
+    pub fn json(
+        &self,
+        target: String,
+        circuit: String,
+        input: Option<String>,
+    ) -> napi::Result<String> {
+        let target = match target.as_str() {
+            "r1cs" => circomkit::JsonTarget::R1cs,
+            "zkey" => circomkit::JsonTarget::Zkey,
+            "wtns" => circomkit::JsonTarget::Wtns,
+            other => return Err(err(format!("unknown JSON target `{other}`"))),
+        };
+        Ok(path_string(
+            self.inner
+                .json(target, &circuit, input.as_deref())
+                .map_err(err)?,
+        ))
+    }
+
+    /// Zero-filled input JSON (string) shaped after the circuit's input signals.
+    #[napi]
+    pub fn scaffold_input(&self, circuit: String) -> napi::Result<String> {
+        let json = self.inner.scaffold_input(&circuit).map_err(err)?;
+        serde_json::to_string(&json).map_err(err)
+    }
+
+    /// Source of the tag wrapper circomkit uses as `main` for tagged inputs.
+    #[napi]
+    pub fn tag_wrapper(&self, circuit: String) -> napi::Result<String> {
+        self.inner.tag_wrapper(&circuit).map_err(err)
     }
 }
 
@@ -335,6 +380,22 @@ impl WitnessTester {
     }
 
     /// The circuit's constraint count.
+    /// Assert the witness satisfies every R1CS constraint.
+    #[napi]
+    pub fn expect_constraint_pass(&self, witness: &WitnessHandle) -> napi::Result<()> {
+        self.inner
+            .expect_constraint_pass(&witness.inner)
+            .map_err(err)
+    }
+
+    /// Assert the witness violates at least one R1CS constraint.
+    #[napi]
+    pub fn expect_constraint_fail(&self, witness: &WitnessHandle) -> napi::Result<()> {
+        self.inner
+            .expect_constraint_fail(&witness.inner)
+            .map_err(err)
+    }
+
     #[napi]
     pub fn constraint_count(&self) -> napi::Result<u32> {
         self.inner.constraint_count().map_err(err)

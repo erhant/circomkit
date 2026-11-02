@@ -41,6 +41,14 @@
       "overrides": {
         "version": "2.2.0"
       }
+    },
+    "bounded_add_auto": {
+      "file": "tags",
+      "template": "BoundedAdd",
+      "params": [8],
+      "overrides": {
+        "version": "2.2.0"
+      }
     }
   }
 }

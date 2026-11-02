@@ -9,10 +9,9 @@ It is delivered as a modular Rust workspace: a **CLI tool**, a **library**, and 
 - Testing utilities to check circuit computations and soundness with minimal
   boilerplate.
 - All protocols: `groth16`, `plonk`, and `fflonk` (via snarkjs).
-- Native Rust proving backends: **Arkworks** (Groth16 / BN254) and
-  **Lambdaworks** (Groth16 / BLS12-381).
+- Native Rust proving & verification backend: **Arkworks** (Groth16 / BN254).
 - Automatic phase-1 PTAU download for `bn128`.
-- Solidity verifier + calldata export, and JSON exports for R1CS.
+- Solidity verifier + calldata export, and JSON exports for R1CS / zkey / witness.
 - A Node.js / Bun package (via `napi-rs`) exposing the same toolkit.
 
 > This is a Rust rewrite of the original TypeScript Circomkit.

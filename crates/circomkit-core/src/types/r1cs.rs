@@ -28,7 +28,7 @@ pub type R1CSConstraint<T> = [LinearCombination<T>; 3];
 ///
 /// The type parameter `T` is the field element type, determined by the
 /// `chunk_to_elem` closure passed to [`parse_r1cs_bytes`](crate::utils::parse_r1cs_bytes).
-/// This allows zero-cost abstraction over different backends (BigInt, arkworks, lambdaworks).
+/// This allows zero-cost abstraction over different backends (BigInt, arkworks, ...).
 #[derive(Debug, Clone)]
 pub struct R1CSFile<T> {
     /// Bytes per field element (typically 32).

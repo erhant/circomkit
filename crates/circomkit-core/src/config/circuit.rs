@@ -58,10 +58,8 @@ partial_config! {
         pub out_dir: std::path::PathBuf,
         pub optimization: u32,
         pub verbose: bool,
-        pub wasm: bool,
         pub sym: bool,
         pub r1cs: bool,
-        pub c: bool,
         pub inspect: bool,
         pub recompile: bool
     }

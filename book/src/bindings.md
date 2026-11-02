@@ -42,7 +42,9 @@ const ok = ck.verify("multiplier_3", "default"); // boolean
 
 `Circomkit.fromFile(path)`, `Circomkit.fromConfig(config)`, the lifecycle
 methods (`instantiate`, `compile`, `info`, `clear`, `ptau`, `setup`, `vkey`,
-`contract`, `witness`, `prove`, `verify`, `calldata`, `loadInput`), and the
+`contract`, `witness`, `prove`, `verify`, `calldata`, `loadInput`), helpers
+(`input(circuit, name, data)` to save inputs, `json("r1cs" | "zkey" | "wtns",
+circuit, input?)`, `scaffoldInput(circuit)`, `tagWrapper(circuit)`), and the
 tester factories `WitnessTester` and `ProofTester`.
 
 - `info` returns an object (`wires`, `constraints`, `privateInputs`,
@@ -51,10 +53,9 @@ tester factories `WitnessTester` and `ProofTester`.
 - `setup` returns `{ pkeyPath, vkeyPath }`.
 - `prove` / `witness` take optional inline signals (an object); `prove` also
   takes an optional backend override, which is `"snarkjs"` here. The native
-  backends listed in [Backends](./backends.md) are not shipped in the npm
-  addon — they cover only groth16 on a single curve each and cannot verify, so
-  they stay behind Rust feature flags. Reach for the crate or the CLI if you
-  need them.
+  arkworks backend (groth16 / bn128, see [Backends](./backends.md)) is not
+  shipped in the npm addon to keep build weight down; it stays behind the
+  `prove-arkworks` Rust feature. Reach for the crate or the CLI if you need it.
 
 `circom` and `snarkjs` must be on your `PATH` at runtime, exactly as with the
 CLI. See `index.d.ts` for exact types.
@@ -77,7 +78,9 @@ t.expectConstraintCount(15, true);
 
 // soundness: tamper with a witness
 const w = t.calculateWitness({ in: [2, 4, 10] });
+t.expectConstraintPass(w);
 const bad = t.editWitness(w, { "main.out": "1234" });
+t.expectConstraintFail(bad);
 ```
 
 You can also pass an inline circuit config as a second argument

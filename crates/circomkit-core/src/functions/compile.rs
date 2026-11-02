@@ -12,10 +12,15 @@ pub struct CompileOutput {
 }
 
 /// Compile a circuit by invoking the `circom` binary as a subprocess.
+///
+/// The WASM witness calculator is always emitted (snarkjs `full_prove` needs it
+/// regardless of the configured witness backend); `c` additionally emits the C
+/// witness calculator sources.
 pub fn compile_circuit(
     config: &CompilerConfig,
     target_path: &Path,
     out_dir: &Path,
+    c: bool,
 ) -> Result<CompileOutput> {
     std::fs::create_dir_all(out_dir)?;
 
@@ -33,10 +38,8 @@ pub fn compile_circuit(
     if config.sym {
         cmd.arg("--sym");
     }
-    if config.wasm {
-        cmd.arg("--wasm");
-    }
-    if config.c {
+    cmd.arg("--wasm");
+    if c {
         cmd.arg("--c");
     }
     if config.verbose {
@@ -53,7 +56,7 @@ pub fn compile_circuit(
 
     // Optimization level
     if config.optimization > 2 {
-        cmd.arg(format!("--O2round {}", config.optimization));
+        cmd.args(["--O2round", &config.optimization.to_string()]);
     } else {
         cmd.arg(format!("--O{}", config.optimization));
     }

@@ -19,7 +19,7 @@ Circomkit*; it assumes the circuit is (or will be) written elsewhere — for the
 Circom language itself, defer to the circom101 book / `circom` skill.
 
 `circom` and `snarkjs` must be on `PATH`. Run `circomkit doctor` to verify the
-environment (tool versions, OS, memory, and the largest usable PTAU).
+environment (tool versions and OS/arch).
 
 ## The lifecycle
 
@@ -27,12 +27,14 @@ environment (tool versions, OS, memory, and the largest usable PTAU).
 circomkit compile <circuit>          # circom → r1cs, wasm, sym
 circomkit setup   <circuit>          # trusted setup (auto-downloads PTAU for bn128)
 circomkit witness <circuit> <input>
-circomkit prove   <circuit> <input>  # [--backend snarkjs|arkworks|lambdaworks]
+circomkit prove   <circuit> <input>  # [--backend snarkjs|arkworks]
 circomkit verify  <circuit> <input>
 ```
 
-Also: `info` (wires/constraints/prime), `instantiate`, `contract` (Solidity
-verifier), `calldata`, `vkey`, `ptau`, `clear`, `list`, `config`, `doctor`.
+Also: `init [dir]` (scaffold a project), `info` (wires/constraints/prime),
+`instantiate`, `contract` (Solidity verifier), `calldata`, `vkey`, `ptau`,
+`json r1cs|zkey|wtns`, `codegen input|wrapper`, `clear`, `list`, `config`,
+`doctor`.
 `compile` takes a **regex** over circuit names.
 
 ## circomkit.json
@@ -67,14 +69,14 @@ Prefer `WitnessTester` to check a circuit fast (no full proof):
 
 Critically, test **soundness**, not just correctness: compute a witness, tamper
 with an internal/output signal (`edit_witness`), and assert the constraints now
-fail. If a tampered witness still passes, the circuit is under-constrained. The
+fail (`expect_constraint_fail`). If a tampered witness still passes, the circuit is under-constrained. The
 exact API (Rust and the Node `circomkit` package) is in `references/reference.md`.
 
 ## Backends
 
 - **Proving** (`prover.backend`): `snarkjs` (default, all protocols/primes),
-  `arkworks` (groth16/bn254, Cargo feature), `lambdaworks` (groth16/bls12381,
-  Cargo feature).
+  `arkworks` (groth16/bn254, Cargo feature `prove-arkworks`; also verifies
+  natively).
 - **Witness** (`witness.calculator`): `wasm` (default, everywhere) or `c`
   (native, faster on large circuits, **x86-64 Linux only** — needs nasm/gmp).
 

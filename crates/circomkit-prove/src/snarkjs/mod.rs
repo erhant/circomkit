@@ -9,6 +9,14 @@ use crate::error::ProveError;
 use crate::traits::{ProvingBackend, SetupBackend};
 use crate::types::ProofOutput;
 
+fn protocol_cmd(protocol: Protocol) -> &'static str {
+    match protocol {
+        Protocol::Groth16 => "groth16",
+        Protocol::Plonk => "plonk",
+        Protocol::Fflonk => "fflonk",
+    }
+}
+
 /// Proving backend that delegates to the `snarkjs` CLI via subprocess.
 pub struct SnarkjsBackend {
     /// Command to invoke snarkjs (e.g. "snarkjs" or "npx snarkjs").
@@ -35,11 +43,20 @@ impl SnarkjsBackend {
     }
 
     fn protocol_cmd(&self) -> &str {
-        match self.protocol {
-            Protocol::Groth16 => "groth16",
-            Protocol::Plonk => "plonk",
-            Protocol::Fflonk => "fflonk",
-        }
+        protocol_cmd(self.protocol)
+    }
+
+    /// Export a binary snarkjs artifact (`r1cs`, `zkey` or `wtns`) to JSON,
+    /// i.e. `snarkjs <kind> export json <src> <dst>`.
+    pub fn export_json(&self, kind: &str, src: &Path, dst: &Path) -> Result<(), ProveError> {
+        self.run(&[
+            kind,
+            "export",
+            "json",
+            &src.to_string_lossy(),
+            &dst.to_string_lossy(),
+        ])?;
+        Ok(())
     }
 
     fn run(&self, args: &[&str]) -> Result<String, ProveError> {
@@ -191,6 +208,12 @@ impl SetupBackend for SnarkjsBackend {
                 for i in 0..config.groth16.num_contributions {
                     let next_zkey = tmp_dir.path().join(format!("circuit_{}.zkey", i + 1));
                     let name = format!("contribution_{}", i + 1);
+                    // Fresh OS randomness per contribution, so the toxic waste
+                    // is not reproducible from a fixed string.
+                    let entropy: String = rand::random::<[u8; 32]>()
+                        .iter()
+                        .map(|b| format!("{b:02x}"))
+                        .collect();
 
                     self.run(&[
                         "zkey",
@@ -198,7 +221,7 @@ impl SetupBackend for SnarkjsBackend {
                         &current_zkey.to_string_lossy(),
                         &next_zkey.to_string_lossy(),
                         &format!("--name={name}"),
-                        "-e=random_entropy",
+                        &format!("-e={entropy}"),
                     ])?;
 
                     current_zkey = next_zkey;
@@ -214,7 +237,7 @@ impl SetupBackend for SnarkjsBackend {
                     std::fs::create_dir_all(parent)?;
                 }
                 self.run(&[
-                    self.protocol_cmd(),
+                    protocol_cmd(config.protocol),
                     "setup",
                     &r1cs_path.to_string_lossy(),
                     &ptau_path.to_string_lossy(),

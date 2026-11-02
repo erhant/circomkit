@@ -6,7 +6,7 @@ use ark_bn254::{Bn254, Fr};
 use ark_circom::circom::{R1CS, R1CSFile};
 use ark_circom::{CircomCircuit, CircomReduction, read_zkey};
 use ark_ff::PrimeField;
-use ark_groth16::{Groth16, Proof, ProvingKey};
+use ark_groth16::{Groth16, Proof, ProvingKey, VerifyingKey};
 use ark_relations::gr1cs::SynthesisError;
 use ark_serialize::SerializationError;
 use rand::thread_rng;
@@ -55,10 +55,10 @@ pub fn prove_circuit(
 pub fn verify(
     proof: &Proof<Bn254>,
     public_inputs: &[Fr],
-    proving_key: &ProvingKey<Bn254>,
+    vk: &VerifyingKey<Bn254>,
 ) -> Result<bool, ProveError> {
     Groth16::<Bn254, CircomReduction>::verify_proof(
-        &ark_groth16::prepare_verifying_key(&proving_key.vk),
+        &ark_groth16::prepare_verifying_key(vk),
         proof,
         public_inputs,
     )

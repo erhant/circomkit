@@ -25,6 +25,9 @@ pub struct MainComponentSpec<'a> {
     pub pubs: &'a [String],
     /// Whether the circuit uses `pragma custom_templates`.
     pub uses_custom_templates: bool,
+    /// Extra template source emitted before `component main` (e.g. a
+    /// generated tag wrapper that `template` refers to).
+    pub wrapper: Option<&'a str>,
 }
 
 /// Generate the circom source code for a main component.
@@ -42,6 +45,11 @@ pub fn make_circuit_source(spec: &MainComponentSpec<'_>, version: &str) -> Strin
     }
 
     source.push_str(&format!("include \"../{}.circom\";\n\n", spec.file));
+
+    if let Some(wrapper) = spec.wrapper {
+        source.push_str(wrapper);
+        source.push('\n');
+    }
 
     // component main declaration
     source.push_str("component main");
@@ -104,6 +112,7 @@ mod tests {
             params: &[json!(3)],
             pubs: &[],
             uses_custom_templates: false,
+            wrapper: None,
         };
 
         let source = make_circuit_source(&spec, "2.1.0");
@@ -121,6 +130,7 @@ mod tests {
             params: &[json!(2), json!(3)],
             pubs: &["in1D".to_string(), "in2D".to_string()],
             uses_custom_templates: false,
+            wrapper: None,
         };
 
         let source = make_circuit_source(&spec, "2.1.0");
@@ -136,6 +146,7 @@ mod tests {
             params: &[],
             pubs: &[],
             uses_custom_templates: true,
+            wrapper: None,
         };
 
         let source = make_circuit_source(&spec, "2.1.0");

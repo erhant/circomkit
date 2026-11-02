@@ -88,11 +88,6 @@ napi-build = "1"
 # WASM runtime (witness calculation)
 wasmtime = "31"
 
-# Lambdaworks (proving)
-lambdaworks-math = { git = "https://github.com/erhant/lambdaworks", branch = "erhant/fix-circom-adapter" }
-lambdaworks-circom-adapter = { git = "https://github.com/erhant/lambdaworks", branch = "erhant/fix-circom-adapter" }
-lambdaworks-groth16 = { git = "https://github.com/erhant/lambdaworks", branch = "erhant/fix-circom-adapter" }
-
 # Arkworks (proving)
 ark-circom = { version = "0.6", default-features = false }
 ark-bn254 = "0.6"

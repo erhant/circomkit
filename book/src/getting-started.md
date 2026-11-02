@@ -40,7 +40,7 @@ bun add -g circomkit
 
 ## Your first circuit
 
-**1. Create a project** with a `circomkit.json`:
+**1. Create a project.** `circomkit init my-project` scaffolds the files below for you; or write a `circomkit.json` by hand:
 
 ```json
 {

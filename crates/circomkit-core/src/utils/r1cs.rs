@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use num_bigint::BigUint;
+use num_bigint::{BigInt, BigUint, Sign};
 
 use super::primes::prime_from_value;
 use crate::error::{CoreError, Result};
-use crate::types::{R1CSFile, R1CSInfo};
+use crate::types::{LinearCombination, R1CSFile, R1CSInfo};
 
 /// Read circuit information from an R1CS binary file (header only).
 ///
@@ -101,7 +101,7 @@ pub fn parse_r1cs_info(buffer: &[u8]) -> Result<R1CSInfo> {
 /// The `chunk_to_elem` closure converts raw little-endian coefficient bytes (`n8` bytes)
 /// into the target field element type `T`. This follows the same pattern as
 /// [`parse_witness_to_elems`](super::witness::parse_witness_to_elems), enabling zero-cost
-/// abstraction over different backends (BigInt, arkworks, lambdaworks).
+/// abstraction over different backends (BigInt, arkworks, ...).
 pub fn read_r1cs_file<T>(path: &Path, chunk_to_elem: impl Fn(&[u8]) -> T) -> Result<R1CSFile<T>> {
     let buffer = std::fs::read(path)?;
     parse_r1cs_bytes(&buffer, chunk_to_elem)
@@ -242,4 +242,51 @@ fn read_u64(buffer: &[u8], pos: &mut usize) -> u64 {
     let val = u64::from_le_bytes(buffer[*pos..*pos + 8].try_into().unwrap());
     *pos += 8;
     val
+}
+
+/// Read a binary `.r1cs` file with [`BigInt`] coefficients.
+pub fn read_r1cs_bigint(path: &Path) -> Result<R1CSFile<BigInt>> {
+    read_r1cs_file(path, |b| BigInt::from_bytes_le(Sign::Plus, b))
+}
+
+/// Check that `witness` satisfies every `A * B = C` constraint of `r1cs`
+/// (mod the R1CS prime).
+///
+/// Returns the index of the first unsatisfied constraint as the error. Wires
+/// missing from the witness are treated as zero.
+pub fn check_r1cs_constraints(
+    r1cs: &R1CSFile<BigInt>,
+    witness: &[BigInt],
+) -> std::result::Result<(), usize> {
+    let p = BigInt::from(r1cs.prime.clone());
+    let eval = |lc: &LinearCombination<BigInt>| -> BigInt {
+        lc.iter()
+            .filter_map(|(&wire, coeff)| witness.get(wire).map(|w| coeff * w))
+            .sum::<BigInt>()
+            % &p
+    };
+    for (i, [a, b, c]) in r1cs.constraints.iter().enumerate() {
+        let diff = (eval(a) * eval(b) - eval(c)) % &p;
+        if diff != BigInt::ZERO {
+            return Err(i);
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod constraint_tests {
+    use super::*;
+
+    #[test]
+    fn multiplier_witness_satisfies_constraints() {
+        let data = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../tests/data/multiplier_30");
+        let r1cs = read_r1cs_bigint(&data.join("multiplier_30.r1cs")).unwrap();
+        let mut witness = crate::utils::parse_witness_file(&data.join("witness.wtns")).unwrap();
+        assert_eq!(check_r1cs_constraints(&r1cs, &witness), Ok(()));
+
+        // Tamper with the output wire: some constraint must now fail.
+        witness[1] += 1;
+        assert!(check_r1cs_constraints(&r1cs, &witness).is_err());
+    }
 }

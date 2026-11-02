@@ -21,4 +21,3 @@ thiserror.workspace = true
 default = []
 # Native proving backends (forwarded to circomkit-prove).
 prove-arkworks = ["circomkit-prove/prove-arkworks"]
-prove-lambdaworks = ["circomkit-prove/prove-lambdaworks"]

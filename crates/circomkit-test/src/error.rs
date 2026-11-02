@@ -10,6 +10,9 @@ pub enum TestError {
     #[error("expected exactly {expected} constraints, got {actual}")]
     ConstraintCountMismatch { expected: u32, actual: u32 },
 
+    #[error("witness does not satisfy constraint #{index}")]
+    ConstraintFailed { index: usize },
+
     #[error("expected constraints to fail, but they passed")]
     ExpectedConstraintFailure,
 

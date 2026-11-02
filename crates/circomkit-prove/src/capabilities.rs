@@ -7,8 +7,7 @@
 //! | backend     | protocols                | curves           | setup        | native verify |
 //! |-------------|--------------------------|------------------|--------------|---------------|
 //! | snarkjs     | groth16, plonk, fflonk   | all 7 primes     | yes          | yes           |
-//! | lambdaworks | groth16                  | bls12381         | on-the-fly   | no            |
-//! | arkworks    | groth16                  | bn128 (BN254)    | no (zkey)    | no            |
+//! | arkworks    | groth16                  | bn128 (BN254)    | no (zkey)    | yes           |
 //!
 //! These tables are the single source of truth used both to pick a backend
 //! ([`crate::make_proving_backend`]) and to produce clear errors for
@@ -88,20 +87,12 @@ pub fn capabilities_for(kind: ProvingBackendKind) -> BackendCapabilities {
             supports_native_verify: true,
             uses_zkey: true,
         },
-        ProvingBackendKind::Lambdaworks => BackendCapabilities {
-            name: "lambdaworks",
-            protocols: &[Protocol::Groth16],
-            primes: &[Prime::Bls12381],
-            supports_setup: true,
-            supports_native_verify: false,
-            uses_zkey: false,
-        },
         ProvingBackendKind::Arkworks => BackendCapabilities {
             name: "arkworks",
             protocols: &[Protocol::Groth16],
             primes: &[Prime::Bn128],
             supports_setup: false,
-            supports_native_verify: false,
+            supports_native_verify: true,
             uses_zkey: true,
         },
     }
@@ -129,22 +120,6 @@ mod tests {
             caps.ensure_supports(Protocol::Plonk, Prime::Goldilocks)
                 .is_ok()
         );
-    }
-
-    #[test]
-    fn lambdaworks_is_groth16_bls12381_only() {
-        let caps = capabilities_for(ProvingBackendKind::Lambdaworks);
-        assert!(caps.supports(Protocol::Groth16, Prime::Bls12381));
-        // wrong protocol
-        assert!(matches!(
-            caps.ensure_supports(Protocol::Plonk, Prime::Bls12381),
-            Err(ProveError::UnsupportedProtocol { .. })
-        ));
-        // wrong curve
-        assert!(matches!(
-            caps.ensure_supports(Protocol::Groth16, Prime::Bn128),
-            Err(ProveError::UnsupportedCurve { .. })
-        ));
     }
 
     #[test]

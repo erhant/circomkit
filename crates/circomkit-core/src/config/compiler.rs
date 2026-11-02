@@ -21,14 +21,10 @@ pub struct CompilerConfig {
     pub optimization: u32,
     /// Whether circom should output verbose logs.
     pub verbose: bool,
-    /// Generate WASM witness calculator.
-    pub wasm: bool,
     /// Generate symbol file.
     pub sym: bool,
     /// Generate R1CS file.
     pub r1cs: bool,
-    /// Generate C witness calculator.
-    pub c: bool,
     /// Run constraint inspection during compilation.
     pub inspect: bool,
     /// Force recompilation even if build artifacts are up-to-date.
@@ -46,10 +42,8 @@ impl Default for CompilerConfig {
             include: vec![PathBuf::from("./node_modules")],
             optimization: 1,
             verbose: true,
-            wasm: true,
             sym: true,
             r1cs: true,
-            c: false,
             inspect: true,
             recompile: false,
         }

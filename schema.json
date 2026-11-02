@@ -15,18 +15,18 @@
     "compiler": {
       "description": "Compiler settings.",
       "default": {
-        "c": false,
-        "circomPath": "circom",
-        "include": ["./node_modules"],
+        "include": [
+          "./node_modules"
+        ],
         "inspect": true,
         "optimization": 1,
         "outDir": "./build",
         "prime": "bn128",
         "r1cs": true,
+        "recompile": false,
         "srcDir": "./circuits",
         "sym": true,
-        "verbose": true,
-        "wasm": true
+        "verbose": true
       },
       "allOf": [
         {
@@ -83,7 +83,10 @@
     "CircuitConfig": {
       "description": "Per-circuit configuration.",
       "type": "object",
-      "required": ["file", "template"],
+      "required": [
+        "file",
+        "template"
+      ],
       "properties": {
         "file": {
           "description": "Path to the circuit template file (relative to `src_dir`, without extension).",
@@ -154,7 +157,10 @@
         },
         "version": {
           "default": null,
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         }
       }
     },
@@ -162,19 +168,11 @@
       "description": "Compiler configuration.",
       "type": "object",
       "properties": {
-        "c": {
-          "description": "Generate C witness calculator.",
-          "default": false,
-          "type": "boolean"
-        },
-        "circomPath": {
-          "description": "Path to the circom binary.",
-          "default": "circom",
-          "type": "string"
-        },
         "include": {
           "description": "Include paths for circom (e.g. `node_modules`).",
-          "default": ["./node_modules"],
+          "default": [
+            "./node_modules"
+          ],
           "type": "array",
           "items": {
             "type": "string"
@@ -211,6 +209,11 @@
           "default": true,
           "type": "boolean"
         },
+        "recompile": {
+          "description": "Force recompilation even if build artifacts are up-to-date. When `false` (default), compilation is skipped if the R1CS file exists and is newer than the source `.circom` file.",
+          "default": false,
+          "type": "boolean"
+        },
         "srcDir": {
           "description": "Source directory for circuit templates.",
           "default": "./circuits",
@@ -223,11 +226,6 @@
         },
         "verbose": {
           "description": "Whether circom should output verbose logs.",
-          "default": true,
-          "type": "boolean"
-        },
-        "wasm": {
-          "description": "Generate WASM witness calculator.",
           "default": true,
           "type": "boolean"
         }
@@ -254,32 +252,40 @@
     "LogLevel": {
       "description": "Log level for circomkit operations.",
       "type": "string",
-      "enum": ["trace", "debug", "info", "warn", "error", "silent"]
+      "enum": [
+        "trace",
+        "debug",
+        "info",
+        "warn",
+        "error",
+        "silent"
+      ]
     },
     "PartialCompilerConfig": {
       "type": "object",
       "properties": {
-        "c": {
-          "default": null,
-          "type": ["boolean", "null"]
-        },
-        "circomPath": {
-          "default": null,
-          "type": ["string", "null"]
-        },
         "inspect": {
           "default": null,
-          "type": ["boolean", "null"]
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "optimization": {
           "default": null,
-          "type": ["integer", "null"],
+          "type": [
+            "integer",
+            "null"
+          ],
           "format": "uint32",
           "minimum": 0.0
         },
         "outDir": {
           "default": null,
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "prime": {
           "default": null,
@@ -294,23 +300,38 @@
         },
         "r1cs": {
           "default": null,
-          "type": ["boolean", "null"]
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
+        "recompile": {
+          "default": null,
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "srcDir": {
           "default": null,
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "sym": {
           "default": null,
-          "type": ["boolean", "null"]
+          "type": [
+            "boolean",
+            "null"
+          ]
         },
         "verbose": {
           "default": null,
-          "type": ["boolean", "null"]
-        },
-        "wasm": {
-          "default": null,
-          "type": ["boolean", "null"]
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       }
     },
@@ -330,7 +351,10 @@
         },
         "inputDir": {
           "default": null,
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "protocol": {
           "default": null,
@@ -345,11 +369,17 @@
         },
         "ptauDir": {
           "default": null,
-          "type": ["string", "null"]
+          "type": [
+            "string",
+            "null"
+          ]
         },
         "verbose": {
           "default": null,
-          "type": ["boolean", "null"]
+          "type": [
+            "boolean",
+            "null"
+          ]
         }
       }
     },
@@ -369,7 +399,11 @@
     "Protocol": {
       "description": "Zero-knowledge proof protocol.",
       "type": "string",
-      "enum": ["groth16", "plonk", "fflonk"]
+      "enum": [
+        "groth16",
+        "plonk",
+        "fflonk"
+      ]
     },
     "ProverConfig": {
       "description": "Prover configuration.",
@@ -425,12 +459,18 @@
     "ProvingBackendKind": {
       "description": "Proving backend kind.",
       "type": "string",
-      "enum": ["snarkjs", "arkworks", "lambdaworks"]
+      "enum": [
+        "snarkjs",
+        "arkworks"
+      ]
     },
     "WitnessBackend": {
       "description": "Witness calculator backend.",
       "type": "string",
-      "enum": ["wasm", "c"]
+      "enum": [
+        "wasm",
+        "c"
+      ]
     },
     "WitnessConfig": {
       "description": "Witness generation configuration.",

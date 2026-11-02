@@ -31,12 +31,10 @@ export type Protocol = "groth16" | "plonk" | "fflonk";
 /**
  * Proving backends reachable from the npm addon.
  *
- * Circomkit also has native, in-process backends (arkworks on bn128,
- * lambdaworks on bls12381), but they are deliberately not shipped here: they
- * only cover groth16 on a single curve each and cannot verify, so they would
- * add build weight and API surface for very little gain. They remain available
- * from the Rust crate behind the `prove-arkworks` / `prove-lambdaworks`
- * features.
+ * Circomkit's only native, in-process backend is arkworks (groth16 on bn128),
+ * and it is deliberately not shipped here to keep the addon's build weight
+ * down. It remains available from the Rust crate behind the `prove-arkworks`
+ * feature.
  */
 export type ProvingBackend = "snarkjs";
 export type WitnessCalculator = "wasm" | "c";
@@ -155,6 +153,16 @@ export class WitnessTester<
     overrides: Record<string, SignalValue>,
   ): Witness {
     return this.inner.editWitness(witness, toJson(overrides));
+  }
+
+  /** Assert the witness satisfies every R1CS constraint. */
+  expectConstraintPass(witness: Witness): void {
+    this.inner.expectConstraintPass(witness);
+  }
+
+  /** Assert the witness violates at least one R1CS constraint (soundness). */
+  expectConstraintFail(witness: Witness): void {
+    this.inner.expectConstraintFail(witness);
   }
 
   /** Read named signal values from a witness handle. */
@@ -277,6 +285,25 @@ export class Circomkit {
   }
   loadInput(circuit: string, input: string): CircuitSignals {
     return JSON.parse(this.inner.loadInput(circuit, input));
+  }
+  /** Save input signals as `inputs/{circuit}/{input}.json`; returns its path. */
+  input(circuit: string, input: string, data: CircuitSignals): string {
+    return this.inner.input(circuit, input, toJson(data));
+  }
+  /** Export an artifact to JSON (`wtns` needs `input`); returns the JSON path. */
+  json(target: "r1cs" | "zkey" | "wtns", circuit: string, input?: string): string {
+    return this.inner.json(target, circuit, input);
+  }
+
+  // ---- codegen ----
+
+  /** Zero-filled input object shaped after the circuit's input signals. */
+  scaffoldInput(circuit: string): CircuitSignals {
+    return JSON.parse(this.inner.scaffoldInput(circuit));
+  }
+  /** Source of the tag wrapper used as `main` for templates with tagged inputs. */
+  tagWrapper(circuit: string): string {
+    return this.inner.tagWrapper(circuit);
   }
 
   // ---- testers ----

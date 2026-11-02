@@ -1,10 +1,10 @@
 use std::path::{Path, PathBuf};
 
-use circomkit_core::enums::ProvingBackendKind;
+use circomkit_core::enums::{JsonTarget, Prime, Protocol, ProvingBackendKind};
 use circomkit_core::error::{CoreError, Result};
 use circomkit_core::functions::get_calldata;
 use circomkit_core::types::CircuitSignals;
-use circomkit_prove::{ProvingBackend, SetupBackend, make_proving_backend};
+use circomkit_prove::{SetupBackend, make_proving_backend};
 use circomkit_witness::{WitnessCalculator, WitnessError, make_witness_calculator};
 
 use super::Circomkit;
@@ -33,6 +33,12 @@ impl Circomkit {
 
     /// Get or download the PTAU file for a circuit.
     pub fn ptau(&self, circuit: &str) -> Result<PathBuf> {
+        // The Hermez ceremony files (local names and downloads) are BN254-only;
+        // other curves must pass their own PTAU to `setup`.
+        let prime = self.resolve(circuit)?.compiler.prime;
+        if prime != Prime::Bn128 {
+            return Err(CoreError::PtauUnavailable(prime.to_string()));
+        }
         let info = self.info(circuit)?;
         let ptau_name = circomkit_core::utils::ptau_name_for_constraints(info.constraints);
 
@@ -58,7 +64,8 @@ impl Circomkit {
         let pkey_path = self.paths.pkey(circuit, protocol);
         let vkey_path = self.paths.vkey(circuit, protocol);
 
-        self.snarkjs()
+        let snarkjs = self.snarkjs(protocol);
+        snarkjs
             .setup(
                 &self.paths.circuit_r1cs(circuit),
                 &ptau,
@@ -67,7 +74,7 @@ impl Circomkit {
             )
             .map_err(|e| CoreError::CompilationFailed(format!("setup failed: {e}")))?;
 
-        self.snarkjs()
+        snarkjs
             .export_vkey(&pkey_path, &vkey_path)
             .map_err(|e| CoreError::CompilationFailed(format!("vkey export failed: {e}")))?;
 
@@ -80,11 +87,11 @@ impl Circomkit {
 
     /// Export verification key from an existing proving key.
     pub fn vkey(&self, circuit: &str) -> Result<PathBuf> {
-        let protocol = self.config.prover.protocol;
+        let protocol = self.resolve(circuit)?.prover.protocol;
         let pkey_path = self.paths.pkey(circuit, protocol);
         let vkey_path = self.paths.vkey(circuit, protocol);
 
-        self.snarkjs()
+        self.snarkjs(protocol)
             .export_vkey(&pkey_path, &vkey_path)
             .map_err(|e| CoreError::CompilationFailed(format!("vkey export failed: {e}")))?;
 
@@ -93,11 +100,11 @@ impl Circomkit {
 
     /// Export Solidity verifier contract.
     pub fn contract(&self, circuit: &str) -> Result<PathBuf> {
-        let protocol = self.config.prover.protocol;
+        let protocol = self.resolve(circuit)?.prover.protocol;
         let pkey_path = self.paths.pkey(circuit, protocol);
         let sol_path = self.paths.verifier_sol(circuit, protocol);
 
-        self.snarkjs()
+        self.snarkjs(protocol)
             .export_contract(&pkey_path, &sol_path, protocol)
             .map_err(|e| CoreError::CompilationFailed(format!("contract export failed: {e}")))?;
 
@@ -143,7 +150,7 @@ impl Circomkit {
     /// `--backend` flag), otherwise from the resolved circuit config
     /// (`prover.backend`). Either way it is capability-checked against the
     /// protocol and curve. snarkjs uses its one-shot `full_prove`; native
-    /// backends (arkworks, lambdaworks) compute a witness first, then prove from it.
+    /// backends (arkworks) compute a witness first, then prove from it.
     pub fn prove(
         &self,
         circuit: &str,
@@ -197,9 +204,11 @@ impl Circomkit {
         Ok(proof_path)
     }
 
-    /// Verify a proof for a circuit with the given input.
+    /// Verify a proof for a circuit with the given input, using the resolved
+    /// `prover.backend` (arkworks verifies natively; snarkjs via its CLI).
     pub fn verify(&self, circuit: &str, input: &str) -> Result<bool> {
-        let protocol = self.config.prover.protocol;
+        let resolved = self.resolve(circuit)?;
+        let protocol = resolved.prover.protocol;
         let vkey_path = self.paths.vkey(circuit, protocol);
         let proof_path = self.paths.proof_path(circuit, input, protocol);
         let public_path = self.paths.public_signals_path(circuit, input);
@@ -210,17 +219,14 @@ impl Circomkit {
         let public_signals: Vec<String> =
             serde_json::from_str(&std::fs::read_to_string(&public_path)?)?;
 
-        let ok = self
-            .snarkjs()
-            .verify(&vkey, &public_signals, &proof)
-            .map_err(|e| CoreError::CompilationFailed(format!("verify failed: {e}")))?;
-
-        Ok(ok)
+        make_proving_backend(resolved.prover.backend, protocol, resolved.compiler.prime)
+            .and_then(|backend| backend.verify(&vkey, &public_signals, &proof))
+            .map_err(|e| CoreError::CompilationFailed(format!("verify failed: {e}")))
     }
 
     /// Generate calldata for a circuit proof.
     pub fn calldata(&self, circuit: &str, input: &str, pretty: bool) -> Result<String> {
-        let protocol = self.config.prover.protocol;
+        let protocol = self.resolve(circuit)?.prover.protocol;
         let proof_path = self.paths.proof_path(circuit, input, protocol);
         let public_path = self.paths.public_signals_path(circuit, input);
 
@@ -230,5 +236,45 @@ impl Circomkit {
             serde_json::from_str(&std::fs::read_to_string(&public_path)?)?;
 
         get_calldata(&proof, &public_signals, pretty)
+    }
+
+    /// Export a binary artifact of a circuit to JSON, next to the original as
+    /// `<artifact>.json`. Returns the JSON path.
+    ///
+    /// `input` is required for [`JsonTarget::Wtns`] (the witness is per input)
+    /// and ignored otherwise. Zkey export is Groth16-only (a snarkjs limitation).
+    pub fn json(&self, target: JsonTarget, circuit: &str, input: Option<&str>) -> Result<PathBuf> {
+        let protocol = self.resolve(circuit)?.prover.protocol;
+        let src = match target {
+            JsonTarget::R1cs => self.paths.circuit_r1cs(circuit),
+            JsonTarget::Zkey => {
+                if protocol != Protocol::Groth16 {
+                    return Err(CoreError::ConfigValidation(format!(
+                        "zkey JSON export is only supported for groth16, not {protocol}"
+                    )));
+                }
+                self.paths.pkey(circuit, protocol)
+            }
+            JsonTarget::Wtns => {
+                let input = input.ok_or_else(|| {
+                    CoreError::ConfigValidation("wtns JSON export needs an input name".into())
+                })?;
+                self.paths.witness_path(circuit, input)
+            }
+        };
+        if !src.exists() {
+            return Err(CoreError::FileNotFound(src));
+        }
+
+        let mut dst = src.clone().into_os_string();
+        dst.push(".json");
+        let dst = PathBuf::from(dst);
+
+        self.snarkjs(protocol)
+            .export_json(&target.to_string(), &src, &dst)
+            .map_err(|e| {
+                CoreError::CompilationFailed(format!("{target} JSON export failed: {e}"))
+            })?;
+        Ok(dst)
     }
 }

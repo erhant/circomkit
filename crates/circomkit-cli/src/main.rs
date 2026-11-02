@@ -4,9 +4,10 @@ use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 
 use circomkit::Circomkit;
-use circomkit::ProvingBackendKind;
+use circomkit::{JsonTarget as Json, ProvingBackendKind};
 
 mod doctor;
+mod init;
 
 #[derive(Parser)]
 #[command(
@@ -30,6 +31,13 @@ enum Commands {
         /// Output the report as JSON
         #[arg(long)]
         json: bool,
+    },
+
+    /// Initialize a new Circomkit project
+    Init {
+        /// Target directory
+        #[arg(default_value = ".")]
+        dir: PathBuf,
     },
 
     /// Print the effective configuration
@@ -104,7 +112,7 @@ enum Commands {
         circuit: String,
         /// Input name
         input: String,
-        /// Override the proving backend (snarkjs, arkworks, lambdaworks)
+        /// Override the proving backend (snarkjs, arkworks)
         #[arg(long)]
         backend: Option<ProvingBackendKind>,
     },
@@ -133,6 +141,29 @@ enum Commands {
         #[command(subcommand)]
         target: JsonTarget,
     },
+
+    /// Generate code from a circuit's template interface
+    Codegen {
+        #[command(subcommand)]
+        target: CodegenTarget,
+    },
+}
+
+#[derive(Subcommand)]
+enum CodegenTarget {
+    /// Print a zero-filled input JSON with the right signal names and shapes
+    Input {
+        /// Circuit name
+        circuit: String,
+        /// Save it as this input name (inputs/<circuit>/<name>.json) instead of printing
+        #[arg(long)]
+        save: Option<String>,
+    },
+    /// Print the tag wrapper that circomkit uses as `main` for tagged inputs
+    Wrapper {
+        /// Circuit name
+        circuit: String,
+    },
 }
 
 #[derive(Subcommand)]
@@ -141,6 +172,27 @@ enum JsonTarget {
     R1cs {
         /// Circuit name
         circuit: String,
+        /// Also print the JSON to stdout
+        #[arg(short, long)]
+        print: bool,
+    },
+    /// Export the (Groth16) prover key as JSON
+    Zkey {
+        /// Circuit name
+        circuit: String,
+        /// Also print the JSON to stdout
+        #[arg(short, long)]
+        print: bool,
+    },
+    /// Export a witness as JSON
+    Wtns {
+        /// Circuit name
+        circuit: String,
+        /// Input name
+        input: String,
+        /// Also print the JSON to stdout
+        #[arg(short, long)]
+        print: bool,
     },
 }
 
@@ -154,12 +206,17 @@ fn main() -> Result<()> {
         std::process::exit(if ok { 0 } else { 1 });
     }
 
+    // `init` creates the circomkit.json, so it can't require one.
+    if let Commands::Init { dir } = &cli.command {
+        return init::run(dir);
+    }
+
     let ck = Circomkit::from_file(&cli.config)
         .with_context(|| format!("failed to load config from {}", cli.config.display()))?;
 
     match cli.command {
         // Handled before config loading (needs no circomkit.json).
-        Commands::Doctor { .. } => unreachable!(),
+        Commands::Doctor { .. } | Commands::Init { .. } => unreachable!(),
 
         Commands::Config => {
             println!("{}", serde_json::to_string_pretty(&ck.config)?);
@@ -293,21 +350,37 @@ fn main() -> Result<()> {
             println!("{calldata}");
         }
 
-        Commands::Json { target } => match target {
-            JsonTarget::R1cs { circuit } => {
-                let info = ck.info(&circuit)?;
-                println!(
-                    "{}",
-                    serde_json::to_string_pretty(&serde_json::json!({
-                        "wires": info.wires,
-                        "constraints": info.constraints,
-                        "publicInputs": info.public_inputs,
-                        "privateInputs": info.private_inputs,
-                        "publicOutputs": info.public_outputs,
-                        "labels": info.labels,
-                    }))?
-                );
+        Commands::Json { target } => {
+            let (target, circuit, input, print) = match target {
+                JsonTarget::R1cs { circuit, print } => (Json::R1cs, circuit, None, print),
+                JsonTarget::Zkey { circuit, print } => (Json::Zkey, circuit, None, print),
+                JsonTarget::Wtns {
+                    circuit,
+                    input,
+                    print,
+                } => (Json::Wtns, circuit, Some(input), print),
+            };
+            let path = ck.json(target, &circuit, input.as_deref())?;
+            if print {
+                println!("{}", std::fs::read_to_string(&path)?);
+            } else {
+                println!("{target}: {}", path.display());
             }
+        }
+
+        Commands::Codegen { target } => match target {
+            CodegenTarget::Input { circuit, save } => {
+                let json = ck.scaffold_input(&circuit)?;
+                match save {
+                    Some(name) => {
+                        let data = serde_json::from_value(json)?;
+                        let path = ck.input(&circuit, &name, &data)?;
+                        println!("input: {}", path.display());
+                    }
+                    None => println!("{}", serde_json::to_string_pretty(&json)?),
+                }
+            }
+            CodegenTarget::Wrapper { circuit } => print!("{}", ck.tag_wrapper(&circuit)?),
         },
     }
 

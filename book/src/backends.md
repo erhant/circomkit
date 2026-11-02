@@ -11,27 +11,29 @@ Set with `prover.backend` (or the CLI `--backend` flag). A capability matrix is
 the single source of truth for which `(backend, protocol, curve)` combinations
 are valid; unsupported combinations error early.
 
-| Backend       | Curves       | Protocols              | Notes                                                              |
-| ------------- | ------------ | ---------------------- | ------------------------------------------------------------------ |
-| `snarkjs`     | all 7 primes | groth16, plonk, fflonk | **default**; also does setup / vkey / contract / verify            |
-| `arkworks`    | bn254        | groth16                | native Rust; loads a snarkjs `.zkey`, emits a snarkjs-format proof |
-| `lambdaworks` | bls12381     | groth16                | native Rust; trusted setup on the fly, reads binary or JSON R1CS   |
+| Backend    | Curves       | Protocols              | Notes                                                              |
+| ---------- | ------------ | ---------------------- | ------------------------------------------------------------------ |
+| `snarkjs`  | all 7 primes | groth16, plonk, fflonk | **default**; also does setup / vkey / contract / json              |
+| `arkworks` | bn254        | groth16                | native Rust; loads a snarkjs `.zkey`, emits a snarkjs-format proof |
 
-The native backends are gated behind Cargo features and produce the witness
-themselves, then prove:
+The native backend is gated behind the `prove-arkworks` Cargo feature and
+produces the witness itself, then proves:
 
 ```sh
-cargo build --features "prove-arkworks,prove-lambdaworks"
+cargo build --features prove-arkworks
 circomkit prove my_circuit my_input --backend arkworks
 ```
 
-> [!NOTE]
->
-> Even with a native backend selected, `setup`, `vkey`, `contract`, and `verify` currently route through `snarkjs`.
+`verify` follows the configured `prover.backend`: arkworks verifies natively
+from the snarkjs JSON (vkey / proof / public signals), snarkjs via its CLI.
 
 > [!NOTE]
 >
-> The native backends are Rust-only. The npm addon ([Bindings](./bindings.md)) ships with `snarkjs` alone, so its `ProvingBackend` type has just that one variant.
+> Even with arkworks selected, `setup`, `vkey`, `contract`, and `json` route through `snarkjs`.
+
+> [!NOTE]
+>
+> The native backend is Rust-only. The npm addon ([Bindings](./bindings.md)) ships with `snarkjs` alone, so its `ProvingBackend` type has just that one variant.
 
 ## Witness backends
 
@@ -54,6 +56,4 @@ Based on your needs, we suggest the following:
 
 - Prototyping over any curve/protocol: Use **snarkjs + wasm** (the defaults).
 - Large circuits, native speed: use the **`c`** witness calculator (x86-64), and/or a native proving backend.
-- Pure-Rust proving without snarkjs at prove time:
-  - Use **arkworks** over `bn254`
-  - Use **lambdaworks** over `bls12381`
+- Pure-Rust proving & verification without snarkjs at prove/verify time: use **arkworks** over `bn254`.

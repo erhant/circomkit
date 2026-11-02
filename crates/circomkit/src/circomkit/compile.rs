@@ -1,6 +1,11 @@
 use std::path::PathBuf;
 
-use circomkit_codegen::{MainComponentSpec, instantiate_circuit};
+use std::collections::HashMap;
+
+use circomkit_codegen::{
+    MainComponentSpec, Template, generate_tag_wrapper_with_suffix, instantiate_circuit, parse_file,
+    scaffold_input,
+};
 use circomkit_core::enums::WitnessBackend;
 use circomkit_core::error::{CoreError, Result};
 use circomkit_core::functions::{build_c_witness_binary, compile_circuit};
@@ -9,18 +14,85 @@ use circomkit_core::utils::read_r1cs_info;
 
 use super::Circomkit;
 
+/// Name suffix of auto-generated tag wrappers (unlikely to clash with user templates).
+const TAG_WRAPPER_SUFFIX: &str = "_circomkit_main";
+
 impl Circomkit {
+    /// Parse the circuit's source file and return its configured template's
+    /// interface (signals, tags, params).
+    ///
+    /// Only the circuit's own file is parsed, so a template defined in an
+    /// included file is reported as not found.
+    pub fn template_interface(&self, circuit: &str) -> Result<Template> {
+        let c = self.resolve(circuit)?.circuit;
+        let source = self.paths.circuit_source(&c.file);
+        let program = parse_file(&source)
+            .map_err(|e| CoreError::Codegen(format!("parsing {}: {e}", source.display())))?;
+        program.template(&c.template).cloned().ok_or_else(|| {
+            CoreError::Codegen(format!(
+                "template `{}` not found in {}",
+                c.template,
+                source.display()
+            ))
+        })
+    }
+
+    /// Generate the tag wrapper used as `main` for a template with tagged inputs.
+    ///
+    /// `component main` can't have tagged inputs, so the wrapper takes plain
+    /// inputs, tags them, and forwards to the template. Its parameters are the
+    /// template's own parameters followed by one value per distinct tag.
+    pub fn tag_wrapper(&self, circuit: &str) -> Result<String> {
+        let template = self.template_interface(circuit)?;
+        generate_tag_wrapper_with_suffix(&template, TAG_WRAPPER_SUFFIX)
+            .map_err(|e| CoreError::Codegen(e.to_string()))
+    }
+
+    /// Build a zero-filled input JSON object with the right signal names and
+    /// array shapes, using the circuit's configured integer `params`.
+    pub fn scaffold_input(&self, circuit: &str) -> Result<serde_json::Value> {
+        let c = self.resolve(circuit)?.circuit;
+        let template = self.template_interface(circuit)?;
+        let params: HashMap<String, i64> = template
+            .params
+            .iter()
+            .zip(&c.params)
+            .filter_map(|(name, value)| Some((name.clone(), value.as_i64()?)))
+            .collect();
+        scaffold_input(&template, &params).map_err(|e| CoreError::Codegen(e.to_string()))
+    }
+
     /// Generate the main component `.circom` file for a circuit.
+    ///
+    /// If the template has tagged inputs, a tag wrapper (see [`Self::tag_wrapper`])
+    /// is emitted into the main file and instantiated instead, so the circuit's
+    /// `params` must also carry the tag values.
     pub fn instantiate(&self, circuit: &str) -> Result<PathBuf> {
         let resolved = self.resolve(circuit)?;
         let main_path = self.paths.circuit_main(circuit);
         let c = &resolved.circuit;
+
+        // ponytail: an unparsable source just skips auto-wrapping; circom will
+        // report real syntax errors at compile time.
+        let wrapper = match self.tag_wrapper(circuit) {
+            Ok(w) => Some(w),
+            Err(e) => {
+                log::debug!("no tag wrapper for {circuit}: {e}");
+                None
+            }
+        };
+        let template = match wrapper {
+            Some(_) => format!("{}{TAG_WRAPPER_SUFFIX}", c.template),
+            None => c.template.clone(),
+        };
+
         let spec = MainComponentSpec {
             file: &c.file,
-            template: &c.template,
+            template: &template,
             params: &c.params,
             pubs: &c.pubs,
             uses_custom_templates: c.uses_custom_templates,
+            wrapper: wrapper.as_deref(),
         };
         instantiate_circuit(&spec, &main_path, &resolved.version)?;
         log::info!("instantiated {circuit} at {}", main_path.display());
@@ -76,7 +148,7 @@ impl Circomkit {
         let main_path = self.instantiate(circuit)?;
 
         let out_dir = self.paths.circuit_dir(circuit);
-        // TODO: maybe we hide wasm and c compiler options and just enable w.r.t chosen witness config?
+        // circom's `--c` output is only needed by the C witness backend.
         let want_c = self.config.witness.calculator == WitnessBackend::C;
         let c_binary = self.paths.circuit_c_binary(circuit);
 
@@ -91,12 +163,7 @@ impl Circomkit {
             return Ok(out_dir);
         }
 
-        // The C witness backend needs circom's `--c` output; enable it on demand.
-        let mut compiler = resolved.compiler.clone();
-        if want_c {
-            compiler.c = true;
-        }
-        compile_circuit(&compiler, &main_path, &out_dir)?;
+        compile_circuit(&resolved.compiler, &main_path, &out_dir, want_c)?;
 
         if want_c {
             build_c_witness_binary(&self.paths.circuit_c_dir(circuit), &c_binary)?;

@@ -19,9 +19,9 @@ This is a Rust rewrite of [Circomkit](https://github.com/erhant/circomkit) (orig
 - [x] Simple CLI, abstracting away all paths behind a single config.
 - [x] Testing utilities to check circuit computations & soundness errors, with minimal boilerplate.
 - [x] Supports all protocols: `groth16`, `plonk`, and `fflonk` (via snarkjs).
-- [x] Native Rust proving backends: **Arkworks** (Groth16 / BN254) and **Lambdaworks** (Groth16 / BLS12-381).
+- [x] Native Rust proving & verification backend: **Arkworks** (Groth16 / BN254).
 - [x] Automatically downloads phase-1 PTAU when using `bn128`.
-- [x] Exports a Solidity verifier contract and its calldata, or JSON exports for R1CS.
+- [x] Exports a Solidity verifier contract and its calldata, or JSON exports for R1CS / zkey / witness.
 
 > [!NOTE]
 >
@@ -40,7 +40,7 @@ Circomkit shells out to external tools for compilation and (by default) proving:
 - [`circom`](https://docs.circom.io/getting-started/installation/) (v2.2.x) — circuit compiler.
 - [`snarkjs`](https://github.com/iden3/snarkjs) (v0.7.x, installed globally via npm) — used for the default proving/setup/verify pipeline (Groth16, PLONK, FFLONK across all 7 primes).
 
-The native Arkworks / Lambdaworks backends do their own proving in-process and don't require snarkjs to _prove_, but setup / vkey / contract / verify still route through snarkjs.
+The native Arkworks backend proves and verifies in-process and doesn't require snarkjs to _prove_ or _verify_, but setup / vkey / contract / json still route through snarkjs.
 
 ## Installation
 
@@ -113,16 +113,33 @@ Actions that generate a witness, a proof, or verify a proof need JSON inputs for
 circomkit witness <circuit> <input>
 
 # Generate a proof (optionally overriding the configured backend)
-circomkit prove <circuit> <input> [--backend <snarkjs|arkworks|lambdaworks>]
+circomkit prove <circuit> <input> [--backend <snarkjs|arkworks>]
 
-# Verify a proof
+# Verify a proof (uses the configured prover.backend)
 circomkit verify <circuit> <input>
 
 # Export Solidity calldata to the console
 circomkit calldata <circuit> <input> [--pretty]
 
-# Export R1CS metadata as JSON
-circomkit json r1cs <circuit>
+# Export R1CS / zkey (groth16) / witness as JSON next to the artifact
+# (e.g. build/<circuit>/<circuit>.r1cs.json); --print also prints it
+circomkit json r1cs <circuit> [--print]
+circomkit json zkey <circuit> [--print]
+circomkit json wtns <circuit> <input> [--print]
+```
+
+To start a new project, or to generate boilerplate for an existing circuit:
+
+```sh
+# Scaffold a minimal project into dir (default "."); never overwrites files
+circomkit init [dir]
+
+# Zero-filled input JSON with the right signal names & array shapes
+# (--save writes inputs/<circuit>/<name>.json instead of printing)
+circomkit codegen input <circuit> [--save <name>]
+
+# Print the tag wrapper generated for templates with tagged inputs
+circomkit codegen wrapper <circuit>
 ```
 
 You can also inspect configured circuits and the effective configuration:
@@ -170,7 +187,7 @@ Everything is driven by a single `circomkit.json`, following the v0.4 unified-co
 }
 ```
 
-You can change the `protocol` (`groth16`, `plonk`, `fflonk`), the proving `backend` (`snarkjs`, `arkworks`, `lambdaworks`), and the underlying `prime` (`bn128`, `bls12381`, `goldilocks`, `grumpkin`, `pallas`, `vesta`, `secq256r1`).
+You can change the `protocol` (`groth16`, `plonk`, `fflonk`), the proving `backend` (`snarkjs`, `arkworks`), and the underlying `prime` (`bn128`, `bls12381`, `goldilocks`, `grumpkin`, `pallas`, `vesta`, `secq256r1`).
 
 > [!NOTE]
 >
@@ -192,6 +209,10 @@ Each entry under `circuits` uses the circuit name as the key. The value describe
 > [!TIP]
 >
 > `pubs` and `params` can be omitted, in which case they default to `[]`. Per-circuit `overrides` merge on top of the global settings (e.g. `"overrides": { "version": "2.2.0" }`).
+
+> [!NOTE]
+>
+> `component main` can't have tagged inputs. If the template has them (e.g. `signal input {maxbits} a;`), Circomkit generates a `<Template>_circomkit_main` wrapper and instantiates that instead; `params` are then the template's own params followed by one value per distinct tag (first-seen order). Tags need circom ≥ 2.2 (`"version": "2.2.0"`), and only templates defined in the circuit's own file are wrapped. See the wrapper with `circomkit codegen wrapper <circuit>`.
 
 ### Using Circomkit in Code
 
@@ -215,6 +236,13 @@ let proof = ck.prove("multiplier_3", "my_input", Some(&input), None)?;
 
 // Verify it
 assert!(ck.verify("multiplier_3", "my_input")?);
+
+// Save inputs to inputs/multiplier_3/my_input.json, or scaffold a zero-filled one
+ck.input("multiplier_3", "my_input", &input)?;
+let template = ck.scaffold_input("multiplier_3")?;
+
+// Export the R1CS as JSON (JsonTarget::{R1cs, Zkey, Wtns})
+ck.json(circomkit::JsonTarget::R1cs, "multiplier_3", None)?;
 ```
 
 ## Writing Tests
@@ -259,16 +287,17 @@ let out = tester.compute(&signals! { "in" => vec![2_i64, 3, 5] }, &["out"])?;
 assert_eq!(out["out"], circomkit::SignalValue::Single(30.into()));
 ```
 
-To test for **soundness errors**, compute a witness with `calculate_witness`, tamper with it via `edit_witness` (a map of symbol names to new values), then check that constraints now fail:
+To test for **soundness errors**, compute a witness with `calculate_witness`, tamper with it via `edit_witness` (a map of symbol names to new values), then check it against the R1CS constraints with `expect_constraint_pass` / `expect_constraint_fail`:
 
 ```rust
 use std::collections::HashMap;
 
 let witness = tester.calculate_witness(&input)?;
+tester.expect_constraint_pass(&witness)?;
 let mut overrides = HashMap::new();
 overrides.insert("main.out".to_string(), 1234.into());
 let bad_witness = tester.edit_witness(&witness, &overrides)?;
-// assert that bad_witness no longer satisfies the constraints
+tester.expect_constraint_fail(&bad_witness)?;
 ```
 
 ### Proof Tester
@@ -286,20 +315,19 @@ let tester = ck.proof_tester("multiplier_3", Protocol::Groth16)?;
 
 ## Native Proving Backends
 
-Beyond snarkjs, Circomkit ships two native Rust Groth16 backends, gated behind Cargo features on the umbrella / CLI crates:
+Beyond snarkjs, Circomkit ships a native Rust Groth16 backend, gated behind a Cargo feature on the umbrella / CLI crates:
 
-| Backend     | Feature flag        | Curve        | Notes                                                    |
-| ----------- | ------------------- | ------------ | -------------------------------------------------------- |
-| snarkjs     | _(default)_         | all 7 primes | full protocol support (Groth16 / PLONK / FFLONK)         |
-| Arkworks    | `prove-arkworks`    | BN254        | loads a snarkjs `.zkey`, produces a snarkjs-format proof |
-| Lambdaworks | `prove-lambdaworks` | BLS12-381    | trusted setup on-the-fly, reads binary or JSON R1CS      |
+| Backend  | Feature flag     | Curve        | Notes                                                                                      |
+| -------- | ---------------- | ------------ | ------------------------------------------------------------------------------------------ |
+| snarkjs  | _(default)_      | all 7 primes | full protocol support (Groth16 / PLONK / FFLONK)                                           |
+| Arkworks | `prove-arkworks` | BN254        | loads a snarkjs `.zkey`, produces a snarkjs-format proof; verifies natively from snarkjs JSON |
 
 ```sh
-cargo build --features "prove-arkworks,prove-lambdaworks"
+cargo build --features prove-arkworks
 circomkit prove my_circuit my_input --backend arkworks
 ```
 
-The `circomkit-prove::capabilities` matrix is the single source of truth for which `(backend, protocol, curve)` combinations are valid; unsupported combinations error early (`UnsupportedProtocol` / `UnsupportedCurve` / `BackendNotEnabled`). The `--backend` flag (and the `backend` argument to `Circomkit::prove`) overrides the configured `prover.backend`.
+The `circomkit-prove::capabilities` matrix is the single source of truth for which `(backend, protocol, curve)` combinations are valid; unsupported combinations error early (`UnsupportedProtocol` / `UnsupportedCurve` / `BackendNotEnabled`). The `--backend` flag (and the `backend` argument to `Circomkit::prove`) overrides the configured `prover.backend`. `verify` uses the configured `prover.backend`: arkworks verifies in-process, snarkjs via its CLI.
 
 ## Workspace Structure
 
@@ -309,7 +337,7 @@ The project is a Cargo workspace of focused crates:
 crates
 ├── circomkit-core     - "config, types, pathing, R1CS/witness/sym parsers, compile, PTAU, calldata"
 ├── circomkit-witness  - "WitnessCalculator trait + WASM backend (wasmtime)"
-├── circomkit-prove    - "ProvingBackend trait + snarkjs / arkworks / lambdaworks backends"
+├── circomkit-prove    - "ProvingBackend trait + snarkjs / arkworks backends"
 ├── circomkit-test     - "WitnessTester, ProofTester"
 ├── circomkit          - "umbrella: Circomkit orchestrator + re-exports"
 └── circomkit-cli      - "the `circomkit` binary (clap)"

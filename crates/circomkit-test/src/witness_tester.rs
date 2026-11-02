@@ -5,8 +5,8 @@ use std::sync::{Mutex, OnceLock};
 use num_bigint::BigInt;
 
 use circomkit_core::functions::{edit_witness, parse_symbols, read_witness_signals};
-use circomkit_core::types::{CircuitSignals, R1CSInfo, Symbols, Witness};
-use circomkit_core::utils::read_r1cs_info;
+use circomkit_core::types::{CircuitSignals, R1CSFile, R1CSInfo, Symbols, Witness};
+use circomkit_core::utils::{check_r1cs_constraints, read_r1cs_bigint, read_r1cs_info};
 use circomkit_witness::WitnessCalculator;
 
 use crate::error::TestError;
@@ -20,6 +20,7 @@ pub struct WitnessTester {
     calculator: Box<dyn WitnessCalculator>,
     symbols: OnceLock<Mutex<Option<Symbols>>>,
     r1cs_info: OnceLock<Mutex<Option<R1CSInfo>>>,
+    r1cs: OnceLock<R1CSFile<BigInt>>,
     r1cs_path: PathBuf,
     sym_path: PathBuf,
 }
@@ -34,6 +35,7 @@ impl WitnessTester {
             calculator,
             symbols: OnceLock::new(),
             r1cs_info: OnceLock::new(),
+            r1cs: OnceLock::new(),
             r1cs_path,
             sym_path,
         }
@@ -62,6 +64,32 @@ impl WitnessTester {
             *guard = Some(parse_symbols(&self.sym_path)?);
         }
         Ok(guard.as_ref().unwrap().clone())
+    }
+
+    /// Fully parsed R1CS (lazily loaded), used for constraint checks.
+    fn r1cs(&self) -> Result<&R1CSFile<BigInt>, TestError> {
+        if let Some(r1cs) = self.r1cs.get() {
+            return Ok(r1cs);
+        }
+        let r1cs = read_r1cs_bigint(&self.r1cs_path)?;
+        Ok(self.r1cs.get_or_init(|| r1cs))
+    }
+
+    /// Assert that `witness` satisfies every R1CS constraint.
+    pub fn expect_constraint_pass(&self, witness: &Witness) -> Result<(), TestError> {
+        check_r1cs_constraints(self.r1cs()?, witness)
+            .map_err(|index| TestError::ConstraintFailed { index })
+    }
+
+    /// Assert that `witness` violates at least one R1CS constraint.
+    ///
+    /// Pair with [`edit_witness`](Self::edit_witness) to check that a tampered
+    /// witness is rejected (soundness testing).
+    pub fn expect_constraint_fail(&self, witness: &Witness) -> Result<(), TestError> {
+        match check_r1cs_constraints(self.r1cs()?, witness) {
+            Ok(()) => Err(TestError::ExpectedConstraintFailure),
+            Err(_) => Ok(()),
+        }
     }
 
     /// Get the constraint count.

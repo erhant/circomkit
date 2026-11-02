@@ -23,4 +23,3 @@ regex.workspace = true
 default = []
 # Native proving backends (forwarded to circomkit).
 prove-arkworks = ["circomkit/prove-arkworks"]
-prove-lambdaworks = ["circomkit/prove-lambdaworks"]

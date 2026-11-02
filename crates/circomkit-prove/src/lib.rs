@@ -7,9 +7,6 @@ mod types;
 #[cfg(feature = "prove-arkworks")]
 mod arkworks;
 
-#[cfg(feature = "prove-lambdaworks")]
-mod lambdaworks;
-
 pub use capabilities::{BackendCapabilities, capabilities_for};
 pub use error::ProveError;
 pub use snarkjs::SnarkjsBackend;
@@ -18,9 +15,6 @@ pub use types::ProofOutput;
 
 #[cfg(feature = "prove-arkworks")]
 pub use arkworks::ArkworksBackend;
-
-#[cfg(feature = "prove-lambdaworks")]
-pub use lambdaworks::LambdaworksBackend;
 
 use circomkit_core::enums::{Prime, Protocol, ProvingBackendKind};
 
@@ -41,20 +35,6 @@ pub fn make_proving_backend(
 
     match kind {
         ProvingBackendKind::Snarkjs => Ok(Box::new(SnarkjsBackend::new("snarkjs", protocol))),
-
-        ProvingBackendKind::Lambdaworks => {
-            #[cfg(feature = "prove-lambdaworks")]
-            {
-                Ok(Box::new(LambdaworksBackend))
-            }
-            #[cfg(not(feature = "prove-lambdaworks"))]
-            {
-                Err(ProveError::BackendNotEnabled {
-                    backend: "lambdaworks",
-                    feature: "prove-lambdaworks",
-                })
-            }
-        }
 
         ProvingBackendKind::Arkworks => {
             #[cfg(feature = "prove-arkworks")]

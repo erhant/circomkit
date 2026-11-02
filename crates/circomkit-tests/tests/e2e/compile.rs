@@ -125,6 +125,36 @@ fn compile_tags() {
     );
 }
 
+/// A template with tagged inputs used directly: circomkit auto-generates the tag
+/// wrapper into the main file, with the tag value (`maxbits`) as its param.
+#[test]
+fn compile_tags_auto_wrapper() {
+    let (ck, _guard) = test_circomkit();
+    ck.compile("bounded_add_auto").unwrap();
+
+    let main_source = std::fs::read_to_string(ck.paths.circuit_main("bounded_add_auto")).unwrap();
+    assert!(main_source.contains("template BoundedAdd_circomkit_main(maxbits)"));
+    assert!(main_source.contains("component main = BoundedAdd_circomkit_main(8);"));
+
+    let config = ck.config.circuits["bounded_add_auto"].clone();
+    let tester = ck.witness_tester("bounded_add_auto", config).unwrap();
+    let input = circomkit::signals! { "a" => 3_i64, "b" => 4_i64 };
+    tester
+        .expect_pass_with(&input, &circomkit::signals! { "out" => 7_i64 })
+        .unwrap();
+}
+
+#[test]
+fn scaffold_input_matches_shape() {
+    let (ck, _guard) = test_circomkit();
+    assert_eq!(
+        ck.scaffold_input("multiplier_3").unwrap(),
+        serde_json::json!({ "in": [0, 0, 0] })
+    );
+    // multiplier has no tagged inputs, so no wrapper
+    assert!(ck.tag_wrapper("multiplier_3").is_err());
+}
+
 #[test]
 fn recompiles_when_forced() {
     // Hold the shared lock + pin CWD so this doesn't race other tests writing

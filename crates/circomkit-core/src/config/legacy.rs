@@ -54,8 +54,6 @@ struct LegacyConfig {
 
     #[serde(default)]
     c_witness: bool,
-    #[serde(default = "default_true")]
-    wasm_witness: bool,
 
     #[serde(default = "default_one")]
     groth16num_contributions: u32,
@@ -157,18 +155,18 @@ pub fn from_legacy(value: &serde_json::Value, config_dir: &Path) -> Result<Circo
             include: legacy.include,
             optimization,
             verbose: legacy.verbose,
-            wasm: legacy.wasm_witness,
             sym: true,
             r1cs: true,
-            c: legacy.c_witness,
             inspect: legacy.inspect,
             recompile: false,
         },
         witness: WitnessConfig {
-            calculator: if legacy.wasm_witness {
-                WitnessBackend::Wasm
-            } else {
+            // v0.3 could emit both; WASM is always emitted now, so `cWitness`
+            // only decides which calculator to use.
+            calculator: if legacy.c_witness {
                 WitnessBackend::C
+            } else {
+                WitnessBackend::Wasm
             },
         },
         circuits,
@@ -266,8 +264,7 @@ mod tests {
         assert_eq!(config.prover.ptau_dir, PathBuf::from("./ptau"));
         assert_eq!(config.prover.groth16.num_contributions, 3);
         assert!(config.prover.groth16.ask_for_entropy);
-        assert!(config.compiler.c);
-        assert!(!config.compiler.wasm);
+        assert_eq!(config.witness.calculator, WitnessBackend::C);
         assert_eq!(config.version, "2.1.4");
     }
 }

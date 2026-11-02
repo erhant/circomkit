@@ -11,6 +11,8 @@ Circomkit ships tester utilities that reduce boilerplate so you can focus on inp
 - `expect_fail(input)` — witness computation must fail (rejection cases).
 - `expect_constraint_count(n, exact)` — guard against accidental blowups.
 - `compute(input, &["out"])` — extract named output signals.
+- `expect_constraint_pass(&witness)` / `expect_constraint_fail(&witness)` —
+  check a witness against the R1CS constraints (A·B = C mod p).
 
 ```rust
 use circomkit::{Circomkit, signals};
@@ -37,17 +39,15 @@ tester.expect_constraint_count(15, true)?;
 Correctness (honest inputs give the right output) is not the same as
 **soundness** (a malicious prover _cannot_ satisfy the circuit with a wrong
 value). To test soundness, compute a witness, tamper with an internal/output
-signal, and assert the constraints now fail:
+signal via `edit_witness`, and assert the constraints now fail:
 
 ```rust
-use std::collections::HashMap;
+use num_bigint::BigInt;
 
 let witness = tester.calculate_witness(&input)?;
-let mut overrides = HashMap::new();
-overrides.insert("main.out".to_string(), 1234.into());
-let bad = tester.edit_witness(&witness, &overrides)?;
-// assert `bad` no longer satisfies the constraints — otherwise the
-// circuit is under-constrained.
+tester.expect_constraint_pass(&witness)?;
+let bad = tester.edit_witness(&witness, &[("main.out".to_string(), BigInt::from(81))].into())?;
+tester.expect_constraint_fail(&bad)?;
 ```
 
 If a tampered witness still satisfies the circuit, it is under-constrained —

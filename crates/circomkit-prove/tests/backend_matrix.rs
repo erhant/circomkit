@@ -22,11 +22,8 @@ fn test_data_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../tests/data/multiplier_30")
 }
 
-const ALL_BACKENDS: &[ProvingBackendKind] = &[
-    ProvingBackendKind::Snarkjs,
-    ProvingBackendKind::Lambdaworks,
-    ProvingBackendKind::Arkworks,
-];
+const ALL_BACKENDS: &[ProvingBackendKind] =
+    &[ProvingBackendKind::Snarkjs, ProvingBackendKind::Arkworks];
 
 const ALL_PROTOCOLS: &[Protocol] = &[Protocol::Groth16, Protocol::Plonk, Protocol::Fflonk];
 
@@ -92,30 +89,6 @@ fn capability_matrix_is_enforced() {
 /// backends are Groth16-only and curve-specific.
 #[test]
 fn unsupported_combinations_give_clear_errors() {
-    // Lambdaworks: Groth16 + BLS12-381 only.
-    assert!(matches!(
-        make_proving_backend(
-            ProvingBackendKind::Lambdaworks,
-            Protocol::Plonk,
-            Prime::Bls12381
-        ),
-        Err(ProveError::UnsupportedProtocol {
-            backend: "lambdaworks",
-            ..
-        })
-    ));
-    assert!(matches!(
-        make_proving_backend(
-            ProvingBackendKind::Lambdaworks,
-            Protocol::Groth16,
-            Prime::Bn128
-        ),
-        Err(ProveError::UnsupportedCurve {
-            backend: "lambdaworks",
-            ..
-        })
-    ));
-
     // Arkworks: Groth16 + BN254 (bn128) only.
     assert!(matches!(
         make_proving_backend(ProvingBackendKind::Arkworks, Protocol::Fflonk, Prime::Bn128),
@@ -171,32 +144,6 @@ fn arkworks_groth16_bn254_proves() {
     assert_eq!(output.proof["curve"], "bn128");
     // multiplier_30 over 2 thirty times => 2^30 = 1073741824 is the public output.
     assert_eq!(output.public_signals, vec!["1073741824"]);
-}
-
-/// Lambdaworks proves Groth16 over BLS12-381 with an on-the-fly setup.
-#[cfg(feature = "prove-lambdaworks")]
-#[test]
-fn lambdaworks_groth16_bls12381_proves() {
-    let data = test_data_dir();
-    let backend = make_proving_backend(
-        ProvingBackendKind::Lambdaworks,
-        Protocol::Groth16,
-        Prime::Bls12381,
-    )
-    .expect("lambdaworks backend should build");
-
-    let output = backend
-        .prove(
-            &data.join("witness.wtns"),
-            &data.join("multiplier_30.r1cs"),
-            &data.join("unused.zkey"),
-        )
-        .expect("lambdaworks prove should succeed");
-
-    assert_eq!(output.proof["protocol"], "groth16");
-    assert_eq!(output.proof["curve"], "bls12381");
-    // Lambdaworks includes the constant "1" wire ahead of the output.
-    assert_eq!(output.public_signals, vec!["1", "1073741824"]);
 }
 
 /// snarkjs proves Groth16 over BN254 via the CLI (needs `snarkjs` on PATH).
