@@ -1,4 +1,4 @@
-import {ReadPosition, openSync, readSync} from 'fs';
+import {openSync, ReadPosition, readSync} from 'fs';
 import {primeToName} from '../utils';
 
 /**

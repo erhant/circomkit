@@ -1,22 +1,27 @@
-import * as snarkjs from 'snarkjs';
-
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
-import {wasm as wasm_tester} from 'circom_tester';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
-import {c as c_tester} from 'circom_tester';
+import {c as c_tester, wasm as wasm_tester} from 'circom_tester';
+import {createHash, randomBytes} from 'crypto';
 import {writeFileSync, readFileSync, existsSync, mkdirSync, rmSync, renameSync} from 'fs';
 import {readFile, rm, writeFile} from 'fs/promises';
-import {randomBytes} from 'crypto';
 import loglevel from 'loglevel';
+import * as snarkjs from 'snarkjs';
+import {CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
+import {
+  compileCircuit,
+  getCalldata,
+  instantiateCircuit,
+  isCompiled,
+  type MainComponentConfig,
+  readR1CSInfo,
+} from '../functions';
+import {ProofTester, WitnessTester} from '../testers';
+import type {CircomTester, CircuitConfig, CircuitSignals} from '../types';
+import {prettyStringify} from '../utils';
 import {downloadPtau, getPtauName} from '../utils/ptau';
 import {singleThreadOnBun} from '../utils/teardown';
-import type {CircuitConfig, CircuitSignals, CircomTester} from '../types';
-import {WitnessTester, ProofTester} from '../testers';
-import {prettyStringify} from '../utils';
-import {CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
-import {compileCircuit, instantiateCircuit, readR1CSInfo, getCalldata, type MainComponentConfig} from '../functions';
 import {CircomkitPath} from './pathing';
 
 /**
@@ -109,7 +114,11 @@ export class Circomkit {
   /** Returns the circuit configurations, read from `circuits.json` unless they are given inline in the config. */
   readCircuits(): Record<string, CircuitConfig> {
     const {circuits} = this.config;
-    return typeof circuits === 'string' ? JSON.parse(readFileSync(circuits, 'utf-8')) : circuits;
+    if (typeof circuits !== 'string') return circuits;
+
+    const circuitsFile = JSON.parse(readFileSync(circuits, 'utf-8'));
+    delete circuitsFile.$schema; // for editors, not a circuit
+    return circuitsFile;
   }
 
   /** Returns a single circuit config from `circuits.json` (or the inline circuits). */
@@ -534,7 +543,14 @@ export class Circomkit {
     };
   }
 
-  /** Compiles the circuit and returns a witness tester instance. */
+  /** Compiles the circuit and returns a witness tester instance.
+   *
+   * The circuit is compiled under `<dirBuild>/.witness-tester`, in a directory named after the circuit and
+   * a hash of its `main` component & compiler options, so that testers with different parameters never share a build.
+   *
+   * By default, compilation is skipped if that build is newer than the circuit and all of its includes.
+   * Set `recompile` to `true` to always compile, or to `false` to never compile.
+   */
   async WitnessTester<IN extends string[] = [], OUT extends string[] = []>(
     circuit: string,
     circuitConfig: CircuitConfig & {recompile?: boolean},
@@ -544,16 +560,29 @@ export class Circomkit {
 
     const config = this.resolve(circuit, circuitConfig);
     const targetPath = this.instantiate(circuit, circuitConfig);
-    const circomWasmTester: CircomTester = await (tester === 'wasm' ? wasm_tester : c_tester)(targetPath, {
-      output: undefined, // this makes tests to be created under /tmp
+    const options = {
       prime: config.prime,
-      verbose: config.verbose,
       O: typeof config.optimization === 'number' ? Math.min(config.optimization, 1) : undefined, // tester doesnt have O2
-      json: false,
       include: config.include,
+    };
+
+    const hash = createHash('sha256')
+      .update(JSON.stringify([tester, options, readFileSync(targetPath, 'utf-8')]))
+      .digest('hex')
+      .slice(0, 8);
+    // ponytail: builds of old parameters are left behind, `clear` does not remove them
+    const output = `${config.dirBuild}/.witness-tester/${circuit}-${hash}`;
+    const artifact =
+      tester === 'wasm' ? `${output}/${circuit}_js/${circuit}.wasm` : `${output}/${circuit}_cpp/${circuit}`;
+
+    const circomWasmTester: CircomTester = await (tester === 'wasm' ? wasm_tester : c_tester)(targetPath, {
+      ...options,
+      output,
+      verbose: config.verbose,
+      json: false,
       wasm: true,
       sym: true,
-      recompile: circuitConfig.recompile ?? true,
+      recompile: circuitConfig.recompile ?? !isCompiled(artifact, targetPath, config.include),
     });
 
     return new WitnessTester<IN, OUT>(circomWasmTester);

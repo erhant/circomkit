@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 import {Circomkit} from '../src';
+import {DEFAULT} from '../src/configs';
 import {existsSync, readFileSync, rmSync, statSync} from 'fs';
 
 describe('overriding configurations', () => {
@@ -16,6 +17,26 @@ describe('overriding configurations', () => {
   it('should NOT allow an invalid protocol', () => {
     // @ts-expect-error
     expect(() => new Circomkit({protocol: 'fhdskfhjdk'})).toThrow('Invalid protocol in configuration.');
+  });
+});
+
+describe('json schema', () => {
+  const schema = JSON.parse(readFileSync('./schema.json', 'utf-8'));
+
+  it('should list every config option', () => {
+    const options = Object.keys(schema.properties).filter(key => key !== '$schema');
+    expect(options.sort()).toEqual(Object.keys(DEFAULT).sort());
+  });
+
+  it('should list every overridable config option', () => {
+    const overrides = Object.keys(schema.definitions.circuit.properties.overrides.properties);
+    const expected = Object.keys(DEFAULT).filter(key => key !== 'circuits' && key !== 'logLevel');
+    expect(overrides.sort()).toEqual(expected.sort());
+  });
+
+  it('should not read `$schema` as a circuit', () => {
+    const circomkit = new Circomkit({circuits: './tests/circuits.json', logLevel: 'silent'});
+    expect(Object.keys(circomkit.readCircuits())).not.toContain('$schema');
   });
 });
 

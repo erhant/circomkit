@@ -1,4 +1,5 @@
 {
+  "$schema": "../circuits.schema.json",
   "multiplier_3": {
     "file": "multiplier",
     "template": "Multiplier",

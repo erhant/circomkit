@@ -16,5 +16,8 @@
     "*.zkey": "Lock",
     "*.r1cs": "Diff",
     "*.sym": "Edge"
+  },
+  "editor.codeActionsOnSave": {
+    "source.organizeImports.biome": "explicit"
   }
 }

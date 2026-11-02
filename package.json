@@ -20,6 +20,8 @@
   },
   "files": [
     "dist/",
+    "schema.json",
+    "circuits.schema.json",
     "LICENSE",
     "README.md"
   ],

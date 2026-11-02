@@ -1,9 +1,11 @@
-import {existsSync, mkdirSync, readFileSync, writeFileSync} from 'fs';
 import {execFile} from 'child_process';
+import {existsSync, mkdirSync, readFileSync, statSync, writeFileSync} from 'fs';
+import {dirname, resolve} from 'path';
 import type {CircuitConfig} from '../types';
 
 /** Circuit configuration with all fields required, except `overrides` which are not used here. */
 export type MainComponentConfig = Required<Omit<CircuitConfig, 'overrides'>>;
+
 import type {CircomkitConfig} from '../configs';
 
 // @todo make compilation config a separate entity derived from CircomkitConfig and be Partial.
@@ -92,4 +94,38 @@ include "../${file}.circom";
 
 component main${pubs.length === 0 ? '' : ' {public[' + pubs.join(', ') + ']}'} = ${template}(${params.join(', ')});
 `;
+}
+
+/** Returns `true` if the build artifact exists and is newer than the circuit and every file it includes, recursively.
+ *
+ * Includes are resolved like Circom does: relative to the including file first, then the `include` directories.
+ * An include that can not be found returns `false`, so that the circuit is compiled to be safe.
+ *
+ * @param artifactPath path to the last file written by compilation, e.g. the WASM file
+ * @param circuitPath path to the circuit, e.g. the `main` component
+ * @param includeDirs library paths passed to Circom with `-l`
+ */
+export function isCompiled(artifactPath: string, circuitPath: string, includeDirs: string[]): boolean {
+  if (!existsSync(artifactPath)) return false;
+  const compiledAt = statSync(artifactPath).mtimeMs;
+
+  const seen = new Set<string>();
+  const queue = [resolve(circuitPath)];
+  while (queue.length > 0) {
+    const file = queue.pop()!;
+    if (seen.has(file)) continue;
+    seen.add(file);
+    if (statSync(file).mtimeMs > compiledAt) return false;
+
+    const code = readFileSync(file, 'utf-8').replace(/\/\/.*|\/\*[\s\S]*?\*\//g, ''); // remove comments
+    const includeRegex = /include\s+"([^"]+)"/g;
+    for (let match = includeRegex.exec(code); match !== null; match = includeRegex.exec(code)) {
+      const include = match[1];
+      const found = [dirname(file), ...includeDirs].map(dir => resolve(dir, include)).find(path => existsSync(path));
+      if (!found) return false;
+      queue.push(found);
+    }
+  }
+
+  return true;
 }

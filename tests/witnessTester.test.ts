@@ -1,4 +1,5 @@
 import {Circomkit, WitnessTester} from '../src';
+import {mkdirSync, readdirSync, statSync, utimesSync, writeFileSync} from 'fs';
 import {prepareMultiplier} from './common';
 
 // TODO: add C tester
@@ -108,5 +109,61 @@ describe('witness tester', () => {
       'main.in[2]': BigInt(signals.output.out),
     });
     await circuit.expectConstraintFail(badWitness);
+  });
+});
+
+describe('witness tester recompilation', () => {
+  const dirBuild = './tests/build/recompile';
+  const dirCircuits = `${dirBuild}/circuits`;
+  const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits, dirBuild});
+  const config = {file: 'top', template: 'Top'};
+
+  /** Modification time of the tester's WASM, there must be exactly one build. */
+  const builtAt = () => {
+    const builds = readdirSync(`${dirBuild}/.witness-tester`);
+    expect(builds).toHaveLength(1);
+    return statSync(`${dirBuild}/.witness-tester/${builds[0]}/top_js/top.wasm`).mtimeMs;
+  };
+  const tick = () => new Promise(resolve => setTimeout(resolve, 20));
+
+  beforeAll(() => {
+    // `top` includes `lib`, which is not referenced by the main component directly
+    mkdirSync(dirCircuits, {recursive: true});
+    writeFileSync(
+      `${dirCircuits}/lib.circom`,
+      'pragma circom 2.0.0;\ntemplate Square() { signal input in; signal output out; out <== in * in; }\n'
+    );
+    writeFileSync(
+      `${dirCircuits}/top.circom`,
+      'pragma circom 2.0.0;\ninclude "lib.circom";\n' +
+        'template Top() { signal input in; signal output out; out <== Square()(in); }\n'
+    );
+  });
+
+  it('should not recompile an unchanged circuit', async () => {
+    const circuit = await circomkit.WitnessTester('top', {...config});
+    await circuit.expectPass({in: 3}, {out: 9});
+    const firstBuild = builtAt();
+
+    await tick();
+    await circomkit.WitnessTester('top', {...config});
+    expect(builtAt()).toBe(firstBuild);
+  });
+
+  it('should recompile when an included file changes', async () => {
+    const before = builtAt();
+    await tick();
+    const now = new Date();
+    utimesSync(`${dirCircuits}/lib.circom`, now, now);
+
+    await circomkit.WitnessTester('top', {...config});
+    expect(builtAt()).toBeGreaterThan(before);
+  });
+
+  it('should always recompile with recompile: true', async () => {
+    const before = builtAt();
+    await tick();
+    await circomkit.WitnessTester('top', {...config, recompile: true});
+    expect(builtAt()).toBeGreaterThan(before);
   });
 });

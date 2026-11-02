@@ -1,4 +1,5 @@
 {
+  "$schema": "./schema.json",
   "version": "2.1.4",
   "verbose": true,
   "prime": "bn128",
