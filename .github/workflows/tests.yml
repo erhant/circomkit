@@ -11,7 +11,7 @@ on:
       # Configurations
       - 'circomkit.json'
       - 'hardhat.config.ts'
-      - 'jest.config.js'
+      - 'vitest.config.mts'
       # workflow itself
       - '.github/workflows/tests.yml'
   pull_request:

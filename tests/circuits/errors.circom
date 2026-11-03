@@ -16,3 +16,11 @@ template Errors() {
   assert(in != 1);
   out <== in + (inin[0] * inin[1]);
 }
+
+// Run-time error in the witness calculator itself: modulo by zero traps in WASM
+template ModuloByZero() {
+  signal input in;
+  signal output out;
+
+  out <-- 7 % in;
+}

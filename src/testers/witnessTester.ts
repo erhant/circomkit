@@ -104,6 +104,13 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
           'Not enough values for input signal', // few inputs than expected for a signal
           'Too many values for input signal', // more inputs than expected for a signal
           'Not all inputs have been set.', // few inputs than expected for many signals
+          // other run-time errors of the witness calculator
+          'Error: Out of bounds array access.',
+          'Error: Input signal array access exceeds the size.',
+          'Error: Signal already set.',
+          'Error: Too many signals set.',
+          'Error: Signal not found.',
+          'RuntimeError:', // a WASM trap, e.g. modulo by zero
         ].some(msg => errorMessage.startsWith(msg));
 
         // throw unhandled error anyways

@@ -43,3 +43,18 @@ describe('errors', () => {
     // Too many values for input signal inin
   });
 });
+
+describe('runtime errors (#107)', () => {
+  it('should fail due to modulo by zero', async () => {
+    const circomkit = new Circomkit({
+      verbose: false,
+      logLevel: 'silent',
+      dirCircuits: './tests/circuits',
+      dirBuild: './tests/build',
+    });
+    const circuit = await circomkit.WitnessTester('error_mod', {file: 'errors', template: 'ModuloByZero'});
+    await circuit.expectPass({in: 2}, {out: 1});
+    const message = await circuit.expectFail({in: 0});
+    expect(message.toLowerCase()).toContain('by zero');
+  });
+});
