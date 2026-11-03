@@ -67,6 +67,9 @@ npx circomkit instantiate <circuit>
 # Print information about a compiled circuit, e.g. its number of constraints
 npx circomkit info <circuit>
 
+# Print the constraints of a compiled circuit as formulas, e.g. `in[0] * in[1] = inner[0]`
+npx circomkit constraints <circuit>
+
 # Circuit-specific setup, creates the prover & verifier keys
 npx circomkit setup <circuit> [ptau-path]
 
@@ -288,6 +291,17 @@ describe('multiplier', () => {
 await circuit.expectConstraintCount(N);
 // expects exactly N constraints
 await circuit.expectConstraintCount(N, true);
+```
+
+`constraints()` returns the constraints as human-readable formulas, which helps to spot under-constrained signals:
+
+```ts
+console.log(circuit.constraints().join('\n'));
+// in[0] * in[1] = inner[0]
+// inner[0] * in[2] = out
+// isZero[0].in * isZero[0].inv = 1
+// in[0] - isZero[0].in - 1 = 0
+// ...
 ```
 
 #### Reading signals

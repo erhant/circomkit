@@ -10,6 +10,7 @@ import * as snarkjs from 'snarkjs';
 import {type CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
 import {
   compileCircuit,
+  formatConstraints,
   getCalldata,
   instantiateCircuit,
   isCompiled,
@@ -188,6 +189,11 @@ export class Circomkit {
   /** Returns circuit information. */
   async info(circuit: string) {
     return await readR1CSInfo(this.path.ofCircuit(circuit, 'r1cs'));
+  }
+
+  /** Returns the constraints of a compiled circuit as human-readable formulas, e.g. `in[0] * in[1] = inner[0]`. */
+  constraints(circuit: string): string[] {
+    return formatConstraints(this.path.ofCircuit(circuit, 'r1cs'), this.path.ofCircuit(circuit, 'sym'));
   }
 
   /** Downloads the phase-1 setup PTAU file for a circuit based on it's number of constraints.

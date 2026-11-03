@@ -32,6 +32,16 @@ describe('witness tester', () => {
     await circuit.expectConstraintCount(size! - 1);
   });
 
+  it('should format constraints', () => {
+    expect(circuit.constraints()).toEqual([
+      'in[0] * in[1] = inner[0]',
+      'inner[0] * in[2] = inner[1]',
+      'inner[1] * in[3] = out',
+      ...[0, 1, 2, 3].map(i => `isZero[${i}].in * isZero[${i}].inv = 1`),
+      ...[0, 1, 2, 3].map(i => `in[${i}] - isZero[${i}].in - 1 = 0`),
+    ]);
+  });
+
   it('should assert correctly', async () => {
     await circuit.expectPass(signals.input, signals.output);
   });

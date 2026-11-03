@@ -1,7 +1,7 @@
 import {AssertionError} from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import {type LinearCombination, readR1CSConstraints} from '../functions/r1cs';
+import {formatConstraints, type LinearCombination, readR1CSConstraints, readSymbols} from '../functions/r1cs';
 import {cWitnessCalculatorPath, type WitnessCalculator} from '../functions/witness';
 import type {CircuitSignals, SignalValueType, SymbolsType, WitnessType} from '../types/';
 
@@ -12,7 +12,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
   /** Whether all symbols are loaded, see {@link loadSymbols} and {@link loadSpecificSymbols} */
   private allSymbolsLoaded = false;
   /** List of constraints `A * B = C`, see {@link loadConstraints} */
-  private constraints: [LinearCombination, LinearCombination, LinearCombination][] | undefined;
+  private r1csConstraints: [LinearCombination, LinearCombination, LinearCombination][] | undefined;
   /** Prime of the field of the constraints, see {@link loadConstraints} */
   private prime = 0n;
 
@@ -35,7 +35,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
       return sum;
     };
 
-    for (const [a, b, c] of this.constraints!) {
+    for (const [a, b, c] of this.r1csConstraints!) {
       // edited witnesses may hold values out of the field, hence the double modulo
       if ((((evaluate(a) * evaluate(b) - evaluate(c)) % p) + p) % p !== 0n) {
         throw new Error("Constraint doesn't match");
@@ -67,10 +67,15 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     return this.witnessCalculator(input);
   }
 
+  /** Returns the constraints as human-readable formulas, e.g. `in[0] * in[1] = inner[0]`. */
+  constraints(): string[] {
+    return formatConstraints(path.join(this.dir, `${this.name}.r1cs`), path.join(this.dir, `${this.name}.sym`));
+  }
+
   /** Returns the number of constraints. */
   async getConstraintCount() {
     await this.loadConstraints();
-    const numConstraints = this.constraints!.length;
+    const numConstraints = this.r1csConstraints!.length;
     return numConstraints;
   }
 
@@ -348,10 +353,10 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     return symbolInfo.varIdx;
   }
 
-  /** Loads the list of R1CS constraints to `this.constraints`. */
+  /** Loads the list of R1CS constraints to `this.r1csConstraints`. */
   private async loadConstraints(): Promise<void> {
-    if (this.constraints) return;
-    ({prime: this.prime, constraints: this.constraints} = readR1CSConstraints(
+    if (this.r1csConstraints) return;
+    ({prime: this.prime, constraints: this.r1csConstraints} = readR1CSConstraints(
       path.join(this.dir, `${this.name}.r1cs`)
     ));
   }
@@ -369,17 +374,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    */
   private async loadSymbols(): Promise<void> {
     if (this.allSymbolsLoaded) return;
-    this.symbols = {};
-    const symbolsFile = await fs.promises.readFile(path.join(this.dir, `${this.name}.sym`), 'utf8');
-    for (const line of symbolsFile.split('\n')) {
-      const [labelIdx, varIdx, componentIdx, symbolName] = line.split(',');
-      if (symbolName === undefined) continue;
-      this.symbols[symbolName] = {
-        labelIdx: Number(labelIdx),
-        varIdx: Number(varIdx),
-        componentIdx: Number(componentIdx),
-      };
-    }
+    this.symbols = readSymbols(path.join(this.dir, `${this.name}.sym`));
     this.allSymbolsLoaded = true;
   }
 

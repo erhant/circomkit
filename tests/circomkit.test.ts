@@ -39,6 +39,12 @@ describe('circomkit', () => {
         expect(existsSync(`${outPath}/${circuit.name}_cpp`)).toBe(false); // cpp is NOT built by default
       });
 
+      it('should format constraints', async () => {
+        const constraints = circomkit.constraints(circuit.name);
+        expect(constraints).toHaveLength((await circomkit.info(circuit.name)).constraints);
+        expect(constraints[0]).toBe('in[0] * in[1] = inner[0]');
+      });
+
       it('should export circuit information', async () => {
         await circomkit.info(circuit.name);
       });

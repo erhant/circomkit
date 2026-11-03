@@ -63,6 +63,14 @@ function cli(args: string[]) {
     });
 
   ///////////////////////////////////////////////////////////////////////////////
+  const constraints = new Command('constraints')
+    .description('print the constraints of a compiled circuit')
+    .argument('<circuit>', 'Circuit name')
+    .action(circuit => {
+      console.log(circomkit.constraints(circuit).join('\n'));
+    });
+
+  ///////////////////////////////////////////////////////////////////////////////
   const clear = new Command('clear')
     .description('clear circuit build artifacts')
     .argument('<circuit>', 'Circuit name')
@@ -268,6 +276,7 @@ function cli(args: string[]) {
     .addCommand(circuit)
     .addCommand(instantiate)
     .addCommand(info)
+    .addCommand(constraints)
     .addCommand(clear)
     .addCommand(contract)
     .addCommand(vkey)

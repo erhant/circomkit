@@ -1,4 +1,5 @@
 import {openSync, type ReadPosition, readFileSync, readSync} from 'node:fs';
+import type {SymbolsType} from '../types';
 import {primeToName} from '../utils';
 
 /**
@@ -166,4 +167,56 @@ export function readBytesFromFile(fd: number, offset: number, length: number, po
   readSync(fd, buffer, offset, length, position);
 
   return BigInt(`0x${buffer.reverse().toString('hex')}`);
+}
+
+/** Reads all symbols of a `.sym` file, keyed by their names, e.g. `main.out`. */
+export function readSymbols(symPath: string): SymbolsType {
+  const symbols: SymbolsType = {};
+  for (const line of readFileSync(symPath, 'utf-8').split('\n')) {
+    const [labelIdx, varIdx, componentIdx, symbolName] = line.split(',');
+    if (symbolName === undefined) continue;
+    symbols[symbolName] = {labelIdx: Number(labelIdx), varIdx: Number(varIdx), componentIdx: Number(componentIdx)};
+  }
+  return symbols;
+}
+
+/** Formats the constraints of a circuit as human-readable formulas, e.g. `in[0] * in[1] = inner[0]`.
+ *
+ * Signals are named as in the `main` component, coefficients are shown signed (`p - 1` as `-1`),
+ * and constraints without a multiplication are shown as `... = 0`.
+ */
+export function formatConstraints(r1csPath: string, symPath: string): string[] {
+  const {prime, constraints} = readR1CSConstraints(r1csPath);
+
+  // a wire may have many names after simplification, the shortest one is used
+  const names = new Map<number, string>([[0, '1']]); // wire 0 is the constant 1
+  for (const [symbol, {varIdx}] of Object.entries(readSymbols(symPath))) {
+    const name = symbol.replace(/^main\./, '');
+    if (varIdx > 0 && (!names.has(varIdx) || name.length < names.get(varIdx)!.length)) names.set(varIdx, name);
+  }
+
+  const signed = (c: bigint) => (c > prime / 2n ? c - prime : c);
+  const negate = (lc: LinearCombination): LinearCombination =>
+    new Map([...lc].map(([i, c]) => [i, (prime - c) % prime]));
+
+  // terms in wire order with the constant last, formatted like `a - 2 * b + 3`
+  const terms = (lc: LinearCombination) => [...lc].sort(([i], [j]) => (i === 0 ? 1 : j === 0 ? -1 : i - j));
+  const format = (lc: LinearCombination) => {
+    const formatted = terms(lc).map(([i, coeff], k) => {
+      const c = signed(coeff);
+      const abs = c < 0n ? -c : c;
+      const term = i === 0 ? `${abs}` : abs === 1n ? names.get(i)! : `${abs} * ${names.get(i)!}`;
+      return k === 0 ? (c < 0n ? `-${term}` : term) : `${c < 0n ? ' - ' : ' + '}${term}`;
+    });
+    return formatted.join('') || '0';
+  };
+  const isNegative = (lc: LinearCombination) => lc.size > 0 && signed(terms(lc)[0][1]) < 0n;
+  const group = (lc: LinearCombination) => (lc.size > 1 ? `(${format(lc)})` : format(lc));
+
+  return constraints.map(([a, b, c]) => {
+    // A * B - C = 0, shown as `A * B = C` with A positive, or as `C = 0` if there is no multiplication
+    if (a.size === 0 || b.size === 0) return `${format(isNegative(c) ? negate(c) : c)} = 0`;
+    if (isNegative(a)) [a, c] = [negate(a), negate(c)];
+    return `${group(a)} * ${group(b)} = ${format(c)}`;
+  });
 }
