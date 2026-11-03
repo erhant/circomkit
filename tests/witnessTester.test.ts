@@ -1,4 +1,5 @@
 import {mkdirSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync} from 'node:fs';
+import * as snarkjs from 'snarkjs';
 import {Circomkit, type WitnessTester} from '../src';
 import {prepareMultiplier} from './common';
 
@@ -415,4 +416,30 @@ describe('witness testers of the same circuit', () => {
   });
 
   afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
+});
+
+describe('witnesses against snarkjs', () => {
+  const dirBuild = './tests/build/witness-snarkjs';
+  const calculators = process.platform === 'linux' ? (['wasm', 'c'] as const) : (['wasm'] as const);
+  afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
+
+  for (const prime of ['bn128', 'goldilocks'] as const) {
+    for (const calculator of calculators) {
+      it(`should compute the same witness with ${prime} and the ${calculator} calculator`, async () => {
+        const circomkit = new Circomkit({verbose: false, logLevel: 'silent', prime, dirCircuits: './tests/circuits', dirBuild});
+        const circuit = await circomkit.WitnessTester(
+          `arrays_${prime}`,
+          {file: 'arrays', template: 'Arrays', params: [2, 3], pubs: ['in1D', 'in2D']},
+          calculator
+        );
+        const input = {in: 1, in1D: [1, 2], in2D: [[1, 2, 3], [5, 6, 7]]};
+        const witness = await circuit.calculateWitness(input);
+
+        const dir = await circomkit.compile(`arrays_${prime}`, {file: 'arrays', template: 'Arrays', params: [2, 3], pubs: ['in1D', 'in2D'], dir: 'test'});
+        const wtnsPath = `${dir}/snarkjs.wtns`;
+        await snarkjs.wtns.calculate(input, `${dir}/arrays_${prime}_js/arrays_${prime}.wasm`, wtnsPath);
+        expect(witness.map(BigInt)).toEqual(((await snarkjs.wtns.exportJson(wtnsPath)) as bigint[]).map(BigInt));
+      });
+    }
+  }
 });

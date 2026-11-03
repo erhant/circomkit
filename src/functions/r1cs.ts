@@ -1,5 +1,6 @@
-import {closeSync, createReadStream, openSync, type ReadPosition, readFileSync, readSync} from 'node:fs';
+import {closeSync, createReadStream, fstatSync, openSync, readFileSync, readSync} from 'node:fs';
 import {createInterface} from 'node:readline';
+import type {CircomkitConfig} from '../configs';
 import type {SymbolsType} from '../types';
 import {primeToName} from '../utils';
 
@@ -15,91 +16,112 @@ export type R1CSInfoType = {
   useCustomGates: boolean;
   labels: number;
   prime: bigint;
-  primeName: string;
+  /** Name of the prime, `undefined` if it is not one of the primes supported by Circom */
+  primeName: CircomkitConfig['prime'] | undefined;
 };
 
-/** Read the information about the circuit by extracting it from the R1CS file.
+/** Types of the R1CS file sections that are read, see the [specs](https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md) */
+const SECTION = {
+  HEADER: 1,
+  CONSTRAINTS: 2,
+  /** PLONK only */
+  CUSTOM_GATES: 4,
+} as const;
+
+/** Reads an R1CS file in chunks, so that large files are never fully loaded in memory.
  *
- * This implementation follows the specs at [`iden3/r1csfile`](https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md)
- * and is inspired from the work by [PSE's `p0tion`](https://github.com/privacy-scaling-explorations/p0tion/blob/f88bcee5d499dce975d0592ed10b21aa8d73bbd2/packages/actions/src/helpers/utils.ts#L413)
- * and by [Weijiekoh's `circom-helper`](https://github.com/weijiekoh/circom-helper/blob/master/ts/read_num_inputs.ts#L5).
+ * Follows the specs at [`iden3/r1csfile`](https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md):
+ * the file is a list of sections that may come in any order, and the header section describes the others.
+ */
+function readR1CS<T>(r1csPath: string, callback: (r1cs: ReturnType<typeof r1csReader>) => T): T {
+  const fd = openSync(r1csPath, 'r');
+  try {
+    return callback(r1csReader(fd, r1csPath));
+  } finally {
+    closeSync(fd);
+  }
+}
+
+function r1csReader(fd: number, r1csPath: string) {
+  const chunk = Buffer.alloc(1 << 20);
+  let chunkStart = 0; // file position of the chunk
+  let chunkLength = 0;
+  let position = 0;
+
+  /** Reads `length` bytes at the current position, which are valid until the next read */
+  const read = (length: number) => {
+    if (position < chunkStart || position + length > chunkStart + chunkLength) {
+      chunkStart = position;
+      chunkLength = readSync(fd, chunk, 0, chunk.length, position);
+      if (chunkLength < length) throw new Error(`Unexpected end of R1CS file: ${r1csPath}`);
+    }
+    position += length;
+    return chunk.subarray(position - length - chunkStart, position - chunkStart);
+  };
+  const u32 = () => read(4).readUInt32LE();
+  const u64 = () => Number(read(8).readBigUInt64LE());
+  const toHex = (bytes: Buffer) => Buffer.from(bytes).reverse().toString('hex');
+
+  if (read(4).toString('latin1') !== 'r1cs') throw new Error(`Not an R1CS file: ${r1csPath}`);
+  const version = u32();
+  if (version !== 1) throw new Error(`Unsupported R1CS version ${version}: ${r1csPath}`);
+
+  const sections = new Map<number, number>(); // type -> data offset
+  for (let i = u32(); i > 0; i--) {
+    const type = u32();
+    const size = u64();
+    sections.set(type, position);
+    position += size;
+  }
+  if (position > fstatSync(fd).size) throw new Error(`Unexpected end of R1CS file: ${r1csPath}`);
+  const headerOffset = sections.get(SECTION.HEADER);
+  if (headerOffset === undefined) throw new Error(`Missing header in R1CS file: ${r1csPath}`);
+
+  position = headerOffset;
+  const fieldSize = u32();
+  const header = {
+    fieldSize,
+    prime: BigInt(`0x${toHex(read(fieldSize))}`),
+    wires: u32(),
+    publicOutputs: u32(),
+    publicInputs: u32(),
+    privateInputs: u32(),
+    labels: u64(),
+    constraints: u32(),
+  };
+
+  return {
+    header,
+    sections,
+    read,
+    u32,
+    toHex,
+    /** Moves to the data of a section, throwing if it is missing */
+    seek(type: number) {
+      const offset = sections.get(type);
+      if (offset === undefined) throw new Error(`Missing section ${type} in R1CS file: ${r1csPath}`);
+      position = offset;
+    },
+  };
+}
+
+/** Read the information about the circuit by extracting it from the R1CS file.
  *
  * @param r1csPath The path to the R1CS file.
  * @returns The information about the circuit, as gathered from the R1CS header.
  */
 export async function readR1CSInfo(r1csPath: string): Promise<R1CSInfoType> {
-  let pointer = 0;
-
-  const r1csInfoType: R1CSInfoType = {
-    wires: 0,
-    constraints: 0,
-    privateInputs: 0,
-    publicInputs: 0,
-    publicOutputs: 0,
-    useCustomGates: false,
-    labels: 0,
-    prime: 0n,
-    primeName: '',
-  };
-
-  // open the file (read mode).
-  const fd = openSync(r1csPath, 'r');
-
-  // get 'number of section' (jump magic r1cs and version1 data).
-  const numberOfSections = readBytesFromFile(fd, 0, 4, 8);
-  pointer = 12;
-
-  for (let i = Number(numberOfSections); i >= 0; i--) {
-    const sectionType = Number(readBytesFromFile(fd, 0, 4, pointer));
-    pointer += 4;
-
-    const sectionSize = Number(readBytesFromFile(fd, 0, 8, pointer));
-    pointer += 8;
-
-    // @todo the docs of `read` indicate that if pointer is `null`, the pointer will actually move w.r.t length
-    // we may actually use that instead of adding to point as done below
-
-    switch (sectionType) {
-      // header section.
-      case 1:
-        // field size (skip).
-        pointer += 4;
-
-        r1csInfoType.prime = readBytesFromFile(fd, 0, 32, pointer).toString() as unknown as bigint;
-        pointer += 32;
-
-        r1csInfoType.wires = Number(readBytesFromFile(fd, 0, 4, pointer));
-        pointer += 4;
-
-        r1csInfoType.publicOutputs = Number(readBytesFromFile(fd, 0, 4, pointer));
-        pointer += 4;
-
-        r1csInfoType.publicInputs = Number(readBytesFromFile(fd, 0, 4, pointer));
-        pointer += 4;
-
-        r1csInfoType.privateInputs = Number(readBytesFromFile(fd, 0, 4, pointer));
-        pointer += 4;
-
-        r1csInfoType.labels = Number(readBytesFromFile(fd, 0, 8, pointer));
-        pointer += 8;
-
-        r1csInfoType.constraints = Number(readBytesFromFile(fd, 0, 4, pointer));
-        pointer += 4;
-        break;
-      // custom gates list section (plonk only).
-      case 4:
-        r1csInfoType.useCustomGates = Number(readBytesFromFile(fd, 0, 4, pointer)) > 0;
-
-        pointer += Number(sectionSize);
-        break;
-      default:
-        pointer += Number(sectionSize);
-        break;
+  return readR1CS(r1csPath, ({header, sections, seek, u32}) => {
+    // the custom gates section (PLONK only) starts with the number of custom gates
+    let useCustomGates = false;
+    if (sections.has(SECTION.CUSTOM_GATES)) {
+      seek(SECTION.CUSTOM_GATES);
+      useCustomGates = u32() > 0;
     }
-  }
 
-  r1csInfoType.primeName = primeToName[r1csInfoType.prime.toString() as `${bigint}`];
-  return r1csInfoType;
+    const {fieldSize: _, ...info} = header;
+    return {...info, useCustomGates, primeName: primeToName[`${header.prime}`]};
+  });
 }
 
 /** A linear combination, mapping wire indices to their coefficients. */
@@ -126,57 +148,19 @@ export type R1CSConstraints = {
 /** Reads the prime and the constraints `A * B = C` from an R1CS file.
  *
  * The file is read in chunks, and the constraints are packed as they are read, see {@link R1CSConstraints}.
- * Follows the specs at [`iden3/r1csfile`](https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md).
  */
 export function readR1CSConstraints(r1csPath: string): R1CSConstraints {
-  const fd = openSync(r1csPath, 'r');
-  try {
-    const chunk = Buffer.alloc(1 << 20);
-    let chunkStart = 0; // file position of the chunk
-    let chunkLength = 0;
-    let position = 0;
-    const read = (length: number) => {
-      if (position < chunkStart || position + length > chunkStart + chunkLength) {
-        chunkStart = position;
-        chunkLength = readSync(fd, chunk, 0, chunk.length, position);
-        if (chunkLength < length) throw new Error(`Unexpected end of R1CS file: ${r1csPath}`);
-      }
-      position += length;
-      return chunk.subarray(position - length - chunkStart, position - chunkStart);
-    };
-    const toHex = (bytes: Buffer) => Buffer.from(bytes).reverse().toString('hex');
-
-    // sections may come in any order, the header is needed to read the constraints
-    const sections = new Map<number, number>(); // type -> data offset
-    position = 8;
-    for (let i = read(4).readUInt32LE(); i > 0; i--) {
-      const type = read(4).readUInt32LE();
-      const size = Number(read(8).readBigUInt64LE());
-      sections.set(type, position);
-      position += size;
-    }
-    const header = sections.get(1);
-    const data = sections.get(2);
-    if (header === undefined || data === undefined) {
-      throw new Error(`Missing header or constraints in R1CS file: ${r1csPath}`);
-    }
-
-    position = header;
-    const fieldSize = read(4).readUInt32LE();
-    const prime = BigInt(`0x${toHex(read(fieldSize))}`);
-    position += 24; // wires, outputs, inputs & labels
-    const numConstraints = read(4).readUInt32LE();
-
-    position = data;
+  return readR1CS(r1csPath, ({header, read, seek, u32, toHex}) => {
+    seek(SECTION.CONSTRAINTS);
     const offsets = [0];
     const wires: number[] = [];
     const coefficientIds: number[] = [];
     const coefficients: bigint[] = [];
     const ids = new Map<string, number>(); // coefficient in hex -> index in `coefficients`
-    for (let l = 0; l < 3 * numConstraints; l++) {
-      for (let t = read(4).readUInt32LE(); t > 0; t--) {
-        wires.push(read(4).readUInt32LE());
-        const hex = toHex(read(fieldSize));
+    for (let l = 0; l < 3 * header.constraints; l++) {
+      for (let t = u32(); t > 0; t--) {
+        wires.push(u32());
+        const hex = toHex(read(header.fieldSize));
         let id = ids.get(hex);
         if (id === undefined) {
           id = coefficients.push(BigInt(`0x${hex}`)) - 1;
@@ -188,15 +172,13 @@ export function readR1CSConstraints(r1csPath: string): R1CSConstraints {
     }
 
     return {
-      prime,
+      prime: header.prime,
       offsets: Uint32Array.from(offsets),
       wires: Uint32Array.from(wires),
       coefficientIds: Uint32Array.from(coefficientIds),
       coefficients,
     };
-  } finally {
-    closeSync(fd);
-  }
+  });
 }
 
 /** Yields the constraints `[A, B, C]` one by one, with their linear combinations as maps. */
@@ -214,20 +196,6 @@ export function* iterateConstraints({
   for (let l = 0; l < offsets.length - 1; l += 3) {
     yield [linearCombination(l), linearCombination(l + 1), linearCombination(l + 2)];
   }
-}
-
-/** Reads a specified number of bytes from a file and converts them to a `BigInt`.
- *
- * @param offset The position in `buffer` to write the data to.
- * @param length The number of bytes to read.
- * @param position Where to begin reading from in the file.
- */
-export function readBytesFromFile(fd: number, offset: number, length: number, position: ReadPosition): bigint {
-  const buffer = Buffer.alloc(length);
-
-  readSync(fd, buffer, offset, length, position);
-
-  return BigInt(`0x${buffer.reverse().toString('hex')}`);
 }
 
 /** Reads all symbols of a `.sym` file, keyed by their names, e.g. `main.out`. */

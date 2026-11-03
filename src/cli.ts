@@ -53,7 +53,7 @@ function cli(args: string[]) {
     .argument('<circuit>', 'Circuit name')
     .action(async circuit => {
       const info = await circomkit.info(circuit);
-      console.log(`Prime Field: ${info.primeName}`);
+      console.log(`Prime Field: ${info.primeName ?? info.prime}`);
       console.log(`Number of Wires: ${info.wires}`);
       console.log(`Number of Constraints: ${info.constraints}`);
       console.log(`Number of Private Inputs: ${info.privateInputs}`);
