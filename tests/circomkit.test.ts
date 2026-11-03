@@ -1,5 +1,5 @@
 import {existsSync, readFileSync, rmSync} from 'node:fs';
-import hre from 'hardhat';
+import {createEVM} from '@ethereumjs/evm';
 import * as snarkjs from 'snarkjs';
 // @ts-expect-error
 import solc from 'solc';
@@ -106,32 +106,46 @@ describe('circomkit', () => {
           settings: {
             outputSelection: {
               '*': {
-                '*': ['abi', 'evm.bytecode.object'],
+                '*': ['evm.bytecode.object', 'evm.methodIdentifiers'],
               },
             },
           },
         };
 
         const output = JSON.parse(solc.compile(JSON.stringify(input)));
-        const contractName = Object.keys(output.contracts['TestVerifier.sol'])[0];
-        const bytecode = output.contracts['TestVerifier.sol'][contractName].evm.bytecode.object;
-        const abi = output.contracts['TestVerifier.sol'][contractName].abi;
+        const contract = Object.values(output.contracts['TestVerifier.sol'])[0] as {
+          evm: {bytecode: {object: string}; methodIdentifiers: Record<string, string>};
+        };
+        const selector = Object.entries(contract.evm.methodIdentifiers).find(([f]) => f.startsWith('verifyProof('))![1];
 
         // deploy the contract
-        const signer = (await hre.ethers.getSigners())[0];
-        const ContractFactory = new hre.ethers.ContractFactory(abi, bytecode, signer);
-        const contract = await ContractFactory.deploy();
-        await contract.waitForDeployment();
+        const evm = await createEVM();
+        const gasLimit = BigInt(30_000_000);
+        const deployment = await evm.runCall({data: Buffer.from(contract.evm.bytecode.object, 'hex'), gasLimit});
+        expect(deployment.execResult.exceptionError).toBeUndefined();
 
-        // interaction with the contract
+        // all arguments of `verifyProof` are fixed-size arrays of words, so their ABI encoding is
+        // simply the words one after another
+        const verifyProof = async (words: string[]) => {
+          const args = words.map(w => BigInt(w).toString(16).padStart(64, '0')).join('');
+          const call = await evm.runCall({
+            to: deployment.createdAddress,
+            data: Buffer.from(selector + args, 'hex'),
+            gasLimit,
+          });
+          expect(call.execResult.exceptionError).toBeUndefined();
+          return BigInt(`0x${Buffer.from(call.execResult.returnValue).toString('hex')}`) === BigInt(1);
+        };
+
         const calldata = await circomkit.calldata(circuit.name, inputName);
-        const args = calldata
+        const words: string[] = calldata
           .split('\n')
           .filter(x => !!x)
-          .map(x => JSON.parse(x));
+          .flatMap(x => JSON.parse(x).flat(2));
+        expect(await verifyProof(words)).toBe(true);
 
-        //@ts-expect-error
-        expect(await contract.verifyProof(...args)).toBe(true);
+        // a different public signal must not verify
+        expect(await verifyProof([...words.slice(0, -1), '0x1'])).toBe(false);
       });
 
       it('should export JSON files', async () => {

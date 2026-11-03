@@ -15,7 +15,7 @@
     "module": "Preserve",
     "target": "ES6"
   },
-  "files": ["./hardhat.config.ts", "./vitest.config.mts"],
+  "files": ["./vitest.config.mts"],
   "include": ["src/**/*.*", "tests/**/*.*"],
   "exclude": ["node_modules"]
 }

@@ -10,7 +10,6 @@ on:
       - 'tests/**'
       # Configurations
       - 'circomkit.json'
-      - 'hardhat.config.ts'
       - 'vitest.config.mts'
       # workflow itself
       - '.github/workflows/tests.yml'
