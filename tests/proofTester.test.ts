@@ -18,7 +18,7 @@ describe('proof tester', () => {
       dirPtau: './tests/ptau',
       dirCircuits: './tests/circuits',
       dirInputs: './tests/inputs',
-      dirBuild: './tests/build',
+      dirBuild: './tests/build/proof-tester',
     });
     circomkit.instantiate(name, config);
     await circomkit.setup(name, PTAU_PATH);

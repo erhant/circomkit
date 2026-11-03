@@ -5,9 +5,8 @@
   "author": "erhant",
   "license": "MIT",
   "scripts": {
-    "build": "pkgroll",
-    "prebuild": "rm -rf dist/",
-    "cli:nb": "node ./dist/cli.cjs",
+    "build": "pkgroll --clean-dist --target=node18",
+    "cli:nb": "node ./dist/cli.js",
     "cli": "pnpm build && pnpm cli:nb",
     "test": "vitest run",
     "test:bun": "bun test --timeout 100000 ./tests/",
@@ -16,7 +15,7 @@
     "format": "npx prettier --check ./src/**/*.ts ./tests/**/*.ts"
   },
   "engines": {
-    "node": ">=12.0.0"
+    "node": ">=18"
   },
   "files": [
     "dist/",
@@ -53,7 +52,7 @@
     "@biomejs/biome": "2.6.4",
     "@ethereumjs/evm": "^10.1.3",
     "@types/node": "^18.19.67",
-    "pkgroll": "^2.5.1",
+    "pkgroll": "^2.29.0",
     "prettier": "^3.4.1",
     "solc": "^0.8.28",
     "typescript": "^5.7.2",

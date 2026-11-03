@@ -120,7 +120,7 @@ describe('circomkit', () => {
 
         // deploy the contract
         const evm = await createEVM();
-        const gasLimit = BigInt(30_000_000);
+        const gasLimit = 30_000_000n;
         const deployment = await evm.runCall({data: Buffer.from(contract.evm.bytecode.object, 'hex'), gasLimit});
         expect(deployment.execResult.exceptionError).toBeUndefined();
 
@@ -134,7 +134,7 @@ describe('circomkit', () => {
             gasLimit,
           });
           expect(call.execResult.exceptionError).toBeUndefined();
-          return BigInt(`0x${Buffer.from(call.execResult.returnValue).toString('hex')}`) === BigInt(1);
+          return BigInt(`0x${Buffer.from(call.execResult.returnValue).toString('hex')}`) === 1n;
         };
 
         const calldata = await circomkit.calldata(circuit.name, inputName);

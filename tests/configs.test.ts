@@ -202,7 +202,7 @@ describe('inline circuits with per-circuit overrides', () => {
   afterAll(() => circomkit.clear('mul_plonk'));
 
   it('should accept bigint params in inline circuits', () => {
-    const params = [BigInt(3)];
+    const params = [3n];
     const withBigInt = new Circomkit({circuits: {mul: {file: 'multiplier', template: 'Multiplier', params}}});
     expect(withBigInt.readCircuitConfig('mul').params).toEqual(params);
   });

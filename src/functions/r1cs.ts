@@ -36,7 +36,7 @@ export async function readR1CSInfo(r1csPath: string): Promise<R1CSInfoType> {
     publicOutputs: 0,
     useCustomGates: false,
     labels: 0,
-    prime: BigInt(0),
+    prime: 0n,
     primeName: '',
   };
 

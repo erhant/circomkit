@@ -107,8 +107,8 @@ describe('witness tester', () => {
     const witness = await circuit.calculateWitness(signals.input);
     // change the values so that it still computes correctly but is not sound
     const badWitness = await circuit.editWitness(witness, {
-      'main.in[0]': BigInt(1),
-      'main.in[1]': BigInt(1),
+      'main.in[0]': 1n,
+      'main.in[1]': 1n,
       'main.in[2]': BigInt(signals.output.out),
     });
     await circuit.expectConstraintFail(badWitness);
@@ -204,15 +204,15 @@ describe('witness tester optimized symbols', () => {
     const error = 'Symbol main.mid was optimized away by the compiler, use a lower optimization level to keep it';
     await expect(circuit.readWitness(witness, ['main.mid'])).rejects.toThrow(error);
     await expect(circuit.readWitnessSignals(witness, ['mid'])).rejects.toThrow(error);
-    await expect(circuit.editWitness(witness, {'main.mid': BigInt(1)})).rejects.toThrow(error);
+    await expect(circuit.editWitness(witness, {'main.mid': 1n})).rejects.toThrow(error);
   });
 
   it('should read the symbol without optimizations', async () => {
     const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits, dirBuild, optimization: 0});
     const circuit = await circomkit.WitnessTester('linear', {...config});
     const witness = await circuit.calculateWitness({a: 2, b: 3});
-    expect(await circuit.readWitness(witness, ['main.mid'])).toEqual({'main.mid': BigInt(2)});
-    expect(await circuit.readWitnessSignals(witness, ['mid'])).toEqual({mid: BigInt(2)});
+    expect(await circuit.readWitness(witness, ['main.mid'])).toEqual({'main.mid': 2n});
+    expect(await circuit.readWitnessSignals(witness, ['mid'])).toEqual({mid: 2n});
   });
 
   afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
@@ -239,10 +239,10 @@ describe('witness tester anonymous components', () => {
 
     // named `<template>_<line>_<offset>`, i.e. line 3 and the byte offset of `Square()(in)` in the file
     const symbol = 'main.Square_3_158.out';
-    expect(await circuit.readWitness(witness, [symbol])).toEqual({[symbol]: BigInt(9)});
-    expect(await circuit.readWitnessSignals(witness, ['Square_3_158.out'])).toEqual({'Square_3_158.out': BigInt(9)});
+    expect(await circuit.readWitness(witness, [symbol])).toEqual({[symbol]: 9n});
+    expect(await circuit.readWitnessSignals(witness, ['Square_3_158.out'])).toEqual({'Square_3_158.out': 9n});
 
-    const fakeWitness = await circuit.editWitness(witness, {[symbol]: BigInt(10), 'main.out': BigInt(10)});
+    const fakeWitness = await circuit.editWitness(witness, {[symbol]: 10n, 'main.out': 10n});
     await circuit.expectConstraintFail(fakeWitness);
   });
 
@@ -306,7 +306,7 @@ describe('witness tester with another prime', () => {
     await circuit.expectPass({in: [2, 3, 5]}, {out: 30});
 
     const witness = await circuit.calculateWitness({in: [2, 3, 5]});
-    await circuit.expectConstraintFail(await circuit.editWitness(witness, {'main.out': BigInt(31)}));
+    await circuit.expectConstraintFail(await circuit.editWitness(witness, {'main.out': 31n}));
   });
 });
 
@@ -336,6 +336,28 @@ describe('witness tester optimization level', () => {
     const circuit = await circomkit.WitnessTester('linear', {...config, overrides: {optimization: 2}});
     expect(await circuit.getConstraintCount()).toBe(1);
     await circuit.expectPass({a: 2, b: 3}, {out: 9});
+  });
+
+  afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
+});
+
+describe('witness tester in an ESM project', () => {
+  // Circom generates a CommonJS `witness_calculator.js`, which `"type": "module"` would make an ES module
+  const dirBuild = './tests/build/esm-project';
+
+  beforeAll(() => {
+    mkdirSync(dirBuild, {recursive: true});
+    writeFileSync(`${dirBuild}/package.json`, JSON.stringify({type: 'module'}));
+  });
+
+  it('should compute witnesses', async () => {
+    const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits: './tests/circuits', dirBuild});
+    const circuit = await circomkit.WitnessTester('mul3_esm', {
+      file: 'multiplier',
+      template: 'Multiplier',
+      params: [3],
+    });
+    await circuit.expectPass({in: [2, 3, 5]}, {out: 30});
   });
 
   afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));

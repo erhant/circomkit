@@ -14,7 +14,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
   /** List of constraints `A * B = C`, see {@link loadConstraints} */
   private constraints: [LinearCombination, LinearCombination, LinearCombination][] | undefined;
   /** Prime of the field of the constraints, see {@link loadConstraints} */
-  private prime = BigInt(0);
+  private prime = 0n;
 
   constructor(
     /** The build directory of the circuit */
@@ -30,14 +30,14 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     await this.loadConstraints();
     const p = this.prime;
     const evaluate = (lc: LinearCombination) => {
-      let sum = BigInt(0);
+      let sum = 0n;
       for (const [i, coeff] of lc) sum = (sum + coeff * BigInt(witness[i])) % p;
       return sum;
     };
 
     for (const [a, b, c] of this.constraints!) {
       // edited witnesses may hold values out of the field, hence the double modulo
-      if ((((evaluate(a) * evaluate(b) - evaluate(c)) % p) + p) % p !== BigInt(0)) {
+      if ((((evaluate(a) * evaluate(b) - evaluate(c)) % p) + p) % p !== 0n) {
         throw new Error("Constraint doesn't match");
       }
     }

@@ -13,7 +13,7 @@
     // to be used with bundler: pkgroll
     "moduleResolution": "Bundler",
     "module": "Preserve",
-    "target": "ES6"
+    "target": "ES2022"
   },
   "files": ["./vitest.config.mts"],
   "include": ["src/**/*.*", "tests/**/*.*"],

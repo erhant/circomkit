@@ -21,7 +21,14 @@ export function cWitnessCalculatorPath(dir: string, circuit: string): string {
  */
 export async function wasmWitnessCalculator(dir: string, circuit: string): Promise<WitnessCalculator> {
   const jsDir = resolve(dir, `${circuit}_js`);
-  const builder = createRequire(`${jsDir}/`)('./witness_calculator.js');
+
+  // Circom generates CommonJS, but `require` would load it as ESM within a `"type": "module"` project
+  const module: {exports: unknown} = {exports: {}};
+  const source = readFileSync(`${jsDir}/witness_calculator.js`, 'utf-8');
+  new Function('module', 'exports', 'require', source)(module, module.exports, createRequire(`${jsDir}/`));
+  const builder = module.exports as (code: Buffer) => Promise<{
+    calculateWitness: (input: CircuitSignals, sanityCheck: boolean) => Promise<WitnessType>;
+  }>;
   const calculator = await builder(readFileSync(`${jsDir}/${circuit}.wasm`));
 
   // the WASM instance keeps the signals of a calculation in its memory, so concurrent calculations
