@@ -8,7 +8,7 @@ import type {CircuitSignals, SignalValueType, SymbolsType, WitnessType} from '..
 /** A utility class to test your circuits. Use `expectFail` and `expectPass` to test out evaluations. */
 export class WitnessTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
   /** A dictionary of symbols, see {@link loadSymbols} */
-  private symbols: SymbolsType | undefined;
+  private symbols: SymbolsType = {};
   /** Whether all symbols are loaded, see {@link loadSymbols} and {@link loadSpecificSymbols} */
   private allSymbolsLoaded = false;
   /** Constraints `A * B = C`, see {@link loadConstraints} */
@@ -25,8 +25,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
   /** Assert that constraints are valid for a given witness. */
   async expectConstraintPass(witness: WitnessType): Promise<void> {
-    await this.loadConstraints();
-    const {prime: p, offsets, wires, coefficientIds, coefficients} = this.r1csConstraints!;
+    const {prime: p, offsets, wires, coefficientIds, coefficients} = this.loadConstraints();
     const evaluate = (k: number) => {
       let sum = 0n;
       for (let t = offsets[k]; t < offsets[k + 1]; t++) {
@@ -82,8 +81,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
   /** Returns the number of constraints. */
   async getConstraintCount() {
-    await this.loadConstraints();
-    return (this.r1csConstraints!.offsets.length - 1) / 3;
+    return (this.loadConstraints().offsets.length - 1) / 3;
   }
 
   /** Asserts that the circuit has enough constraints.
@@ -202,7 +200,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     witness: Readonly<WitnessType>,
     symbolValues: {[symbolName: string]: bigint}
   ): Promise<WitnessType> {
-    await this.loadSymbols();
+    this.loadSymbols();
 
     const fakeWitness = witness.slice();
     for (const symbolName in symbolValues) {
@@ -236,7 +234,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * Anonymous components are named like `Square_3_158`, see {@link editWitness}.
    */
   async readWitnessSignals(witness: Readonly<WitnessType>, signals: string[] | OUT): Promise<CircuitSignals> {
-    await this.loadSymbols();
+    const symbols = this.loadSymbols();
 
     // for each out signal, process the respective symbol
     const entries: [OUT[number], SignalValueType][] = [];
@@ -253,7 +251,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
       // non-main signals have an additional `.` in them after `main.symbol`
       const signalDotCount = dotCount(signal) + 1; // +1 for the dot in `main.`
       const signalLength = signal.length + 5; // +5 for prefix `main.`
-      const symbolNames = Object.keys(this.symbols!).filter(
+      const symbolNames = Object.keys(symbols).filter(
         s => s.startsWith(`main.${signal}`) && signalDotCount === dotCount(s)
       );
 
@@ -322,7 +320,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * @param expectedOut computed output signals
    */
   private async assertOut(actualOut: WitnessType, expectedOut: CircuitSignals<OUT>): Promise<void> {
-    await this.loadSymbols();
+    const symbols = this.loadSymbols();
 
     // objects are not in the types, but are accepted at run-time, e.g. for buses
     const check = (prefix: string, expected: SignalValueType | {[key: string]: SignalValueType}) => {
@@ -331,7 +329,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
       } else if (typeof expected === 'object') {
         for (const key in expected) check(`${prefix}.${key}`, expected[key]);
       } else {
-        const symbol = this.symbols![prefix];
+        const symbol = symbols[prefix];
         if (symbol === undefined) {
           throw new Error(`Output variable not defined: ${prefix}`);
         }
@@ -348,7 +346,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
   /** Returns the witness index of a loaded symbol, throwing if it is unknown or optimized away. */
   private varIdx(symbolName: string): number {
-    const symbolInfo = this.symbols![symbolName];
+    const symbolInfo = this.symbols[symbolName];
     if (symbolInfo === undefined) {
       throw new Error(`Invalid symbol name: ${symbolName}`);
     }
@@ -360,14 +358,16 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     return symbolInfo.varIdx;
   }
 
-  /** Loads the R1CS constraints to `this.r1csConstraints`. */
-  private async loadConstraints(): Promise<void> {
-    if (this.r1csConstraints) return;
-    this.r1csConstraints = readR1CSConstraints(path.join(this.dir, `${this.name}.r1cs`));
+  /** Returns the R1CS constraints, reading them on the first call. */
+  private loadConstraints(): R1CSConstraints {
+    if (!this.r1csConstraints) {
+      this.r1csConstraints = readR1CSConstraints(path.join(this.dir, `${this.name}.r1cs`));
+    }
+    return this.r1csConstraints;
   }
 
   /**
-   * Loads the symbols in a dictionary at `this.symbols`
+   * Returns all symbols, reading them to `this.symbols` on the first call.
    * Symbols are stored under the .sym file
    *
    * Each line has 4 comma-separated values:
@@ -377,18 +377,18 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * 3.  variable index
    * 4.  component index
    */
-  private async loadSymbols(): Promise<void> {
-    if (this.allSymbolsLoaded) return;
-    this.symbols = readSymbols(path.join(this.dir, `${this.name}.sym`));
-    this.allSymbolsLoaded = true;
+  private loadSymbols(): SymbolsType {
+    if (!this.allSymbolsLoaded) {
+      this.symbols = readSymbols(path.join(this.dir, `${this.name}.sym`));
+      this.allSymbolsLoaded = true;
+    }
+    return this.symbols;
   }
 
   /** Faster alternative to {@link loadSymbols}, stops once all the requested symbols are found */
   private async loadSpecificSymbols(symbolsRequested: string[]): Promise<void> {
-    if (!this.symbols) this.symbols = {}; // Init if missing
-
     // Identify which symbols are still needed
-    const symbolsToFind = new Set(symbolsRequested.filter(s => !this.symbols?.[s]));
+    const symbolsToFind = new Set(symbolsRequested.filter(s => !this.symbols[s]));
     if (symbolsToFind.size === 0) return;
 
     // Read the symbols file into memory
