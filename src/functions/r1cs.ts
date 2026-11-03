@@ -1,4 +1,4 @@
-import {openSync, type ReadPosition, readSync} from 'node:fs';
+import {openSync, type ReadPosition, readFileSync, readSync} from 'node:fs';
 import {primeToName} from '../utils';
 
 /**
@@ -98,6 +98,60 @@ export async function readR1CSInfo(r1csPath: string): Promise<R1CSInfoType> {
 
   r1csInfoType.primeName = primeToName[r1csInfoType.prime.toString() as `${bigint}`];
   return r1csInfoType;
+}
+
+/** A linear combination, mapping wire indices to their coefficients. */
+export type LinearCombination = Map<number, bigint>;
+
+/** Reads the prime and the constraints `A * B = C` from an R1CS file.
+ *
+ * Follows the specs at [`iden3/r1csfile`](https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md).
+ */
+export function readR1CSConstraints(r1csPath: string): {
+  prime: bigint;
+  constraints: [LinearCombination, LinearCombination, LinearCombination][];
+} {
+  const file = readFileSync(r1csPath);
+
+  // sections may come in any order, the header is needed to read the constraints
+  const sections = new Map<number, number>(); // type -> data offset
+  for (let i = 0, offset = 12; i < file.readUInt32LE(8); i++) {
+    sections.set(file.readUInt32LE(offset), offset + 12);
+    offset += 12 + Number(file.readBigUInt64LE(offset + 4));
+  }
+  const header = sections.get(1);
+  const data = sections.get(2);
+  if (header === undefined || data === undefined) {
+    throw new Error(`Missing header or constraints in R1CS file: ${r1csPath}`);
+  }
+
+  const fieldSize = file.readUInt32LE(header);
+  const readField = (offset: number) =>
+    BigInt(
+      `0x${Buffer.from(file.subarray(offset, offset + fieldSize))
+        .reverse()
+        .toString('hex')}`
+    );
+  const prime = readField(header + 4);
+  const numConstraints = file.readUInt32LE(header + 4 + fieldSize + 24);
+
+  let offset = data;
+  const readLinearCombination = (): LinearCombination => {
+    const lc: LinearCombination = new Map();
+    const numTerms = file.readUInt32LE(offset);
+    offset += 4;
+    for (let i = 0; i < numTerms; i++) {
+      lc.set(file.readUInt32LE(offset), readField(offset + 4));
+      offset += 4 + fieldSize;
+    }
+    return lc;
+  };
+
+  const constraints: [LinearCombination, LinearCombination, LinearCombination][] = [];
+  for (let i = 0; i < numConstraints; i++) {
+    constraints.push([readLinearCombination(), readLinearCombination(), readLinearCombination()]);
+  }
+  return {prime, constraints};
 }
 
 /** Reads a specified number of bytes from a file and converts them to a `BigInt`.

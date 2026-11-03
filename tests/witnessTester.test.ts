@@ -277,3 +277,26 @@ describe('witness tester anonymous components (#115)', () => {
     await recursion.expectFail({in: 100000}); // stack overflow
   });
 });
+
+describe('witness tester with another prime', () => {
+  // goldilocks has 8-byte field elements, instead of 32 bytes as in bn128
+  const circomkit = new Circomkit({
+    verbose: false,
+    logLevel: 'silent',
+    prime: 'goldilocks',
+    dirCircuits: './tests/circuits',
+    dirBuild: './tests/build',
+  });
+
+  it('should check constraints', async () => {
+    const circuit = await circomkit.WitnessTester('mul3_goldilocks', {
+      file: 'multiplier',
+      template: 'Multiplier',
+      params: [3],
+    });
+    await circuit.expectPass({in: [2, 3, 5]}, {out: 30});
+
+    const witness = await circuit.calculateWitness({in: [2, 3, 5]});
+    await circuit.expectConstraintFail(await circuit.editWitness(witness, {'main.out': BigInt(31)}));
+  });
+});

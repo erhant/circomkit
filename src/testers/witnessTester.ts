@@ -1,23 +1,46 @@
 import {AssertionError} from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import type {CircomTester, CircuitSignals, SignalValueType, SymbolsType, WitnessType} from '../types/';
+import {type LinearCombination, readR1CSConstraints} from '../functions/r1cs';
+import {cWitnessCalculatorPath, type WitnessCalculator} from '../functions/witness';
+import type {CircuitSignals, SignalValueType, SymbolsType, WitnessType} from '../types/';
 
 /** A utility class to test your circuits. Use `expectFail` and `expectPass` to test out evaluations. */
 export class WitnessTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
   /** A dictionary of symbols, see {@link loadSymbols} */
   private symbols: SymbolsType | undefined;
-  /** List of constraints, see {@link loadConstraints} */
-  private constraints: unknown[] | undefined;
+  /** Whether all symbols are loaded, see {@link loadSymbols} and {@link loadSpecificSymbols} */
+  private allSymbolsLoaded = false;
+  /** List of constraints `A * B = C`, see {@link loadConstraints} */
+  private constraints: [LinearCombination, LinearCombination, LinearCombination][] | undefined;
+  /** Prime of the field of the constraints, see {@link loadConstraints} */
+  private prime = BigInt(0);
 
   constructor(
-    /** The underlying `circom_tester` object */
-    private readonly circomTester: CircomTester
+    /** The build directory of the circuit */
+    private readonly dir: string,
+    /** The circuit name, i.e. the base name of the files in `dir` */
+    private readonly name: string,
+    /** Computes the witness for an input */
+    private readonly witnessCalculator: WitnessCalculator
   ) {}
 
   /** Assert that constraints are valid for a given witness. */
   async expectConstraintPass(witness: WitnessType): Promise<void> {
-    return this.circomTester.checkConstraints(witness);
+    await this.loadConstraints();
+    const p = this.prime;
+    const evaluate = (lc: LinearCombination) => {
+      let sum = BigInt(0);
+      for (const [i, coeff] of lc) sum = (sum + coeff * BigInt(witness[i])) % p;
+      return sum;
+    };
+
+    for (const [a, b, c] of this.constraints!) {
+      // edited witnesses may hold values out of the field, hence the double modulo
+      if ((((evaluate(a) * evaluate(b) - evaluate(c)) % p) + p) % p !== BigInt(0)) {
+        throw new Error("Constraint doesn't match");
+      }
+    }
   }
 
   /**
@@ -41,14 +64,12 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
   /** Compute witness given the input signals. */
   async calculateWitness(input: CircuitSignals<IN>): Promise<WitnessType> {
-    return this.circomTester.calculateWitness(input, false);
+    return this.witnessCalculator(input);
   }
 
   /** Returns the number of constraints. */
   async getConstraintCount() {
-    if (this.constraints === undefined) {
-      await this.loadConstraints();
-    }
+    await this.loadConstraints();
     const numConstraints = this.constraints!.length;
     return numConstraints;
   }
@@ -112,7 +133,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
           'Error: Signal not found.',
           'RuntimeError:', // a WASM trap, e.g. modulo by zero
           // the C witness calculator exits with an error (or a signal, e.g. SIGFPE on modulo by zero)
-          `Command failed: ${path.join(this.circomTester.dir, `${this.circomTester.baseName}_cpp`, this.circomTester.baseName)} `,
+          `Command failed: ${cWitnessCalculatorPath(this.dir, this.name)} `,
         ].some(msg => errorMessage.startsWith(msg));
 
         // throw unhandled error anyways
@@ -288,8 +309,29 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * @param actualOut expected witness
    * @param expectedOut computed output signals
    */
-  private assertOut(actualOut: WitnessType, expectedOut: CircuitSignals<OUT>): Promise<void> {
-    return this.circomTester.assertOut(actualOut, expectedOut);
+  private async assertOut(actualOut: WitnessType, expectedOut: CircuitSignals<OUT>): Promise<void> {
+    await this.loadSymbols();
+
+    // objects are not in the types, but are accepted at run-time, e.g. for buses
+    const check = (prefix: string, expected: SignalValueType | {[key: string]: SignalValueType}) => {
+      if (Array.isArray(expected)) {
+        for (const [i, e] of expected.entries()) check(`${prefix}[${i}]`, e);
+      } else if (typeof expected === 'object') {
+        for (const key in expected) check(`${prefix}.${key}`, expected[key]);
+      } else {
+        const symbol = this.symbols![prefix];
+        if (symbol === undefined) {
+          throw new Error(`Output variable not defined: ${prefix}`);
+        }
+        const [actual, exp] = [actualOut[symbol.varIdx].toString(), expected.toString()];
+        if (actual !== exp) {
+          throw new Error(`Assertion failed for ${prefix}: expected ${exp}, got ${actual}`);
+        }
+      }
+    };
+    for (const signal in expectedOut) {
+      check(`main.${signal}`, expectedOut[signal as OUT[number]]);
+    }
   }
 
   /** Returns the witness index of a loaded symbol, throwing if it is unknown or optimized away (#80). */
@@ -308,8 +350,10 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
   /** Loads the list of R1CS constraints to `this.constraints`. */
   private async loadConstraints(): Promise<void> {
-    await this.circomTester.loadConstraints();
-    this.constraints = this.circomTester.constraints;
+    if (this.constraints) return;
+    ({prime: this.prime, constraints: this.constraints} = readR1CSConstraints(
+      path.join(this.dir, `${this.name}.r1cs`)
+    ));
   }
 
   /**
@@ -324,14 +368,22 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * 4.  component index
    */
   private async loadSymbols(): Promise<void> {
-    // no need to check if symbols are already defined
-    // that check happens within circomWasmTester
-    await this.circomTester.loadSymbols();
-    this.symbols = this.circomTester.symbols;
+    if (this.allSymbolsLoaded) return;
+    this.symbols = {};
+    const symbolsFile = await fs.promises.readFile(path.join(this.dir, `${this.name}.sym`), 'utf8');
+    for (const line of symbolsFile.split('\n')) {
+      const [labelIdx, varIdx, componentIdx, symbolName] = line.split(',');
+      if (symbolName === undefined) continue;
+      this.symbols[symbolName] = {
+        labelIdx: Number(labelIdx),
+        varIdx: Number(varIdx),
+        componentIdx: Number(componentIdx),
+      };
+    }
+    this.allSymbolsLoaded = true;
   }
 
-  /** Faster alternative to this.circomTester.loadSymbols(),
-   *  stops once all the requested symbols are found */
+  /** Faster alternative to {@link loadSymbols}, stops once all the requested symbols are found */
   private async loadSpecificSymbols(symbolsRequested: string[]): Promise<void> {
     if (!this.symbols) this.symbols = {}; // Init if missing
 
@@ -340,10 +392,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     if (symbolsToFind.size === 0) return;
 
     // Read the symbols file into memory
-    const symbolsFile = await fs.promises.readFile(
-      path.join(this.circomTester.dir, `${this.circomTester.baseName}.sym`),
-      'utf8'
-    );
+    const symbolsFile = await fs.promises.readFile(path.join(this.dir, `${this.name}.sym`), 'utf8');
 
     // Start looking for the requested symbols
     for (const line of symbolsFile.split('\n')) {
@@ -352,7 +401,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
       const [labelIdx, varIdx, componentIdx, symbolName] = line.split(',');
       if (!symbolName || !symbolsToFind.has(symbolName)) continue; // Skip non-requested symbols
 
-      // Add found symbols to the symbols map, like circomTester.loadSymbols()
+      // Add found symbols to the symbols map, like loadSymbols()
       this.symbols[symbolName] = {
         labelIdx: Number(labelIdx),
         varIdx: Number(varIdx),
@@ -360,21 +409,5 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
       };
       symbolsToFind.delete(symbolName); // Remove from list
     }
-  }
-
-  /**
-   * @deprecated this is buggy right now
-   * @param witness witness
-   */
-  private getDecoratedOutput(witness: WitnessType): Promise<string> {
-    return this.circomTester.getDecoratedOutput(witness);
-  }
-
-  /**
-   * Cleanup directory, should probably be called upon test completion (?)
-   * @deprecated this is buggy right now
-   */
-  private release(): Promise<void> {
-    return this.circomTester.release();
   }
 }

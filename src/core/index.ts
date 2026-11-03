@@ -5,8 +5,6 @@ import {readFile, rm, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
 import {dirname} from 'node:path';
 import {promisify} from 'node:util';
-// @ts-expect-error
-import {c as c_tester, wasm as wasm_tester} from 'circom_tester';
 import loglevel from 'loglevel';
 import * as snarkjs from 'snarkjs';
 import {type CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
@@ -17,10 +15,10 @@ import {
   isCompiled,
   type MainComponentConfig,
   readR1CSInfo,
-  requireCircom,
 } from '../functions';
+import {cWitnessCalculator, cWitnessCalculatorPath, wasmWitnessCalculator} from '../functions/witness';
 import {ProofTester, WitnessTester} from '../testers';
-import type {CircomTester, CircuitConfig, CircuitSignals} from '../types';
+import type {CircuitConfig, CircuitSignals} from '../types';
 import {prettyStringify} from '../utils';
 import {downloadPtau, getPtauName} from '../utils/ptau';
 import {singleThreadOnBun} from '../utils/teardown';
@@ -64,7 +62,7 @@ export class Circomkit {
       ...overrides,
     };
 
-    this.config = JSON.parse(JSON.stringify(config)) as CircomkitConfig;
+    this.config = structuredClone(config) as CircomkitConfig;
     this.log = loglevel.getLogger('Circomkit');
     this.log.setLevel(this.config.logLevel);
 
@@ -609,40 +607,39 @@ export class Circomkit {
     tester: 'wasm' | 'c' = 'wasm'
   ) {
     circuitConfig.dir ??= 'test'; // defaults to test directory
-    // circom_tester calls `circom` from PATH, regardless of `circomPath`
-    if (tester === 'c' && process.arch !== 'x64') {
-      await requireCircom('circom', '2.2.2', `C witness tester on ${process.arch}`);
-    }
 
-    const config = this.resolve(circuit, circuitConfig);
-    const targetPath = this.instantiate(circuit, circuitConfig);
-    const options = {
-      prime: config.prime,
-      O: typeof config.optimization === 'number' ? Math.min(config.optimization, 1) : undefined, // tester doesnt have O2
-      include: config.include,
+    const resolved = this.resolve(circuit, circuitConfig);
+    const config: CircomkitConfig = {
+      ...resolved,
+      // TODO: the tester was capped at O1 for `circom_tester`, lifting it changes constraint counts & symbols
+      optimization: typeof resolved.optimization === 'number' ? Math.min(resolved.optimization, 1) : undefined,
+      wasmWitness: tester === 'wasm',
+      cWitness: tester === 'c',
     };
+    const targetPath = this.instantiate(circuit, circuitConfig);
 
     const hash = createHash('sha256')
-      .update(JSON.stringify([tester, options, readFileSync(targetPath, 'utf-8')]))
+      .update(
+        JSON.stringify([tester, config.prime, config.optimization, config.include, readFileSync(targetPath, 'utf-8')])
+      )
       .digest('hex')
       .slice(0, WITNESS_TESTER_HASH_LENGTH);
     const output = `${config.dirBuild}/.witness-tester/${circuit}-${hash}`;
     const artifact =
-      tester === 'wasm' ? `${output}/${circuit}_js/${circuit}.wasm` : `${output}/${circuit}_cpp/${circuit}`;
+      tester === 'wasm' ? `${output}/${circuit}_js/${circuit}.wasm` : cWitnessCalculatorPath(output, circuit);
 
-    const circomWasmTester: CircomTester = await (tester === 'wasm' ? wasm_tester : c_tester)(targetPath, {
-      ...options,
-      output,
-      verbose: config.verbose,
-      json: false,
-      wasm: tester === 'wasm',
-      // the C witness calculator's assembly is x86-64 only
-      no_asm: tester === 'c' && process.arch !== 'x64',
-      sym: true,
-      recompile: circuitConfig.recompile ?? !isCompiled(artifact, targetPath, config.include),
-    });
+    const recompile = circuitConfig.recompile ?? !isCompiled(artifact, targetPath, config.include);
+    if (recompile) {
+      const {stderr} = await compileCircuit(config, targetPath, output);
+      if (stderr) this.log.error(stderr);
+      if (tester === 'c') await execFileAsync('make', ['-C', `${output}/${circuit}_cpp`]);
+    } else if (!existsSync(artifact)) {
+      throw new Error(`Cannot set recompile to false if ${artifact} does not exist`);
+    }
 
-    return new WitnessTester<IN, OUT>(circomWasmTester);
+    const calculator =
+      tester === 'wasm' ? await wasmWitnessCalculator(output, circuit) : cWitnessCalculator(output, circuit);
+    return new WitnessTester<IN, OUT>(output, circuit, calculator);
   }
 
   /** Returns a proof tester. */

@@ -37,5 +37,5 @@ export const primeToName: Record<`${bigint}`, CircomkitConfig['prime']> = {
 
 /** JSON Stringify with a prettier format. */
 export function prettyStringify(obj: unknown): string {
-  return JSON.stringify(obj, undefined, 2);
+  return JSON.stringify(obj, (_, v) => (typeof v === 'bigint' ? v.toString() : v), 2);
 }

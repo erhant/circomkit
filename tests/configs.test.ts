@@ -199,6 +199,12 @@ describe('inline circuits with per-circuit overrides', () => {
 
   afterAll(() => circomkit.clear('mul_plonk'));
 
+  it('should accept bigint params in inline circuits', () => {
+    const params = [BigInt(3)];
+    const withBigInt = new Circomkit({circuits: {mul: {file: 'multiplier', template: 'Multiplier', params}}});
+    expect(withBigInt.readCircuitConfig('mul').params).toEqual(params);
+  });
+
   it('should apply overrides on top of the global config', () => {
     const config = circomkit.resolve('mul_plonk');
     expect(config.protocol).toBe('plonk');
