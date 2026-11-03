@@ -1,6 +1,7 @@
 import {execFile} from 'node:child_process';
 import {existsSync, mkdirSync, readFileSync, statSync, writeFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
+import {promisify} from 'node:util';
 import type {CircuitConfig} from '../types';
 
 /** Circuit configuration with all fields required, except `overrides` which are not used here. */
@@ -9,6 +10,42 @@ export type MainComponentConfig = Required<Omit<CircuitConfig, 'overrides'>>;
 import type {CircomkitConfig} from '../configs';
 
 // @todo make compilation config a separate entity derived from CircomkitConfig and be Partial.
+
+/** Splits `circomPath` into a command and its arguments.
+ *
+ * `circomPath` may be a command with arguments such as `npx circom2`, unless it is an existing file.
+ */
+// TODO: Windows `.cmd` shims (e.g. `npx`) need a shell, use the `circom` binary there
+function circomCommand(circomPath: string): string[] {
+  return existsSync(circomPath) ? [circomPath] : circomPath.split(' ');
+}
+
+const circomVersions = new Map<string, Promise<string>>();
+
+/** Returns the version of the Circom compiler at `circomPath`, e.g. `2.2.3`. Cached per path. */
+export function circomVersion(circomPath: string): Promise<string> {
+  let version = circomVersions.get(circomPath);
+  if (!version) {
+    const [command, ...args] = circomCommand(circomPath);
+    version = promisify(execFile)(command, [...args, '--version']).then(({stdout}) => {
+      const match = stdout.match(/(\d+)\.(\d+)\.(\d+)/);
+      if (!match) throw new Error(`Could not read the Circom version from: ${stdout}`);
+      return match[0];
+    });
+    circomVersions.set(circomPath, version);
+  }
+  return version;
+}
+
+/** Throws if the Circom compiler at `circomPath` is older than `minimum`, which `feature` requires. */
+export async function requireCircom(circomPath: string, minimum: string, feature: string): Promise<void> {
+  const version = await circomVersion(circomPath);
+  const [a, b] = [version, minimum].map(v => v.split('.').map(Number));
+  const older = a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
+  if (older < 0) {
+    throw new Error(`${feature} requires Circom ${minimum} or newer, found ${version} (${circomPath})`);
+  }
+}
 
 /** Compile the circuit using the given configuration.
  *
@@ -26,6 +63,11 @@ export async function compileCircuit(config: CircomkitConfig, targetPath: string
   if (config.verbose) args.push('--verbose');
   if (config.inspect) args.push('--inspect');
   if (config.cWitness) args.push('--c');
+  // the C witness calculator's assembly is x86-64 only
+  if (config.cWitness && process.arch !== 'x64') {
+    await requireCircom(config.circomPath, '2.2.2', `C witness generation on ${process.arch}`);
+    args.push('--no_asm');
+  }
   if (config.wasmWitness) args.push('--wasm');
   if (typeof config.optimization === 'number') {
     if (config.optimization > 2) {
@@ -38,9 +80,7 @@ export async function compileCircuit(config: CircomkitConfig, targetPath: string
   }
   args.push(targetPath);
 
-  // `circomPath` may be a command with arguments such as `npx circom2`, unless it is an existing file
-  // TODO: Windows `.cmd` shims (e.g. `npx`) need a shell, use the `circom` binary there
-  const [command, ...commandArgs] = existsSync(config.circomPath) ? [config.circomPath] : config.circomPath.split(' ');
+  const [command, ...commandArgs] = circomCommand(config.circomPath);
 
   // call `circom` as a sub-process
   try {

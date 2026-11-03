@@ -111,6 +111,8 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
           'Error: Too many signals set.',
           'Error: Signal not found.',
           'RuntimeError:', // a WASM trap, e.g. modulo by zero
+          // the C witness calculator exits with an error (or a signal, e.g. SIGFPE on modulo by zero)
+          `Command failed: ${path.join(this.circomTester.dir, `${this.circomTester.baseName}_cpp`, this.circomTester.baseName)} `,
         ].some(msg => errorMessage.startsWith(msg));
 
         // throw unhandled error anyways
@@ -156,6 +158,8 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * - `main.signal`
    * - `main.component.signal`
    * - `main.component.signal[n][m]`
+   * - `main.Template_line_offset.signal` for anonymous components, e.g. `main.Square_3_158.out` for a
+   *   `Square()(...)` call at line 3, where `158` is the byte offset of the call in its file
    *
    * You will likely call `expectConstraintPass` on the resulting fake witness to see if it can indeed fool
    * a verifier.
@@ -196,6 +200,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    *
    * To read signals within a component, simply refer to them as `component.signal`. In other words, omit the `main.` prefix
    * and array dimensions.
+   * Anonymous components are named like `Square_3_158`, see {@link editWitness}.
    */
   async readWitnessSignals(witness: Readonly<WitnessType>, signals: string[] | OUT): Promise<CircuitSignals> {
     await this.loadSymbols();

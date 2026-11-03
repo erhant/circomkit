@@ -20,6 +20,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # oldest supported & latest
+        circom: ['2.1.5', '2.2.3']
 
     steps:
       - uses: actions/checkout@v4
@@ -34,9 +39,9 @@ jobs:
             nasm \
             nlohmann-json3-dev
 
-      - name: Download Circom Binary v2.1.5
+      - name: Download Circom Binary v${{ matrix.circom }}
         run: |
-          wget -qO /home/runner/work/circom https://github.com/iden3/circom/releases/download/v2.1.5/circom-linux-amd64
+          wget -qO /home/runner/work/circom https://github.com/iden3/circom/releases/download/v${{ matrix.circom }}/circom-linux-amd64
           chmod +x /home/runner/work/circom
           sudo mv /home/runner/work/circom /bin/circom
 
@@ -48,10 +53,10 @@ jobs:
         with:
           version: 9
 
-      - name: Use Node.js 20
+      - name: Use Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
 
       - name: Install dependencies

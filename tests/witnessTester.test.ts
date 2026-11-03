@@ -2,8 +2,6 @@ import {mkdirSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync} fro
 import {Circomkit, type WitnessTester} from '../src';
 import {prepareMultiplier} from './common';
 
-// TODO: add C tester
-
 describe('witness tester', () => {
   let circomkit: Circomkit;
   let circuit: WitnessTester<['in'], ['out']>;
@@ -213,4 +211,69 @@ describe('witness tester optimized symbols (#80)', () => {
   });
 
   afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
+});
+
+describe('witness tester anonymous components (#115)', () => {
+  const dirBuild = './tests/build/anonymous';
+  const dirCircuits = `${dirBuild}/circuits`;
+
+  beforeAll(() => {
+    mkdirSync(dirCircuits, {recursive: true});
+    writeFileSync(
+      `${dirCircuits}/anon.circom`,
+      'pragma circom 2.0.0;\n' +
+        'template Square() { signal input in; signal output out; out <== in * in; }\n' +
+        'template Anon() { signal input in; signal output out; out <== Square()(in); }\n'
+    );
+  });
+
+  it('should read and edit signals of anonymous components', async () => {
+    const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits, dirBuild, optimization: 0});
+    const circuit = await circomkit.WitnessTester('anon', {file: 'anon', template: 'Anon'});
+    const witness = await circuit.calculateWitness({in: 3});
+
+    // named `<template>_<line>_<offset>`, i.e. line 3 and the byte offset of `Square()(in)` in the file
+    const symbol = 'main.Square_3_158.out';
+    expect(await circuit.readWitness(witness, [symbol])).toEqual({[symbol]: BigInt(9)});
+    expect(await circuit.readWitnessSignals(witness, ['Square_3_158.out'])).toEqual({'Square_3_158.out': BigInt(9)});
+
+    const fakeWitness = await circuit.editWitness(witness, {[symbol]: BigInt(10), 'main.out': BigInt(10)});
+    await circuit.expectConstraintFail(fakeWitness);
+  });
+
+  afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
+});
+
+// the C witness calculator needs nlohmann-json and gmp (and nasm on x86-64), which CI installs on Linux
+(process.platform === 'linux' ? describe : describe.skip)('witness tester with the C calculator (#88)', () => {
+  const circomkit = new Circomkit({
+    verbose: false,
+    logLevel: 'silent',
+    circuits: './tests/circuits.json',
+    dirCircuits: './tests/circuits',
+    dirBuild: './tests/build',
+  });
+  const {
+    circuit: {name, config},
+    signals,
+  } = prepareMultiplier(4);
+
+  it('should compute and check the witness', async () => {
+    const circuit = await circomkit.WitnessTester<['in'], ['out']>(name, {...config}, 'c');
+    await circuit.expectPass(signals.input, signals.output);
+    expect(await circuit.compute(signals.input, ['out'])).toEqual({out: BigInt(signals.output.out)});
+    await circuit.expectFail(signals.badInput);
+  });
+
+  it('should catch run-time errors', async () => {
+    const errors = await circomkit.WitnessTester('error_rt', {file: 'errors', template: 'Errors'}, 'c');
+    await errors.expectFail({in: 1, inin: [1, 2]}); // false assert
+    await errors.expectFail({in: 0, inin: [1]}); // not enough values
+
+    const modulo = await circomkit.WitnessTester('error_mod', {file: 'errors', template: 'ModuloByZero'}, 'c');
+    await modulo.expectFail({in: 0}); // SIGFPE
+
+    const recursion = await circomkit.WitnessTester('error_rec', {file: 'errors', template: 'Recursion'}, 'c');
+    await recursion.expectFail({in: 100000}); // stack overflow
+  });
 });

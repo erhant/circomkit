@@ -17,6 +17,7 @@ import {
   isCompiled,
   type MainComponentConfig,
   readR1CSInfo,
+  requireCircom,
 } from '../functions';
 import {ProofTester, WitnessTester} from '../testers';
 import type {CircomTester, CircuitConfig, CircuitSignals} from '../types';
@@ -608,6 +609,10 @@ export class Circomkit {
     tester: 'wasm' | 'c' = 'wasm'
   ) {
     circuitConfig.dir ??= 'test'; // defaults to test directory
+    // circom_tester calls `circom` from PATH, regardless of `circomPath`
+    if (tester === 'c' && process.arch !== 'x64') {
+      await requireCircom('circom', '2.2.2', `C witness tester on ${process.arch}`);
+    }
 
     const config = this.resolve(circuit, circuitConfig);
     const targetPath = this.instantiate(circuit, circuitConfig);
@@ -630,7 +635,9 @@ export class Circomkit {
       output,
       verbose: config.verbose,
       json: false,
-      wasm: true,
+      wasm: tester === 'wasm',
+      // the C witness calculator's assembly is x86-64 only
+      no_asm: tester === 'c' && process.arch !== 'x64',
       sym: true,
       recompile: circuitConfig.recompile ?? !isCompiled(artifact, targetPath, config.include),
     });

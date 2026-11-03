@@ -1,6 +1,7 @@
-import {existsSync, readFileSync, rmSync, statSync} from 'node:fs';
+import {existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {Circomkit} from '../src';
 import {DEFAULT} from '../src/configs';
+import {circomVersion, requireCircom} from '../src/functions';
 
 describe('overriding configurations', () => {
   it('should override default configs', () => {
@@ -228,5 +229,24 @@ describe('inline circuits with per-circuit overrides', () => {
     expect(path).toBe('./tests/circuits/test/overrides/mul_groth16.circom');
     await circomkit.clear('mul_groth16');
     expect(existsSync(path)).toBe(false);
+  });
+});
+
+describe('circom version checks', () => {
+  it('should read the circom version', async () => {
+    expect(await circomVersion('circom')).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
+  it('should require a minimum circom version for a feature', async () => {
+    const fakeCircom = './tests/build/fake-circom';
+    mkdirSync('./tests/build', {recursive: true});
+    writeFileSync(fakeCircom, '#!/bin/sh\necho "circom compiler 2.1.5"\n', {mode: 0o755});
+
+    await requireCircom(fakeCircom, '2.1.5', 'Feature');
+    await requireCircom(fakeCircom, '2.0.9', 'Feature');
+    await expect(requireCircom(fakeCircom, '2.2.2', 'Feature')).rejects.toThrow(
+      `Feature requires Circom 2.2.2 or newer, found 2.1.5 (${fakeCircom})`
+    );
+    await expect(requireCircom(fakeCircom, '2.1.10', 'Feature')).rejects.toThrow();
   });
 });
