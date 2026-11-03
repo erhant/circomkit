@@ -2,6 +2,7 @@
 import {execFile} from 'node:child_process';
 import {existsSync, readdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {Command} from '@commander-js/extra-typings';
+import {version} from '../package.json';
 import {Circomkit} from './core';
 import {prettyStringify} from './utils';
 import {teardown} from './utils/teardown';
@@ -197,8 +198,9 @@ function cli(args: string[]) {
     .description('compute witness')
     .argument('<circuit>', 'Circuit name')
     .argument('<input>', 'Input name')
-    .action(async (circuit, input) => {
-      const path = await circomkit.witness(circuit, input);
+    .option('-c, --c', 'use the C witness calculator')
+    .action(async (circuit, input, options) => {
+      const path = await circomkit.witness(circuit, input, undefined, options.c ? 'c' : 'wasm');
       circomkit.log.info(`Witness created: ${path}`);
     });
 
@@ -248,6 +250,7 @@ function cli(args: string[]) {
   ///////////////////////////////////////////////////////////////////////////////
   new Command()
     .name('circomkit')
+    .version(version)
     .description('Circom testing & development toolkit')
     // none
     .addCommand(init)

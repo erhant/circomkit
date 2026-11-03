@@ -1,5 +1,6 @@
 import {existsSync, readFileSync, rmSync} from 'node:fs';
 import hre from 'hardhat';
+import * as snarkjs from 'snarkjs';
 // @ts-expect-error
 import solc from 'solc';
 import {Circomkit} from '../src';
@@ -92,11 +93,7 @@ describe('circomkit', () => {
       it('should export verifier contract and valid calldata', async () => {
         const path = await circomkit.contract(circuit.name);
         expect(existsSync(path)).toBe(true);
-        const source = readFileSync(path, {encoding: 'utf-8'})
-          // XXX: snarkjs plonk template has an erroneous hardhat import
-          //      See https://github.com/iden3/snarkjs/pull/464
-          //      @todo Remove this fix when the PR is merged
-          .replace('import "hardhat/console.sol";\n', '');
+        const source = readFileSync(path, {encoding: 'utf-8'});
 
         // compile the contract
         const input = {
@@ -190,5 +187,30 @@ describe('instantiate version fallback (#123)', () => {
     expect(content).toContain('pragma circom 2.2.0;');
 
     rmSync(path);
+  });
+});
+
+// the C witness calculator needs nlohmann-json, gmp and nasm, which CI installs on Linux
+(process.platform === 'linux' ? describe : describe.skip)('witness with the C calculator (#113)', () => {
+  const {circuit, signals, inputName} = prepareMultiplier(3);
+  const circomkit = new Circomkit({
+    verbose: false,
+    logLevel: 'silent',
+    circuits: './tests/circuits.json',
+    dirPtau: './tests/ptau',
+    dirCircuits: './tests/circuits',
+    dirInputs: './tests/inputs',
+    dirBuild: './tests/build/cwitness',
+  });
+
+  it('should match the WASM witness', async () => {
+    circomkit.input(circuit.name, inputName, signals.input);
+    const wasmWtns = await snarkjs.wtns.exportJson(await circomkit.witness(circuit.name, inputName));
+    const cWtns = await snarkjs.wtns.exportJson(await circomkit.witness(circuit.name, inputName, undefined, 'c'));
+    const cDataWtns = await snarkjs.wtns.exportJson(
+      await circomkit.witness(circuit.name, inputName, signals.input, 'c')
+    );
+    expect(cWtns).toEqual(wasmWtns);
+    expect(cDataWtns).toEqual(wasmWtns);
   });
 });

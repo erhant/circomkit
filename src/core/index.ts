@@ -1,6 +1,8 @@
+import {execFile} from 'node:child_process';
 import {createHash, randomBytes} from 'node:crypto';
 import {existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync} from 'node:fs';
 import {readFile, rm, writeFile} from 'node:fs/promises';
+import {promisify} from 'node:util';
 // @ts-expect-error
 import {c as c_tester, wasm as wasm_tester} from 'circom_tester';
 import loglevel from 'loglevel';
@@ -20,6 +22,8 @@ import {prettyStringify} from '../utils';
 import {downloadPtau, getPtauName} from '../utils/ptau';
 import {singleThreadOnBun} from '../utils/teardown';
 import {CircomkitPath} from './pathing';
+
+const execFileAsync = promisify(execFile);
 
 /** Length of the hash in witness tester build directory names. */
 const WITNESS_TESTER_HASH_LENGTH = 8;
@@ -471,20 +475,52 @@ export class Circomkit {
    *
    * If `data` is not passed, the input data will be read from `inputs/<circuit>/<input>.json`.
    *
+   * With `calculator: 'c'` the C witness calculator is used, which is compiled and built with `make` if
+   * missing; that requires the C witness dependencies (see Circom docs).
+   *
    * @returns path of the created witness
    */
-  async witness(circuit: string, input: string, data?: CircuitSignals): Promise<string> {
-    const wasmPath = this.path.ofCircuit(circuit, 'wasm');
-    if (!existsSync(wasmPath)) {
-      this.log.warn('WASM file does not exist, creating it now...');
-      await this.compile(circuit);
-    }
+  async witness(
+    circuit: string,
+    input: string,
+    data?: CircuitSignals,
+    calculator: 'wasm' | 'c' = 'wasm'
+  ): Promise<string> {
     const wtnsPath = this.path.ofCircuitWithInput(circuit, input, 'wtns');
     const outDir = this.path.ofCircuitWithInput(circuit, input, 'dir');
-    const jsonInput = data ?? JSON.parse(readFileSync(this.path.ofCircuitWithInput(circuit, input, 'in'), 'utf-8'));
-
+    const inputPath = this.path.ofCircuitWithInput(circuit, input, 'in');
     mkdirSync(outDir, {recursive: true});
-    await snarkjs.wtns.calculate(jsonInput, wasmPath, wtnsPath);
+
+    if (calculator === 'wasm') {
+      const wasmPath = this.path.ofCircuit(circuit, 'wasm');
+      if (!existsSync(wasmPath)) {
+        this.log.warn('WASM file does not exist, creating it now...');
+        await this.compile(circuit);
+      }
+      const jsonInput = data ?? JSON.parse(readFileSync(inputPath, 'utf-8'));
+      await snarkjs.wtns.calculate(jsonInput, wasmPath, wtnsPath);
+      return wtnsPath;
+    }
+
+    const cppDir = `${this.path.ofCircuit(circuit, 'dir')}/${circuit}_cpp`;
+    const binPath = `${cppDir}/${circuit}`;
+    if (!existsSync(binPath)) {
+      if (!existsSync(cppDir)) {
+        this.log.warn('C witness calculator does not exist, creating it now...');
+        const circuitConfig = this.readCircuitConfig(circuit);
+        await this.compile(circuit, {...circuitConfig, overrides: {...circuitConfig.overrides, cWitness: true}});
+      }
+      await execFileAsync('make', ['-C', cppDir]);
+    }
+
+    // the C calculator only reads inputs from a file
+    const jsonPath = data ? `${outDir}/input.json` : inputPath;
+    if (data) writeFileSync(jsonPath, prettyStringify(data));
+    try {
+      await execFileAsync(binPath, [jsonPath, wtnsPath]);
+    } finally {
+      if (data) rmSync(jsonPath);
+    }
     return wtnsPath;
   }
 

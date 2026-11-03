@@ -41,7 +41,7 @@
   },
   "peerDependencies": {
     "@types/snarkjs": "^0.7.x",
-    "snarkjs": "^0.7.x"
+    "snarkjs": "^0.7.5"
   },
   "dependencies": {
     "circom_tester": "^0.0.23",
