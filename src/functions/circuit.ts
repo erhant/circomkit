@@ -1,5 +1,6 @@
 import {execFile} from 'node:child_process';
-import {existsSync, mkdirSync, readFileSync, statSync, writeFileSync} from 'node:fs';
+import {randomBytes} from 'node:crypto';
+import {existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync} from 'node:fs';
 import {dirname, resolve} from 'node:path';
 import {promisify} from 'node:util';
 import type {CircuitConfig} from '../types';
@@ -118,7 +119,10 @@ export function instantiateCircuit(config: MainComponentConfig, targetDir: strin
     mkdirSync(targetDir, {recursive: true});
   }
 
-  writeFileSync(targetPath, circuitCode);
+  // written to a unique file first & renamed, so that a concurrent circom does not read a partial file
+  const tmpPath = `${targetPath}.tmp-${randomBytes(4).toString('hex')}`;
+  writeFileSync(tmpPath, circuitCode);
+  renameSync(tmpPath, targetPath);
 }
 
 /** Builds the source code for a `main` component based on the circuit config, kind of like `ejs.render`.

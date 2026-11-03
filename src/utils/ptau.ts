@@ -1,3 +1,4 @@
+import {randomBytes} from 'node:crypto';
 import {createWriteStream, renameSync, rmSync} from 'node:fs';
 import type {IncomingMessage} from 'node:http';
 import {get} from 'node:https';
@@ -41,7 +42,8 @@ export function getPtauName(n: number): string {
 export async function downloadPtau(ptauName: string, ptauDir: string): Promise<string> {
   const ptauPath = `${ptauDir}/${ptauName}`;
   // downloaded to a temporary file first, so that a failed download is never mistaken for a PTAU file
-  const tmpPath = `${ptauPath}.download`;
+  // with a unique name, so that concurrent downloads of the same PTAU do not write to the same file
+  const tmpPath = `${ptauPath}.${randomBytes(4).toString('hex')}.download`;
 
   const response = await new Promise<IncomingMessage>((resolve, reject) =>
     get(`${PTAU_URL_BASE}/${ptauName}`, resolve).on('error', reject)

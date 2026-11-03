@@ -227,4 +227,17 @@ describe('instantiate version fallback', () => {
     expect(cWtns).toEqual(wasmWtns);
     expect(cDataWtns).toEqual(wasmWtns);
   });
+
+  it('should create the main component where the CLI does', async () => {
+    const inline = new Circomkit({
+      verbose: false,
+      logLevel: 'silent',
+      dirCircuits: './tests/circuits',
+      dirBuild: './tests/build/cwitness-dir',
+      circuits: {mul3_cdir: {file: 'multiplier', template: 'Multiplier', params: [3]}},
+    });
+    await inline.witness('mul3_cdir', 'default', {in: [2, 3, 5]}, 'c');
+    expect(existsSync('./tests/circuits/main/mul3_cdir.circom')).toBe(true);
+    expect(existsSync('./tests/circuits/test/mul3_cdir.circom')).toBe(false);
+  });
 });

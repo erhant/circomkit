@@ -362,3 +362,40 @@ describe('witness tester in an ESM project', () => {
 
   afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
 });
+
+describe('witness testers of the same circuit', () => {
+  const dirBuild = './tests/build/same-circuit';
+
+  beforeAll(() => rmSync(dirBuild, {recursive: true, force: true}));
+
+  it('should compile concurrently', async () => {
+    const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits: './tests/circuits', dirBuild});
+    const config = {file: 'multiplier', template: 'Multiplier', params: [3]};
+    await Promise.all(
+      Array.from({length: 4}, async () => {
+        const circuit = await circomkit.WitnessTester('mul3_concurrent', {...config});
+        await circuit.expectPass({in: [2, 3, 5]}, {out: 30});
+      })
+    );
+    expect(readdirSync(`${dirBuild}/.witness-tester`)).toHaveLength(1);
+  });
+
+  it('should not share builds of circuits from different directories', async () => {
+    const outputs = await Promise.all(
+      [1, 2].map(async factor => {
+        const dirCircuits = `${dirBuild}/circuits-${factor}`;
+        mkdirSync(dirCircuits, {recursive: true});
+        writeFileSync(
+          `${dirCircuits}/scale.circom`,
+          `pragma circom 2.0.0;\ntemplate Scale() { signal input in; signal output out; out <== in * ${factor}; }\n`
+        );
+        const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits, dirBuild});
+        const circuit = await circomkit.WitnessTester('scale', {file: 'scale', template: 'Scale'});
+        return (await circuit.compute({in: 3}, ['out'])).out;
+      })
+    );
+    expect(outputs).toEqual([3n, 6n]);
+  });
+
+  afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
+});

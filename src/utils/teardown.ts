@@ -16,6 +16,7 @@ declare global {
  */
 export async function teardown() {
   if (globalThis.curve_bn128) await globalThis.curve_bn128.terminate();
+  if (globalThis.curve_bls12381) await globalThis.curve_bls12381.terminate();
 }
 
 /**

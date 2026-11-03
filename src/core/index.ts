@@ -1,9 +1,9 @@
 import {execFile} from 'node:child_process';
 import {createHash, randomBytes} from 'node:crypto';
-import {existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {readFile, rm, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
-import {dirname} from 'node:path';
+import {dirname, resolve as resolvePath} from 'node:path';
 import {promisify} from 'node:util';
 import loglevel from 'loglevel';
 import * as snarkjs from 'snarkjs';
@@ -119,7 +119,7 @@ export class Circomkit {
   /** Returns the circuit configurations, read from `circuits.json` unless they are given inline in the config. */
   readCircuits(): Record<string, CircuitConfig> {
     const {circuits} = this.config;
-    if (typeof circuits !== 'string') return circuits;
+    if (typeof circuits !== 'string') return structuredClone(circuits); // callers must not edit the config
 
     const circuitsFile = JSON.parse(readFileSync(circuits, 'utf-8'));
     delete circuitsFile.$schema; // for editors, not a circuit
@@ -511,7 +511,11 @@ export class Circomkit {
       if (!existsSync(cppDir)) {
         this.log.warn('C witness calculator does not exist, creating it now...');
         const circuitConfig = this.readCircuitConfig(circuit);
-        await this.compile(circuit, {...circuitConfig, overrides: {...circuitConfig.overrides, cWitness: true}});
+        await this.compile(circuit, {
+          ...circuitConfig,
+          dir: circuitConfig.dir || 'main', // as for configs read by `compile` itself
+          overrides: {...circuitConfig.overrides, cWitness: true},
+        });
       }
       await execFileAsync('make', ['-C', cppDir]);
     }
@@ -609,7 +613,7 @@ export class Circomkit {
     circuitConfig: CircuitConfig & {recompile?: boolean},
     tester: 'wasm' | 'c' = 'wasm'
   ) {
-    circuitConfig.dir ??= 'test'; // defaults to test directory
+    circuitConfig = {...circuitConfig, dir: circuitConfig.dir ?? 'test'}; // defaults to test directory
 
     const resolved = this.resolve(circuit, circuitConfig);
     const config: CircomkitConfig = {
@@ -626,7 +630,14 @@ export class Circomkit {
 
     const hash = createHash('sha256')
       .update(
-        JSON.stringify([tester, config.prime, config.optimization, config.include, readFileSync(targetPath, 'utf-8')])
+        JSON.stringify([
+          tester,
+          config.prime,
+          config.optimization,
+          config.include,
+          resolvePath(targetPath), // the template is included relative to it
+          readFileSync(targetPath, 'utf-8'),
+        ])
       )
       .digest('hex')
       .slice(0, WITNESS_TESTER_HASH_LENGTH);
@@ -636,9 +647,28 @@ export class Circomkit {
 
     const recompile = circuitConfig.recompile ?? !isCompiled(artifact, targetPath, config.include);
     if (recompile) {
-      const {stderr} = await compileCircuit(config, targetPath, output);
-      if (stderr) this.log.error(stderr);
-      if (tester === 'c') await execFileAsync('make', ['-C', `${output}/${circuit}_cpp`]);
+      // concurrent testers of the same circuit (e.g. test files run in parallel) must not write to the same files,
+      // so each compiles into its own directory, which is moved in place unless another tester did so meanwhile
+      const builtAt = () => (existsSync(artifact) ? statSync(artifact).mtimeMs : undefined);
+      const previousBuild = builtAt();
+      const tmpOutput = `${output}.tmp-${randomBytes(4).toString('hex')}`;
+      try {
+        const {stderr} = await compileCircuit(config, targetPath, tmpOutput);
+        if (stderr) this.log.error(stderr);
+        if (tester === 'c') await execFileAsync('make', ['-C', `${tmpOutput}/${circuit}_cpp`]);
+
+        if (builtAt() === previousBuild) {
+          rmSync(output, {recursive: true, force: true});
+          try {
+            renameSync(tmpOutput, output);
+          } catch (err) {
+            // another tester may have moved its build in place between the removal & the rename
+            if (!existsSync(artifact)) throw err;
+          }
+        }
+      } finally {
+        rmSync(tmpOutput, {recursive: true, force: true});
+      }
     } else if (!existsSync(artifact)) {
       throw new Error(`Cannot set recompile to false if ${artifact} does not exist`);
     }

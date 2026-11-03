@@ -1,4 +1,4 @@
-import {existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs';
+import {existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {Circomkit} from '../src';
 import {DEFAULT} from '../src/configs';
 import {circomVersion, requireCircom} from '../src/functions';
@@ -207,6 +207,13 @@ describe('inline circuits with per-circuit overrides', () => {
     expect(withBigInt.readCircuitConfig('mul').params).toEqual(params);
   });
 
+  it('should not let a witness tester edit the inline circuits', async () => {
+    await circomkit.WitnessTester('mul_groth16', circomkit.readCircuitConfig('mul_groth16'));
+    await circomkit.WitnessTester('mul_plonk', circomkit.readCircuitConfig('mul_plonk'));
+    expect(circomkit.readCircuitConfig('mul_plonk').dir).toBeUndefined();
+    expect(circomkit.readCircuitConfig('mul_groth16').dir).toBe('test/overrides');
+  });
+
   it('should apply overrides on top of the global config', () => {
     const config = circomkit.resolve('mul_plonk');
     expect(config.protocol).toBe('plonk');
@@ -319,5 +326,13 @@ describe('ptau download', () => {
     mkdirSync(dir, {recursive: true});
     const path = await downloadPtau('powersOfTau28_hez_final_08.ptau', dir);
     expect(readFileSync(path).equals(readFileSync('./tests/ptau/powersOfTau28_hez_final_08.ptau'))).toBe(true);
+  });
+
+  it('should download the same ptau file concurrently', async () => {
+    const dir = './tests/build/ptau-download-concurrent';
+    mkdirSync(dir, {recursive: true});
+    const paths = await Promise.all([1, 2].map(() => downloadPtau('powersOfTau28_hez_final_08.ptau', dir)));
+    expect(readFileSync(paths[0]).equals(readFileSync('./tests/ptau/powersOfTau28_hez_final_08.ptau'))).toBe(true);
+    expect(readdirSync(dir)).toEqual(['powersOfTau28_hez_final_08.ptau']);
   });
 });
