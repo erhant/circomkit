@@ -309,3 +309,34 @@ describe('witness tester with another prime', () => {
     await circuit.expectConstraintFail(await circuit.editWitness(witness, {'main.out': BigInt(31)}));
   });
 });
+
+describe('witness tester optimization level', () => {
+  const dirBuild = './tests/build/optimization';
+  const dirCircuits = `${dirBuild}/circuits`;
+  const config = {file: 'linear', template: 'Linear'};
+
+  beforeAll(() => {
+    // `mid` is linear in `a`, which O2 substitutes away but O1 keeps
+    mkdirSync(dirCircuits, {recursive: true});
+    writeFileSync(
+      `${dirCircuits}/linear.circom`,
+      'pragma circom 2.0.0;\n' +
+        'template Linear() { signal input a; signal input b; signal mid; signal output out; mid <== a + 1; out <== mid * b; }\n'
+    );
+  });
+
+  it('should cap the global optimization at O1', async () => {
+    const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits, dirBuild, optimization: 2});
+    const circuit = await circomkit.WitnessTester('linear', {...config});
+    expect(await circuit.getConstraintCount()).toBe(2);
+  });
+
+  it('should use the optimization of the circuit overrides', async () => {
+    const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits, dirBuild});
+    const circuit = await circomkit.WitnessTester('linear', {...config, overrides: {optimization: 2}});
+    expect(await circuit.getConstraintCount()).toBe(1);
+    await circuit.expectPass({a: 2, b: 3}, {out: 9});
+  });
+
+  afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
+});

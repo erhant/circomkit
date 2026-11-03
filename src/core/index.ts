@@ -600,6 +600,9 @@ export class Circomkit {
    *
    * By default, compilation is skipped if that build is newer than the circuit and all of its includes.
    * Set `recompile` to `true` to always compile, or to `false` to never compile.
+   *
+   * The global `optimization` is capped at O1 here, so that signals stay readable in tests. Set it in the
+   * circuit's `overrides` to test with another level, e.g. `{...config, overrides: {optimization: 2}}`.
    */
   async WitnessTester<IN extends string[] = [], OUT extends string[] = []>(
     circuit: string,
@@ -611,8 +614,11 @@ export class Circomkit {
     const resolved = this.resolve(circuit, circuitConfig);
     const config: CircomkitConfig = {
       ...resolved,
-      // TODO: the tester was capped at O1 for `circom_tester`, lifting it changes constraint counts & symbols
-      optimization: typeof resolved.optimization === 'number' ? Math.min(resolved.optimization, 1) : undefined,
+      // the global optimization is capped at O1 as it always was, an explicit per-circuit override is not
+      optimization:
+        circuitConfig.overrides?.optimization === undefined && typeof resolved.optimization === 'number'
+          ? Math.min(resolved.optimization, 1)
+          : resolved.optimization,
       wasmWitness: tester === 'wasm',
       cWitness: tester === 'c',
     };
