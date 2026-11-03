@@ -1,7 +1,6 @@
 import {AssertionError} from 'node:assert';
-import fs from 'node:fs';
 import path from 'node:path';
-import {formatConstraints, type R1CSConstraints, readR1CSConstraints, readSymbols} from '../functions/r1cs';
+import {formatConstraints, iterateSymbols, type R1CSConstraints, readR1CSConstraints, readSymbols} from '../functions/r1cs';
 import {cWitnessCalculatorPath, type WitnessCalculator} from '../functions/witness';
 import type {CircuitSignals, SignalValueType, SymbolsType, WitnessType} from '../types/';
 
@@ -229,89 +228,44 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * will be returned here. For example, instead of reading `main.out[0], main.out[1], main.out[2]` with `readWitness`,
    * you can simply query `out` in this function and an object with `{out: [...]}` will be returned.
    *
-   * To read signals within a component, simply refer to them as `component.signal`. In other words, omit the `main.` prefix
-   * and array dimensions.
+   * Signals are named as in the `main` component, i.e. without the `main.` prefix. Arrays are returned as arrays and
+   * buses as objects, and parts of them can be read too, e.g. `out[1]` or `point.x`. To read signals within a
+   * component, refer to them as `component.signal`, e.g. `hasher.out` or `hashers[0].out`.
    * Anonymous components are named like `Square_3_158`, see {@link editWitness}.
    */
   async readWitnessSignals(witness: Readonly<WitnessType>, signals: string[] | OUT): Promise<CircuitSignals> {
     const symbols = this.loadSymbols();
 
-    // for each out signal, process the respective symbol
-    const entries: [OUT[number], SignalValueType][] = [];
+    // places the value at the path of indices & bus fields within the value of a signal
+    type Value = bigint | Value[] | {[field: string]: Value};
+    const place = (into: Value | undefined, path: (number | string)[], value: bigint): Value => {
+      if (path.length === 0) return value;
+      const [key, ...rest] = path;
+      const container = (into ?? (typeof key === 'number' ? [] : {})) as Record<number | string, Value>;
+      container[key] = place(container[key], rest, value);
+      return container;
+    };
 
-    // returns the dot count in the symbol
-    // for example `main.inner.in` has 2 dots
-    function dotCount(s: string): number {
-      return s.split('.').length;
-    }
-
+    const entries: [string, Value][] = [];
     for (const signal of signals) {
-      // if our symbol has N dots (0 for `main` signals), we must filter symbols that have different
-      // amount of dots. this shall speed-up the rest of the algorithm, as symbol count may be large
-      // non-main signals have an additional `.` in them after `main.symbol`
-      const signalDotCount = dotCount(signal) + 1; // +1 for the dot in `main.`
-      const signalLength = signal.length + 5; // +5 for prefix `main.`
-      const symbolNames = Object.keys(symbols).filter(
-        s => s.startsWith(`main.${signal}`) && signalDotCount === dotCount(s)
-      );
+      const prefix = `main.${signal}`;
+      let value: Value | undefined;
+      for (const symbol in symbols) {
+        if (symbol !== prefix && !symbol.startsWith(`${prefix}[`) && !symbol.startsWith(`${prefix}.`)) continue;
 
-      // get the symbol values from symbol names, ignoring `main.` prefix
-      // the matched symbols must exactly equal the signal
-      const matchedSymbols = symbolNames.filter(s => {
-        const i = s.indexOf('[');
-        if (i === -1) {
-          // not an array signal
-          return s.length === signalLength;
-        } else {
-          // an array signal, we only care about the symbol name
-          return s.slice(0, i).length === signalLength;
-        }
-      });
-
-      if (matchedSymbols.length === 0) {
-        // no matches!
+        // e.g. `[1][0]` for an array element, or `.x` for a bus field
+        const path = [...symbol.slice(prefix.length).matchAll(/\[(\d+)\]|\.([^.[]+)/g)].map(([, index, field]) =>
+          index !== undefined ? Number(index) : field
+        );
+        value = place(value, path, witness[this.varIdx(symbol)]);
+      }
+      if (value === undefined) {
         throw new Error(`No symbols matched for signal: ${signal}`);
       }
-      // throws if any element was optimized away, which also breaks the consecutive indices assumed below
-      const indices = matchedSymbols.map(s => this.varIdx(s));
-      if (matchedSymbols.length === 1) {
-        // easy case, just return the witness of this symbol
-        entries.push([signal, witness[indices[0]]]);
-      } else {
-        // since signal names are consequent, we only need to know the witness index of the first symbol
-        let idx = indices[0];
-
-        // we can assume that a symbol with this name appears only once in a component, and that the depth is same for
-        // all occurrences of this symbol, given the type system used in Circom. So, we can just count the number
-        // of `[`s in any symbol of this signal to find the number of dimensions of this signal.
-        // we particularly choose the last symbol in the array, as that holds the maximum index of each dimension of this array.
-        const splits = matchedSymbols.at(-1)!.split('[');
-
-        // since we chose the last symbol, we have something like `main.signal[dim1][dim2]...[dimN]` which we can parse
-        const dims = splits.slice(1).map(dim => parseInt(dim.slice(0, -1), 10) + 1); // +1 is needed because the final value is 0-indexed
-
-        // at this point, we have an array of signals like `main.signal[0..dim1][0..dim2]..[0..dimN]`
-        // and we must construct the necessary multi-dimensional array out of it.
-        function processDepth(d: number): SignalValueType {
-          const acc: SignalValueType = [];
-          if (d === dims.length - 1) {
-            // final depth, count witnesses
-            for (let i = 0; i < dims[d]; i++) {
-              acc.push(witness[idx++]);
-            }
-          } else {
-            // not final depth, recurse to next
-            for (let i = 0; i < dims[d]; i++) {
-              acc.push(processDepth(d + 1));
-            }
-          }
-          return acc;
-        }
-        entries.push([signal, processDepth(0)]);
-      }
+      entries.push([signal, value]);
     }
 
-    return Object.fromEntries(entries) as CircuitSignals<OUT>;
+    return Object.fromEntries(entries) as CircuitSignals;
   }
 
   /**
@@ -391,23 +345,11 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     const symbolsToFind = new Set(symbolsRequested.filter(s => !this.symbols[s]));
     if (symbolsToFind.size === 0) return;
 
-    // Read the symbols file into memory
-    const symbolsFile = await fs.promises.readFile(path.join(this.dir, `${this.name}.sym`), 'utf8');
-
-    // Start looking for the requested symbols
-    for (const line of symbolsFile.split('\n')) {
-      if (symbolsToFind.size === 0) return; // Stop when all found
-
-      const [labelIdx, varIdx, componentIdx, symbolName] = line.split(',');
-      if (!symbolName || !symbolsToFind.has(symbolName)) continue; // Skip non-requested symbols
-
-      // Add found symbols to the symbols map, like loadSymbols()
-      this.symbols[symbolName] = {
-        labelIdx: Number(labelIdx),
-        varIdx: Number(varIdx),
-        componentIdx: Number(componentIdx),
-      };
-      symbolsToFind.delete(symbolName); // Remove from list
+    for (const [name, symbol] of iterateSymbols(path.join(this.dir, `${this.name}.sym`))) {
+      if (!symbolsToFind.has(name)) continue;
+      this.symbols[name] = symbol;
+      symbolsToFind.delete(name);
+      if (symbolsToFind.size === 0) return; // stops reading once all are found
     }
   }
 }

@@ -321,7 +321,9 @@ const output = await circuit.compute({in: [2, 3, 5]}, ['out']);
 expect(output.out).toBe(BigInt(30));
 ```
 
-To read signals from a witness, use `readWitnessSignals(witness, signals)` the same way, with `component.signal` for signals of a subcomponent. `readWitness(witness, symbols)` reads single values by their full symbol name, such as `main.component.signal[0]`.
+Arrays are returned as arrays and buses as objects, and you can also ask for a part of them, such as `out[1]` or `point.x`. Signals of a subcomponent are named `component.signal`, e.g. `hasher.out` or `hashers[0].out`.
+
+To read signals from a witness, use `readWitnessSignals(witness, signals)` the same way. `readWitness(witness, symbols)` reads single values by their full symbol name, such as `main.component.signal[0]`.
 
 If Circom's optimizations removed a signal, reading it throws an error. Use a lower optimization level to keep it.
 

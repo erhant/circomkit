@@ -1,5 +1,5 @@
-import {closeSync, createReadStream, fstatSync, openSync, readFileSync, readSync} from 'node:fs';
-import {createInterface} from 'node:readline';
+import {closeSync, fstatSync, openSync, readSync} from 'node:fs';
+import {StringDecoder} from 'node:string_decoder';
 import type {CircomkitConfig} from '../configs';
 import type {SymbolsType} from '../types';
 import {primeToName} from '../utils';
@@ -198,14 +198,36 @@ export function* iterateConstraints({
   }
 }
 
+/** Yields the symbols of a `.sym` file one by one, with their names, e.g. `main.out`.
+ *
+ * The file is read in chunks, as it can be longer than the maximum length of a string for large circuits.
+ */
+export function* iterateSymbols(symPath: string): Generator<[string, SymbolsType[string]]> {
+  const fd = openSync(symPath, 'r');
+  try {
+    const chunk = Buffer.alloc(1 << 20);
+    const decoder = new StringDecoder('utf8');
+    let rest = ''; // the last line of a chunk may continue in the next one
+    for (;;) {
+      const length = readSync(fd, chunk, 0, chunk.length, null);
+      const lines = (rest + (length > 0 ? decoder.write(chunk.subarray(0, length)) : decoder.end())).split('\n');
+      rest = length > 0 ? (lines.pop() ?? '') : '';
+      for (const line of lines) {
+        const [labelIdx, varIdx, componentIdx, name] = line.split(',');
+        if (name === undefined) continue;
+        yield [name, {labelIdx: Number(labelIdx), varIdx: Number(varIdx), componentIdx: Number(componentIdx)}];
+      }
+      if (length === 0) return;
+    }
+  } finally {
+    closeSync(fd);
+  }
+}
+
 /** Reads all symbols of a `.sym` file, keyed by their names, e.g. `main.out`. */
 export function readSymbols(symPath: string): SymbolsType {
   const symbols: SymbolsType = {};
-  for (const line of readFileSync(symPath, 'utf-8').split('\n')) {
-    const [labelIdx, varIdx, componentIdx, symbolName] = line.split(',');
-    if (symbolName === undefined) continue;
-    symbols[symbolName] = {labelIdx: Number(labelIdx), varIdx: Number(varIdx), componentIdx: Number(componentIdx)};
-  }
+  for (const [name, symbol] of iterateSymbols(symPath)) symbols[name] = symbol;
   return symbols;
 }
 
@@ -227,10 +249,8 @@ export async function* formatConstraints(r1csPath: string, symPath: string, filt
   const names = new Map<number, string>([[0, '1']]); // wire 0 is the constant 1
   const matches = new Set<number>(); // wires of the filter
   filter = filter?.replace(/^main\./, '');
-  for await (const line of createInterface({input: createReadStream(symPath), crlfDelay: Infinity})) {
-    const [, varIdx, , symbol] = line.split(',');
-    const wire = Number(varIdx);
-    if (symbol === undefined || !(wire > 0)) continue;
+  for (const [symbol, {varIdx: wire}] of iterateSymbols(symPath)) {
+    if (wire <= 0) continue; // skip the constant 1, or optimized away (-1)
     const name = symbol.replace(/^main\./, '');
     if (!names.has(wire) || name.length < names.get(wire)!.length) names.set(wire, name);
     if (filter !== undefined && (name === filter || name.startsWith(`${filter}.`) || name.startsWith(`${filter}[`))) {

@@ -1,7 +1,7 @@
 import {mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import * as snarkjs from 'snarkjs';
 import {Circomkit} from '../src';
-import {iterateConstraints, readR1CSConstraints, readR1CSInfo} from '../src/functions/r1cs';
+import {iterateConstraints, iterateSymbols, readR1CSConstraints, readR1CSInfo} from '../src/functions/r1cs';
 import {singleThreadOnBun, teardown} from '../src/utils/teardown';
 
 // the R1CS files are read by Circomkit itself, so they are checked against SnarkJS
@@ -92,5 +92,28 @@ describe('reading r1cs files', () => {
       // magic, version 1, and no sections
       await expectError(Buffer.concat([valid.subarray(0, 8), Buffer.alloc(4)]), 'Missing header');
     });
+  });
+
+  it('should read symbols across chunks', () => {
+    // files are read in chunks of 1 MiB, the first line ends with a 2-byte `é` that starts at the last byte of the first chunk
+    const first = '0,0,0,main.';
+    const lines = [
+      `${first}${'x'.repeat(2 ** 20 - 1 - first.length)}é`,
+      ...Array.from({length: 60000}, (_, i) => `${i + 1},${i % 7 === 0 ? -1 : i},${i % 13},main.c[${i}].é${'x'.repeat(i % 17)}`),
+    ];
+    const symPath = `${dirBuild}/chunks.sym`;
+    mkdirSync(dirBuild, {recursive: true});
+    writeFileSync(symPath, `${lines.join('\n')}\n`);
+    expect(readFileSync(symPath).length).toBeGreaterThan(2 * 2 ** 20);
+
+    const expected = lines.map(line => {
+      const [labelIdx, varIdx, componentIdx, name] = line.split(',');
+      return [name, {labelIdx: Number(labelIdx), varIdx: Number(varIdx), componentIdx: Number(componentIdx)}];
+    });
+    expect([...iterateSymbols(symPath)]).toEqual(expected);
+
+    // without a final newline too
+    writeFileSync(symPath, lines.join('\n'));
+    expect([...iterateSymbols(symPath)]).toEqual(expected);
   });
 });

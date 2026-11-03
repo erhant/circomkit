@@ -1,6 +1,8 @@
 import {mkdirSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync} from 'node:fs';
 import * as snarkjs from 'snarkjs';
 import {Circomkit, type WitnessTester} from '../src';
+import {circomVersion} from '../src/functions';
+import type {WitnessType} from '../src/types';
 import {prepareMultiplier} from './common';
 
 describe('witness tester', () => {
@@ -442,4 +444,66 @@ describe('witnesses against snarkjs', () => {
       });
     }
   }
+});
+
+// buses need Circom 2.2.0
+const [major, minor] = (await circomVersion('circom')).split('.').map(Number);
+(major > 2 || (major === 2 && minor >= 2) ? describe : describe.skip)('reading signals of many shapes', () => {
+  const dirBuild = './tests/build/signals';
+  let circuit: WitnessTester;
+  let witness: WitnessType;
+  const input = {in: [[1, 2, 3], [4, 5, 6]], p: {x: 3, y: 7}};
+
+  beforeAll(async () => {
+    const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits: './tests/circuits', dirBuild});
+    // O0 keeps all signals, O1 already removes linear ones such as `d[i][j].out`
+    circuit = await circomkit.WitnessTester('signals', {file: 'signals', template: 'Signals', overrides: {optimization: 0}});
+    witness = await circuit.calculateWitness(input as never);
+  });
+  afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
+
+  const read = async (signal: string) => (await circuit.readWitnessSignals(witness, [signal]))[signal];
+
+  it('should read multi-dimensional arrays', async () => {
+    expect(await read('in')).toEqual([
+      [1n, 2n, 3n],
+      [4n, 5n, 6n],
+    ]);
+    expect(await read('out3')).toEqual([
+      [[2n, 2n], [6n, 12n], [12n, 36n]],
+      [[20n, 80n], [30n, 150n], [42n, 252n]],
+    ]);
+    expect(await read('out3[1][2]')).toEqual([42n, 252n]);
+  });
+
+  it('should read signals of component arrays', async () => {
+    expect(await read('d[1][2].out')).toBe(42n);
+    expect(await read('d[0]')).toEqual([
+      {out: 2n, in: 1n, sq: 1n},
+      {out: 6n, in: 2n, sq: 4n},
+      {out: 12n, in: 3n, sq: 9n},
+    ]);
+  });
+
+  it('should read buses', async () => {
+    expect(await read('p')).toEqual({x: 3n, y: 7n});
+    expect(await read('q')).toEqual({x: 21n, y: 10n});
+    expect(await read('q.y')).toBe(10n);
+    expect(await read('qs')).toEqual([
+      {x: 3n, y: 147n},
+      {x: 6n, y: 147n},
+    ]);
+    expect(await read('qs[1]')).toEqual({x: 6n, y: 147n});
+  });
+
+  it('should compute & assert outputs of all shapes', async () => {
+    const output = await circuit.compute(input as never, ['sum', 'q', 'qs']);
+    expect(output).toEqual({sum: 572n, q: {x: 21n, y: 10n}, qs: [{x: 3n, y: 147n}, {x: 6n, y: 147n}]});
+    await circuit.expectPass(input as never, output as never);
+  });
+
+  it('should not match signals by prefix', async () => {
+    await expect(read('su')).rejects.toThrow('No symbols matched for signal: su');
+    await expect(read('d[1][2].ou')).rejects.toThrow('No symbols matched for signal: d[1][2].ou');
+  });
 });
