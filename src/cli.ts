@@ -66,8 +66,9 @@ function cli(args: string[]) {
   const constraints = new Command('constraints')
     .description('print the constraints of a compiled circuit')
     .argument('<circuit>', 'Circuit name')
-    .action(circuit => {
-      console.log(circomkit.constraints(circuit).join('\n'));
+    .option('-f, --filter <signal>', 'only the constraints using this signal or component, e.g. isZero[0]')
+    .action(async (circuit, options) => {
+      for await (const line of circomkit.streamConstraints(circuit, options.filter)) console.log(line);
     });
 
   ///////////////////////////////////////////////////////////////////////////////

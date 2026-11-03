@@ -67,9 +67,17 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     return this.witnessCalculator(input);
   }
 
-  /** Returns the constraints as human-readable formulas, e.g. `in[0] * in[1] = inner[0]`. */
-  constraints(): string[] {
-    return formatConstraints(path.join(this.dir, `${this.name}.r1cs`), path.join(this.dir, `${this.name}.sym`));
+  /** Returns the constraints as human-readable formulas, e.g. `in[0] * in[1] = inner[0]`.
+   *
+   * With a `filter`, only the constraints using that signal or component are returned, e.g. `isZero[0]`.
+   */
+  async constraints(filter?: string): Promise<string[]> {
+    const lines: string[] = [];
+    const r1csPath = path.join(this.dir, `${this.name}.r1cs`);
+    for await (const line of formatConstraints(r1csPath, path.join(this.dir, `${this.name}.sym`), filter)) {
+      lines.push(line);
+    }
+    return lines;
   }
 
   /** Returns the number of constraints. */
@@ -356,9 +364,9 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
   /** Loads the list of R1CS constraints to `this.r1csConstraints`. */
   private async loadConstraints(): Promise<void> {
     if (this.r1csConstraints) return;
-    ({prime: this.prime, constraints: this.r1csConstraints} = readR1CSConstraints(
-      path.join(this.dir, `${this.name}.r1cs`)
-    ));
+    const {prime, constraints} = readR1CSConstraints(path.join(this.dir, `${this.name}.r1cs`));
+    this.prime = prime;
+    this.r1csConstraints = [...constraints];
   }
 
   /**

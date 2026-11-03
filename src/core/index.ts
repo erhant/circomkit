@@ -191,9 +191,20 @@ export class Circomkit {
     return await readR1CSInfo(this.path.ofCircuit(circuit, 'r1cs'));
   }
 
-  /** Returns the constraints of a compiled circuit as human-readable formulas, e.g. `in[0] * in[1] = inner[0]`. */
-  constraints(circuit: string): string[] {
-    return formatConstraints(this.path.ofCircuit(circuit, 'r1cs'), this.path.ofCircuit(circuit, 'sym'));
+  /** Returns the constraints of a compiled circuit as human-readable formulas, e.g. `in[0] * in[1] = inner[0]`.
+   *
+   * With a `filter`, only the constraints using that signal or component are returned, e.g. `isZero[0]`.
+   * They are streamed with {@link Circomkit.streamConstraints}.
+   */
+  async constraints(circuit: string, filter?: string): Promise<string[]> {
+    const lines: string[] = [];
+    for await (const line of this.streamConstraints(circuit, filter)) lines.push(line);
+    return lines;
+  }
+
+  /** Same as {@link Circomkit.constraints}, but yields the formulas one by one, for large circuits. */
+  streamConstraints(circuit: string, filter?: string): AsyncGenerator<string> {
+    return formatConstraints(this.path.ofCircuit(circuit, 'r1cs'), this.path.ofCircuit(circuit, 'sym'), filter);
   }
 
   /** Downloads the phase-1 setup PTAU file for a circuit based on it's number of constraints.

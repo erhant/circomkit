@@ -32,14 +32,21 @@ describe('witness tester', () => {
     await circuit.expectConstraintCount(size! - 1);
   });
 
-  it('should format constraints', () => {
-    expect(circuit.constraints()).toEqual([
+  it('should format constraints', async () => {
+    expect(await circuit.constraints()).toEqual([
       'in[0] * in[1] = inner[0]',
       'inner[0] * in[2] = inner[1]',
       'inner[1] * in[3] = out',
       ...[0, 1, 2, 3].map(i => `isZero[${i}].in * isZero[${i}].inv = 1`),
       ...[0, 1, 2, 3].map(i => `in[${i}] - isZero[${i}].in - 1 = 0`),
     ]);
+  });
+
+  it('should filter constraints by signal or component', async () => {
+    expect(await circuit.constraints('isZero[1]')).toEqual(['#4: isZero[1].in * isZero[1].inv = 1', '#8: in[1] - isZero[1].in - 1 = 0']);
+    expect(await circuit.constraints('main.out')).toEqual(['#2: inner[1] * in[3] = out']);
+    expect(await circuit.constraints('in[1]')).toEqual(['#0: in[0] * in[1] = inner[0]', '#8: in[1] - isZero[1].in - 1 = 0']);
+    await expect(circuit.constraints('isZero[9]')).rejects.toThrow('No signal matches isZero[9]');
   });
 
   it('should assert correctly', async () => {

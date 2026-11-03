@@ -40,7 +40,7 @@ describe('circomkit', () => {
       });
 
       it('should format constraints', async () => {
-        const constraints = circomkit.constraints(circuit.name);
+        const constraints = await circomkit.constraints(circuit.name);
         expect(constraints).toHaveLength((await circomkit.info(circuit.name)).constraints);
         expect(constraints[0]).toBe('in[0] * in[1] = inner[0]');
       });

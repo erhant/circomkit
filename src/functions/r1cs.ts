@@ -1,4 +1,5 @@
-import {openSync, type ReadPosition, readFileSync, readSync} from 'node:fs';
+import {closeSync, createReadStream, openSync, type ReadPosition, readFileSync, readSync} from 'node:fs';
+import {createInterface} from 'node:readline';
 import type {SymbolsType} from '../types';
 import {primeToName} from '../utils';
 
@@ -106,53 +107,77 @@ export type LinearCombination = Map<number, bigint>;
 
 /** Reads the prime and the constraints `A * B = C` from an R1CS file.
  *
+ * The constraints are read lazily in chunks, so that large circuits are never fully loaded in memory.
  * Follows the specs at [`iden3/r1csfile`](https://github.com/iden3/r1csfile/blob/master/doc/r1cs_bin_format.md).
  */
 export function readR1CSConstraints(r1csPath: string): {
   prime: bigint;
-  constraints: [LinearCombination, LinearCombination, LinearCombination][];
+  constraints: Generator<[LinearCombination, LinearCombination, LinearCombination]>;
 } {
-  const file = readFileSync(r1csPath);
+  const toBigInt = (bytes: Buffer) => BigInt(`0x${Buffer.from(bytes).reverse().toString('hex')}`);
 
   // sections may come in any order, the header is needed to read the constraints
+  const fd = openSync(r1csPath, 'r');
   const sections = new Map<number, number>(); // type -> data offset
-  for (let i = 0, offset = 12; i < file.readUInt32LE(8); i++) {
-    sections.set(file.readUInt32LE(offset), offset + 12);
-    offset += 12 + Number(file.readBigUInt64LE(offset + 4));
-  }
-  const header = sections.get(1);
-  const data = sections.get(2);
-  if (header === undefined || data === undefined) {
-    throw new Error(`Missing header or constraints in R1CS file: ${r1csPath}`);
-  }
-
-  const fieldSize = file.readUInt32LE(header);
-  const readField = (offset: number) =>
-    BigInt(
-      `0x${Buffer.from(file.subarray(offset, offset + fieldSize))
-        .reverse()
-        .toString('hex')}`
-    );
-  const prime = readField(header + 4);
-  const numConstraints = file.readUInt32LE(header + 4 + fieldSize + 24);
-
-  let offset = data;
-  const readLinearCombination = (): LinearCombination => {
-    const lc: LinearCombination = new Map();
-    const numTerms = file.readUInt32LE(offset);
-    offset += 4;
-    for (let i = 0; i < numTerms; i++) {
-      lc.set(file.readUInt32LE(offset), readField(offset + 4));
-      offset += 4 + fieldSize;
+  let fieldSize: number;
+  let prime: bigint;
+  let numConstraints: number;
+  try {
+    const at = (position: number, length: number) => {
+      const bytes = Buffer.alloc(length);
+      readSync(fd, bytes, 0, length, position);
+      return bytes;
+    };
+    for (let i = 0, offset = 12, n = at(8, 4).readUInt32LE(); i < n; i++) {
+      const section = at(offset, 12);
+      sections.set(section.readUInt32LE(0), offset + 12);
+      offset += 12 + Number(section.readBigUInt64LE(4));
     }
-    return lc;
-  };
-
-  const constraints: [LinearCombination, LinearCombination, LinearCombination][] = [];
-  for (let i = 0; i < numConstraints; i++) {
-    constraints.push([readLinearCombination(), readLinearCombination(), readLinearCombination()]);
+    const header = sections.get(1);
+    if (header === undefined || !sections.has(2)) {
+      throw new Error(`Missing header or constraints in R1CS file: ${r1csPath}`);
+    }
+    fieldSize = at(header, 4).readUInt32LE();
+    prime = toBigInt(at(header + 4, fieldSize));
+    numConstraints = at(header + 4 + fieldSize + 24, 4).readUInt32LE();
+  } finally {
+    closeSync(fd);
   }
-  return {prime, constraints};
+
+  function* constraints(): Generator<[LinearCombination, LinearCombination, LinearCombination]> {
+    const fd = openSync(r1csPath, 'r');
+    try {
+      const chunk = Buffer.alloc(Math.max(1 << 20, fieldSize));
+      let chunkStart = 0; // file position of the chunk
+      let chunkLength = 0;
+      let position = sections.get(2)!;
+      const read = (length: number) => {
+        if (position + length > chunkStart + chunkLength) {
+          chunkStart = position;
+          chunkLength = readSync(fd, chunk, 0, chunk.length, position);
+          if (chunkLength < length) throw new Error(`Unexpected end of R1CS file: ${r1csPath}`);
+        }
+        position += length;
+        return chunk.subarray(position - length - chunkStart, position - chunkStart);
+      };
+      const readLinearCombination = (): LinearCombination => {
+        const lc: LinearCombination = new Map();
+        for (let i = read(4).readUInt32LE(); i > 0; i--) {
+          const wire = read(4).readUInt32LE();
+          lc.set(wire, toBigInt(read(fieldSize)));
+        }
+        return lc;
+      };
+
+      for (let i = 0; i < numConstraints; i++) {
+        yield [readLinearCombination(), readLinearCombination(), readLinearCombination()];
+      }
+    } finally {
+      closeSync(fd);
+    }
+  }
+
+  return {prime, constraints: constraints()};
 }
 
 /** Reads a specified number of bytes from a file and converts them to a `BigInt`.
@@ -184,15 +209,31 @@ export function readSymbols(symPath: string): SymbolsType {
  *
  * Signals are named as in the `main` component, coefficients are shown signed (`p - 1` as `-1`),
  * and constraints without a multiplication are shown as `... = 0`.
+ *
+ * With a `filter`, only the constraints using that signal or component (e.g. `isZero[0]` for `isZero[0].in`)
+ * are formatted, prefixed with their index like `#3: ...`.
+ *
+ * Both files are streamed, so the constraints can be printed as they are formatted.
  */
-export function formatConstraints(r1csPath: string, symPath: string): string[] {
+export async function* formatConstraints(r1csPath: string, symPath: string, filter?: string): AsyncGenerator<string> {
   const {prime, constraints} = readR1CSConstraints(r1csPath);
 
   // a wire may have many names after simplification, the shortest one is used
   const names = new Map<number, string>([[0, '1']]); // wire 0 is the constant 1
-  for (const [symbol, {varIdx}] of Object.entries(readSymbols(symPath))) {
+  const matches = new Set<number>(); // wires of the filter
+  filter = filter?.replace(/^main\./, '');
+  for await (const line of createInterface({input: createReadStream(symPath), crlfDelay: Infinity})) {
+    const [, varIdx, , symbol] = line.split(',');
+    const wire = Number(varIdx);
+    if (symbol === undefined || !(wire > 0)) continue;
     const name = symbol.replace(/^main\./, '');
-    if (varIdx > 0 && (!names.has(varIdx) || name.length < names.get(varIdx)!.length)) names.set(varIdx, name);
+    if (!names.has(wire) || name.length < names.get(wire)!.length) names.set(wire, name);
+    if (filter !== undefined && (name === filter || name.startsWith(`${filter}.`) || name.startsWith(`${filter}[`))) {
+      matches.add(wire);
+    }
+  }
+  if (filter !== undefined && matches.size === 0) {
+    throw new Error(`No signal matches ${filter}, it may not exist or was optimized away`);
   }
 
   const signed = (c: bigint) => (c > prime / 2n ? c - prime : c);
@@ -213,10 +254,19 @@ export function formatConstraints(r1csPath: string, symPath: string): string[] {
   const isNegative = (lc: LinearCombination) => lc.size > 0 && signed(terms(lc)[0][1]) < 0n;
   const group = (lc: LinearCombination) => (lc.size > 1 ? `(${format(lc)})` : format(lc));
 
-  return constraints.map(([a, b, c]) => {
+  let index = 0;
+  for (let [a, b, c] of constraints) {
+    const i = index++;
+    if (filter !== undefined && ![a, b, c].some(lc => [...lc.keys()].some(wire => matches.has(wire)))) continue;
+
     // A * B - C = 0, shown as `A * B = C` with A positive, or as `C = 0` if there is no multiplication
-    if (a.size === 0 || b.size === 0) return `${format(isNegative(c) ? negate(c) : c)} = 0`;
-    if (isNegative(a)) [a, c] = [negate(a), negate(c)];
-    return `${group(a)} * ${group(b)} = ${format(c)}`;
-  });
+    let formatted: string;
+    if (a.size === 0 || b.size === 0) {
+      formatted = `${format(isNegative(c) ? negate(c) : c)} = 0`;
+    } else {
+      if (isNegative(a)) [a, c] = [negate(a), negate(c)];
+      formatted = `${group(a)} * ${group(b)} = ${format(c)}`;
+    }
+    yield filter === undefined ? formatted : `#${i}: ${formatted}`;
+  }
 }

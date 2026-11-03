@@ -69,6 +69,8 @@ npx circomkit info <circuit>
 
 # Print the constraints of a compiled circuit as formulas, e.g. `in[0] * in[1] = inner[0]`
 npx circomkit constraints <circuit>
+# Only the constraints that use a signal or component, e.g. `isZero[0]` or `out`
+npx circomkit constraints <circuit> --filter <signal>
 
 # Circuit-specific setup, creates the prover & verifier keys
 npx circomkit setup <circuit> [ptau-path]
@@ -296,13 +298,19 @@ await circuit.expectConstraintCount(N, true);
 `constraints()` returns the constraints as human-readable formulas, which helps to spot under-constrained signals:
 
 ```ts
-console.log(circuit.constraints().join('\n'));
+console.log((await circuit.constraints()).join('\n'));
 // in[0] * in[1] = inner[0]
 // inner[0] * in[2] = out
 // isZero[0].in * isZero[0].inv = 1
 // in[0] - isZero[0].in - 1 = 0
 // ...
+
+// only the constraints that use a signal or component, with their index
+console.log(await circuit.constraints('isZero[0]'));
+// [ '#2: isZero[0].in * isZero[0].inv = 1', '#3: in[0] - isZero[0].in - 1 = 0' ]
 ```
+
+For large circuits, `circomkit.streamConstraints(circuit, filter?)` yields the formulas one by one instead.
 
 #### Reading signals
 
