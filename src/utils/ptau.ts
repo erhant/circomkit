@@ -4,7 +4,7 @@ import {get} from 'node:https';
 import {pipeline} from 'node:stream/promises';
 
 /** Base PTAU URL as seen in [SnarkJS docs](https://github.com/iden3/snarkjs#7-prepare-phase-2). */
-const PTAU_URL_BASE = 'https://storage.googleapis.com/zkevm/ptau';
+const PTAU_URL_BASE = 'https://circom.info';
 
 /**
  * Returns the name of PTAU file for a given number of constraints.

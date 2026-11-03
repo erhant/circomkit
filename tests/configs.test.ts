@@ -3,6 +3,7 @@ import {Circomkit} from '../src';
 import {DEFAULT} from '../src/configs';
 import {circomVersion, requireCircom} from '../src/functions';
 import {initProject} from '../src/utils/init';
+import {downloadPtau} from '../src/utils/ptau';
 
 describe('overriding configurations', () => {
   it('should override default configs', () => {
@@ -309,5 +310,14 @@ describe('init', () => {
     const circuit = await circomkit.WitnessTester('multiplier_3', circomkit.readCircuitConfig('multiplier_3'));
     const input = JSON.parse(readFileSync(`${dir}/inputs/multiplier_3/default.json`, 'utf-8'));
     await circuit.expectPass(input, {out: 30});
+  });
+});
+
+describe('ptau download', () => {
+  it('should download a ptau file', async () => {
+    const dir = './tests/build/ptau-download';
+    mkdirSync(dir, {recursive: true});
+    const path = await downloadPtau('powersOfTau28_hez_final_08.ptau', dir);
+    expect(readFileSync(path).equals(readFileSync('./tests/ptau/powersOfTau28_hez_final_08.ptau'))).toBe(true);
   });
 });

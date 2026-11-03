@@ -5,8 +5,9 @@
     "test": "bun test"
   },
   "dependencies": {
-    "circomkit": "^0.3.0",
-    "circomlib": "^2.0.5"
+    "circomkit": "^0.4.0",
+    "circomlib": "^2.0.5",
+    "snarkjs": "^0.7.5"
   },
   "devDependencies": {
     "@types/bun": "latest",
