@@ -19,7 +19,7 @@ export class ProofTester<IN extends string[] = [], P extends CircomkitConfig['pr
   ) {
     this.verificationKey = JSON.parse(readFileSync(vkeyPath).toString()) as typeof this.verificationKey;
     if (this.verificationKey.protocol !== protocol) {
-      throw new Error('Protocol mismatch.');
+      throw new Error(`Protocol mismatch: ${vkeyPath} is for ${this.verificationKey.protocol}, not ${protocol}`);
     }
   }
 

@@ -695,10 +695,13 @@ export class Circomkit {
     return new WitnessTester<IN, OUT>(output, circuit, calculator);
   }
 
-  /** Returns a proof tester. */
+  /** Returns a proof tester, for a circuit that is compiled & set up.
+   *
+   * The `protocol` is the circuit's protocol in the config by default.
+   */
   async ProofTester<IN extends string[] = [], P extends CircomkitConfig['protocol'] = 'groth16'>(
     circuit: string,
-    protocol: P
+    protocol: P = this.resolve(circuit).protocol as P
   ) {
     const wasmPath = this.path.ofCircuit(circuit, 'wasm');
     const pkeyPath = this.path.ofCircuit(circuit, 'pkey');

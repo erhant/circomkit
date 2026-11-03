@@ -280,7 +280,7 @@ describe('multiplier', () => {
 });
 ```
 
-`WitnessTester` creates the main component under `circuits/test`, and compiles it under `<dirBuild>/.witness-tester`. Compiling is skipped when nothing changed since the last compile: the circuit, the files it includes, its parameters and the compiler options. Pass `recompile: true` in the circuit configuration to always compile, or `recompile: false` to never compile. `clear(circuit)` removes these builds too.
+`WitnessTester` creates the main component under `circuits/test`, and compiles it under `<dirBuild>/.witness-tester`. Compiling is skipped when nothing changed since the last compile: the circuit, the files it includes, its parameters and the compiler options. Pass `recompile: true` in the circuit configuration to always compile, or `recompile: false` to never compile. Each version of a circuit gets its own build, which is kept until you remove it with `clear(circuit)` (or `npx circomkit clear <circuit>`), or by deleting `<dirBuild>/.witness-tester`.
 
 > [!NOTE]
 >
@@ -394,6 +394,15 @@ describe('multiplier proofs', () => {
     await circuit.expectFail(proof, ['31']);
   });
 });
+```
+
+SnarkJS keeps worker threads running after proving & verifying. Test runners exit anyway, but in a script, call `teardown()` at the end so that it can exit:
+
+```ts
+import {Circomkit, teardown} from 'circomkit';
+
+// ... prove & verify
+await teardown();
 ```
 
 ### Type-Safety
