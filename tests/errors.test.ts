@@ -44,7 +44,7 @@ describe('errors', () => {
   });
 });
 
-describe('runtime errors (#107)', () => {
+describe('runtime errors', () => {
   it('should fail due to modulo by zero', async () => {
     const circomkit = new Circomkit({
       verbose: false,

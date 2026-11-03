@@ -2,6 +2,7 @@ import {existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync} fr
 import {Circomkit} from '../src';
 import {DEFAULT} from '../src/configs';
 import {circomVersion, requireCircom} from '../src/functions';
+import {initProject} from '../src/utils/init';
 
 describe('overriding configurations', () => {
   it('should override default configs', () => {
@@ -254,5 +255,59 @@ describe('circom version checks', () => {
       `Feature requires Circom 2.2.2 or newer, found 2.1.5 (${fakeCircom})`
     );
     await expect(requireCircom(fakeCircom, '2.1.10', 'Feature')).rejects.toThrow();
+  });
+});
+
+describe('compiling the same circuit file many times', () => {
+  for (const protocol of ['plonk', 'fflonk'] as const) {
+    it(`should prove & verify with ${protocol}, sequentially and in parallel`, async () => {
+      const circomkit = new Circomkit({
+        protocol,
+        verbose: false,
+        logLevel: 'silent',
+        dirPtau: './tests/ptau',
+        dirCircuits: './tests/circuits',
+        dirInputs: './tests/build/same-file/inputs',
+        dirBuild: `./tests/build/same-file/${protocol}`,
+        circuits: {
+          mul3: {file: 'multiplier', template: 'Multiplier', params: [3], dir: 'test/same-file'},
+          mul4: {file: 'multiplier', template: 'Multiplier', params: [4], dir: 'test/same-file'},
+        },
+      });
+      const run = async (circuit: 'mul3' | 'mul4') => {
+        await circomkit.compile(circuit);
+        await circomkit.setup(circuit);
+        await circomkit.prove(circuit, protocol, {in: circuit === 'mul3' ? [2, 3, 5] : [2, 3, 5, 7]});
+        return circomkit.verify(circuit, protocol);
+      };
+
+      expect([await run('mul3'), await run('mul3')]).toEqual([true, true]);
+      expect(await Promise.all([run('mul3'), run('mul4')])).toEqual([true, true]);
+    });
+  }
+});
+
+describe('init', () => {
+  const dir = './tests/build/init';
+
+  beforeAll(() => rmSync(dir, {recursive: true, force: true}));
+
+  it('should create a project that works, without overwriting files', async () => {
+    const {created, skipped} = initProject(dir);
+    expect(created).toHaveLength(4);
+    expect(skipped).toHaveLength(0);
+    expect(initProject(dir)).toEqual({created: [], skipped: created});
+
+    const {circuits} = JSON.parse(readFileSync(`${dir}/circomkit.json`, 'utf-8'));
+    const circomkit = new Circomkit({
+      verbose: false,
+      logLevel: 'silent',
+      circuits,
+      dirCircuits: `${dir}/circuits`,
+      dirBuild: `${dir}/build`,
+    });
+    const circuit = await circomkit.WitnessTester('multiplier_3', circomkit.readCircuitConfig('multiplier_3'));
+    const input = JSON.parse(readFileSync(`${dir}/inputs/multiplier_3/default.json`, 'utf-8'));
+    await circuit.expectPass(input, {out: 30});
   });
 });

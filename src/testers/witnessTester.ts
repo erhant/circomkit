@@ -334,7 +334,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     }
   }
 
-  /** Returns the witness index of a loaded symbol, throwing if it is unknown or optimized away (#80). */
+  /** Returns the witness index of a loaded symbol, throwing if it is unknown or optimized away. */
   private varIdx(symbolName: string): number {
     const symbolInfo = this.symbols![symbolName];
     if (symbolInfo === undefined) {

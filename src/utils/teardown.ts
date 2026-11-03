@@ -19,7 +19,7 @@ export async function teardown() {
 }
 
 /**
- * SnarkJS crashes on Bun with its worker threads (see #114), and only proving takes a `singleThread` option.
+ * SnarkJS crashes on Bun with its worker threads, and only proving takes a `singleThread` option.
  *
  * ffjavascript caches the multi-threaded curves on `globalThis` and SnarkJS reuses them everywhere,
  * so on Bun we put single-threaded curves there instead. Does nothing on Node.

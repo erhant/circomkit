@@ -322,7 +322,7 @@ export class Circomkit {
     const config: MainComponentConfig = {
       file: file,
       template: circuitConfig.template,
-      // Precedence: circuit `version` > `overrides.version` > global `version` > "2.0.0". See #123.
+      // Precedence: circuit `version` > `overrides.version` > global `version` > "2.0.0".
       version: circuitConfig.version || version || '2.0.0',
       dir: directory,
       pubs: circuitConfig.pubs || [],

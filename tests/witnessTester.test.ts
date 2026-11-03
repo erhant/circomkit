@@ -40,6 +40,11 @@ describe('witness tester', () => {
     await circuit.expectFail(signals.badInput);
   });
 
+  it('should compute witnesses in parallel', async () => {
+    const inputs = Array.from({length: 10}, (_, i) => [i + 2, i + 3, i + 5, i + 7]);
+    await Promise.all(inputs.map(input => circuit.expectPass({in: input}, {out: input.reduce((a, b) => a * b)})));
+  });
+
   it('should compute correctly', async () => {
     const output = await circuit.compute(signals.input, ['out']);
     expect(output).toHaveProperty('out');
@@ -177,7 +182,7 @@ describe('witness tester recompilation', () => {
   });
 });
 
-describe('witness tester optimized symbols (#80)', () => {
+describe('witness tester optimized symbols', () => {
   const dirBuild = './tests/build/optimized';
   const dirCircuits = `${dirBuild}/circuits`;
   const config = {file: 'linear', template: 'Linear'};
@@ -213,7 +218,7 @@ describe('witness tester optimized symbols (#80)', () => {
   afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
 });
 
-describe('witness tester anonymous components (#115)', () => {
+describe('witness tester anonymous components', () => {
   const dirBuild = './tests/build/anonymous';
   const dirCircuits = `${dirBuild}/circuits`;
 
@@ -245,7 +250,7 @@ describe('witness tester anonymous components (#115)', () => {
 });
 
 // the C witness calculator needs nlohmann-json and gmp (and nasm on x86-64), which CI installs on Linux
-(process.platform === 'linux' ? describe : describe.skip)('witness tester with the C calculator (#88)', () => {
+(process.platform === 'linux' ? describe : describe.skip)('witness tester with the C calculator', () => {
   const circomkit = new Circomkit({
     verbose: false,
     logLevel: 'silent',
@@ -263,6 +268,10 @@ describe('witness tester anonymous components (#115)', () => {
     await circuit.expectPass(signals.input, signals.output);
     expect(await circuit.compute(signals.input, ['out'])).toEqual({out: BigInt(signals.output.out)});
     await circuit.expectFail(signals.badInput);
+
+    // in parallel too, each call has its own input & witness files
+    const inputs = Array.from({length: 5}, (_, i) => [i + 2, i + 3, i + 5, i + 7]);
+    await Promise.all(inputs.map(input => circuit.expectPass({in: input}, {out: input.reduce((a, b) => a * b)})));
   });
 
   it('should catch run-time errors', async () => {

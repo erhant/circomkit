@@ -23,7 +23,15 @@ export async function wasmWitnessCalculator(dir: string, circuit: string): Promi
   const jsDir = resolve(dir, `${circuit}_js`);
   const builder = createRequire(`${jsDir}/`)('./witness_calculator.js');
   const calculator = await builder(readFileSync(`${jsDir}/${circuit}.wasm`));
-  return input => calculator.calculateWitness(input, false);
+
+  // the WASM instance keeps the signals of a calculation in its memory, so concurrent calculations
+  // (e.g. `Promise.all`) would overwrite each other; they are queued instead
+  let queue: Promise<unknown> = Promise.resolve();
+  return input => {
+    const witness = queue.then(() => calculator.calculateWitness(input, false));
+    queue = witness.catch(() => {});
+    return witness;
+  };
 }
 
 /** Builds a witness calculator that runs the C witness calculator under `<dir>/<circuit>_cpp`.

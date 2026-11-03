@@ -167,7 +167,7 @@ describe('circomkit', () => {
   );
 });
 
-describe('instantiate version fallback (#123)', () => {
+describe('instantiate version fallback', () => {
   const {circuit} = prepareMultiplier(3);
   const baseConfig = {
     verbose: false,
@@ -205,7 +205,7 @@ describe('instantiate version fallback (#123)', () => {
 });
 
 // the C witness calculator needs nlohmann-json, gmp and nasm, which CI installs on Linux
-(process.platform === 'linux' ? describe : describe.skip)('witness with the C calculator (#113)', () => {
+(process.platform === 'linux' ? describe : describe.skip)('witness with the C calculator', () => {
   const {circuit, signals, inputName} = prepareMultiplier(3);
   const circomkit = new Circomkit({
     verbose: false,

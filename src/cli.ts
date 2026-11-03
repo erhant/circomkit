@@ -5,6 +5,7 @@ import {Command} from '@commander-js/extra-typings';
 import {version} from '../package.json';
 import {Circomkit} from './core';
 import {prettyStringify} from './utils';
+import {initProject} from './utils/init';
 import {teardown} from './utils/teardown';
 
 const CONFIG_PATH = './circomkit.json';
@@ -73,18 +74,24 @@ function cli(args: string[]) {
   ///////////////////////////////////////////////////////////////////////////////
   const init = new Command('init')
     .description('initialize a new Circomkit project')
-    .argument('[dir]', 'Directory')
-    .action(async dir => {
-      const args = ['clone', 'https://github.com/erhant/circomkit-examples.git', dir ?? '.'];
-      circomkit.log.info(`git ${args.join(' ')}`);
-
-      const result = await new Promise<{stdout: string; stderr: string}>((resolve, reject) =>
-        execFile('git', args, (error, stdout, stderr) => (error ? reject(error) : resolve({stdout, stderr})))
-      );
-
-      circomkit.log.info(result.stdout);
-      if (result.stderr) {
-        circomkit.log.info(result.stderr);
+    .argument('[dir]', 'Directory', '.')
+    .option('--examples', 'clone the examples repository instead, needs git & network')
+    .action(async (dir, options) => {
+      if (options.examples) {
+        const args = ['clone', 'https://github.com/erhant/circomkit-examples.git', dir];
+        circomkit.log.info(`git ${args.join(' ')}`);
+        const result = await new Promise<{stdout: string; stderr: string}>((resolve, reject) =>
+          execFile('git', args, (error, stdout, stderr) => (error ? reject(error) : resolve({stdout, stderr})))
+        );
+        circomkit.log.info(result.stdout);
+        if (result.stderr) {
+          circomkit.log.info(result.stderr);
+        }
+      } else {
+        const {created, skipped} = initProject(dir);
+        for (const path of created) circomkit.log.info(`Created ${path}`);
+        for (const path of skipped) circomkit.log.warn(`Skipped ${path}, it already exists`);
+        circomkit.log.info(`\nTry: circomkit prove multiplier_3 default${dir === '.' ? '' : ` (within ${dir})`}`);
       }
 
       circomkit.log.info('Circomkit project initialized! ✨');

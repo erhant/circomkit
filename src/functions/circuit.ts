@@ -109,7 +109,7 @@ export async function compileCircuit(config: CircomkitConfig, targetPath: string
 export function instantiateCircuit(config: MainComponentConfig, targetDir: string, targetPath: string) {
   const circuitCode = makeCircuit(config);
 
-  // an unchanged file is not rewritten, so that its mtime does not trigger file watchers, see #120
+  // an unchanged file is not rewritten, so that its mtime does not trigger file watchers
   if (existsSync(targetPath) && readFileSync(targetPath, 'utf-8') === circuitCode) {
     return;
   }
