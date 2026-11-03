@@ -116,3 +116,7 @@ dist
 
 # test inputs
 input.test.json
+
+# generated main components of test circuits
+tests/circuits/**/main/
+tests/circuits/**/test/

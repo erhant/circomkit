@@ -178,3 +178,39 @@ describe('witness tester recompilation', () => {
     expect(builtAt()).toBeGreaterThan(before);
   });
 });
+
+describe('witness tester optimized symbols (#80)', () => {
+  const dirBuild = './tests/build/optimized';
+  const dirCircuits = `${dirBuild}/circuits`;
+  const config = {file: 'linear', template: 'Linear'};
+
+  beforeAll(() => {
+    // `mid` only equals `a`, which O1 substitutes away
+    mkdirSync(dirCircuits, {recursive: true});
+    writeFileSync(
+      `${dirCircuits}/linear.circom`,
+      'pragma circom 2.0.0;\n' +
+        'template Linear() { signal input a; signal input b; signal mid; signal output out; mid <== a; out <== mid * b; }\n'
+    );
+  });
+
+  it('should throw a clear error for optimized symbols', async () => {
+    const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits, dirBuild, optimization: 1});
+    const circuit = await circomkit.WitnessTester('linear', {...config});
+    const witness = await circuit.calculateWitness({a: 2, b: 3});
+    const error = 'Symbol main.mid was optimized away by the compiler, use a lower optimization level to keep it';
+    await expect(circuit.readWitness(witness, ['main.mid'])).rejects.toThrow(error);
+    await expect(circuit.readWitnessSignals(witness, ['mid'])).rejects.toThrow(error);
+    await expect(circuit.editWitness(witness, {'main.mid': BigInt(1)})).rejects.toThrow(error);
+  });
+
+  it('should read the symbol without optimizations', async () => {
+    const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits, dirBuild, optimization: 0});
+    const circuit = await circomkit.WitnessTester('linear', {...config});
+    const witness = await circuit.calculateWitness({a: 2, b: 3});
+    expect(await circuit.readWitness(witness, ['main.mid'])).toEqual({'main.mid': BigInt(2)});
+    expect(await circuit.readWitnessSignals(witness, ['mid'])).toEqual({mid: BigInt(2)});
+  });
+
+  afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
+});

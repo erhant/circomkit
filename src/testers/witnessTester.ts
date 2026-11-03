@@ -3,8 +3,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type {CircomTester, CircuitSignals, SignalValueType, SymbolsType, WitnessType} from '../types/';
 
-// @todo detect optimized symbols https://github.com/erhant/circomkit/issues/80
-
 /** A utility class to test your circuits. Use `expectFail` and `expectPass` to test out evaluations. */
 export class WitnessTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
   /** A dictionary of symbols, see {@link loadSymbols} */
@@ -164,14 +162,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
     const fakeWitness = witness.slice();
     for (const symbolName in symbolValues) {
-      // get corresponding symbol
-      const symbolInfo = this.symbols![symbolName];
-      if (symbolInfo === undefined) {
-        throw new Error(`Invalid symbol name: ${symbolName}`);
-      }
-
-      // override with user value
-      fakeWitness[symbolInfo.varIdx] = symbolValues[symbolName];
+      fakeWitness[this.varIdx(symbolName)] = symbolValues[symbolName];
     }
 
     return fakeWitness;
@@ -183,14 +174,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
     const ans: Record<string, bigint> = {};
     for (const symbolName of symbols) {
-      // get corresponding symbol
-      const symbolInfo = this.symbols![symbolName];
-      if (symbolInfo === undefined) {
-        throw new Error(`Invalid symbol name: ${symbolName}`);
-      }
-
-      // override with user value
-      ans[symbolName] = witness[symbolInfo.varIdx];
+      ans[symbolName] = witness[this.varIdx(symbolName)];
     }
 
     return ans;
@@ -244,12 +228,15 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
       if (matchedSymbols.length === 0) {
         // no matches!
         throw new Error(`No symbols matched for signal: ${signal}`);
-      } else if (matchedSymbols.length === 1) {
+      }
+      // throws if any element was optimized away, which also breaks the consecutive indices assumed below
+      const indices = matchedSymbols.map(s => this.varIdx(s));
+      if (matchedSymbols.length === 1) {
         // easy case, just return the witness of this symbol
-        entries.push([signal, witness[this.symbols![matchedSymbols[0]].varIdx]]);
+        entries.push([signal, witness[indices[0]]]);
       } else {
         // since signal names are consequent, we only need to know the witness index of the first symbol
-        let idx = this.symbols![matchedSymbols[0]].varIdx;
+        let idx = indices[0];
 
         // we can assume that a symbol with this name appears only once in a component, and that the depth is same for
         // all occurrences of this symbol, given the type system used in Circom. So, we can just count the number
@@ -291,6 +278,20 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    */
   private assertOut(actualOut: WitnessType, expectedOut: CircuitSignals<OUT>): Promise<void> {
     return this.circomTester.assertOut(actualOut, expectedOut);
+  }
+
+  /** Returns the witness index of a loaded symbol, throwing if it is unknown or optimized away (#80). */
+  private varIdx(symbolName: string): number {
+    const symbolInfo = this.symbols![symbolName];
+    if (symbolInfo === undefined) {
+      throw new Error(`Invalid symbol name: ${symbolName}`);
+    }
+    if (symbolInfo.varIdx === -1) {
+      throw new Error(
+        `Symbol ${symbolName} was optimized away by the compiler, use a lower optimization level to keep it`
+      );
+    }
+    return symbolInfo.varIdx;
   }
 
   /** Loads the list of R1CS constraints to `this.constraints`. */

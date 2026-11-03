@@ -2,6 +2,8 @@ import {execFile} from 'node:child_process';
 import {createHash, randomBytes} from 'node:crypto';
 import {existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync} from 'node:fs';
 import {readFile, rm, writeFile} from 'node:fs/promises';
+import {createRequire} from 'node:module';
+import {dirname} from 'node:path';
 import {promisify} from 'node:util';
 // @ts-expect-error
 import {c as c_tester, wasm as wasm_tester} from 'circom_tester';
@@ -250,7 +252,9 @@ export class Circomkit {
     const {protocol} = this.resolve(circuit);
     const pkey = this.path.ofCircuit(circuit, 'pkey');
     await singleThreadOnBun();
-    const template = readFileSync(`./node_modules/snarkjs/templates/verifier_${protocol}.sol.ejs`, 'utf-8');
+    // resolve snarkjs like the user's project would (also when hoisted), its main entry is `<root>/build/main.cjs`
+    const snarkjsRoot = dirname(dirname(createRequire(`${process.cwd()}/`).resolve('snarkjs')));
+    const template = readFileSync(`${snarkjsRoot}/templates/verifier_${protocol}.sol.ejs`, 'utf-8');
     const contractCode = await snarkjs.zKey.exportSolidityVerifier(pkey, {[protocol]: template}, this.snarkjsLogger);
 
     const contractPath = this.path.ofCircuit(circuit, 'sol');
