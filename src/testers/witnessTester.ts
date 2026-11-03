@@ -1,7 +1,7 @@
 import {AssertionError} from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
-import {formatConstraints, type LinearCombination, readR1CSConstraints, readSymbols} from '../functions/r1cs';
+import {formatConstraints, type R1CSConstraints, readR1CSConstraints, readSymbols} from '../functions/r1cs';
 import {cWitnessCalculatorPath, type WitnessCalculator} from '../functions/witness';
 import type {CircuitSignals, SignalValueType, SymbolsType, WitnessType} from '../types/';
 
@@ -11,10 +11,8 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
   private symbols: SymbolsType | undefined;
   /** Whether all symbols are loaded, see {@link loadSymbols} and {@link loadSpecificSymbols} */
   private allSymbolsLoaded = false;
-  /** List of constraints `A * B = C`, see {@link loadConstraints} */
-  private r1csConstraints: [LinearCombination, LinearCombination, LinearCombination][] | undefined;
-  /** Prime of the field of the constraints, see {@link loadConstraints} */
-  private prime = 0n;
+  /** Constraints `A * B = C`, see {@link loadConstraints} */
+  private r1csConstraints: R1CSConstraints | undefined;
 
   constructor(
     /** The build directory of the circuit */
@@ -28,16 +26,18 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
   /** Assert that constraints are valid for a given witness. */
   async expectConstraintPass(witness: WitnessType): Promise<void> {
     await this.loadConstraints();
-    const p = this.prime;
-    const evaluate = (lc: LinearCombination) => {
+    const {prime: p, offsets, wires, coefficientIds, coefficients} = this.r1csConstraints!;
+    const evaluate = (k: number) => {
       let sum = 0n;
-      for (const [i, coeff] of lc) sum = (sum + coeff * BigInt(witness[i])) % p;
+      for (let t = offsets[k]; t < offsets[k + 1]; t++) {
+        sum = (sum + coefficients[coefficientIds[t]] * BigInt(witness[wires[t]])) % p;
+      }
       return sum;
     };
 
-    for (const [a, b, c] of this.r1csConstraints!) {
+    for (let k = 0; k < offsets.length - 1; k += 3) {
       // edited witnesses may hold values out of the field, hence the double modulo
-      if ((((evaluate(a) * evaluate(b) - evaluate(c)) % p) + p) % p !== 0n) {
+      if ((((evaluate(k) * evaluate(k + 1) - evaluate(k + 2)) % p) + p) % p !== 0n) {
         throw new Error("Constraint doesn't match");
       }
     }
@@ -83,8 +83,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
   /** Returns the number of constraints. */
   async getConstraintCount() {
     await this.loadConstraints();
-    const numConstraints = this.r1csConstraints!.length;
-    return numConstraints;
+    return (this.r1csConstraints!.offsets.length - 1) / 3;
   }
 
   /** Asserts that the circuit has enough constraints.
@@ -361,12 +360,10 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     return symbolInfo.varIdx;
   }
 
-  /** Loads the list of R1CS constraints to `this.r1csConstraints`. */
+  /** Loads the R1CS constraints to `this.r1csConstraints`. */
   private async loadConstraints(): Promise<void> {
     if (this.r1csConstraints) return;
-    const {prime, constraints} = readR1CSConstraints(path.join(this.dir, `${this.name}.r1cs`));
-    this.prime = prime;
-    this.r1csConstraints = [...constraints];
+    this.r1csConstraints = readR1CSConstraints(path.join(this.dir, `${this.name}.r1cs`));
   }
 
   /**
