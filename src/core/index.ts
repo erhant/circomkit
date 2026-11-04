@@ -10,11 +10,13 @@ import * as snarkjs from 'snarkjs';
 import {type CircomkitConfig, DEFAULT, PRIMES, PROTOCOLS} from '../configs';
 import {
   compileCircuit,
+  countPlonkGates,
   formatConstraints,
   getCalldata,
   instantiateCircuit,
   isCompiled,
   type MainComponentConfig,
+  readR1CSConstraints,
   readR1CSInfo,
 } from '../functions';
 import {
@@ -228,10 +230,27 @@ export class Circomkit {
       throw new Error('Auto-downloading PTAU only allowed for bn128 at the moment.');
     }
 
-    // Groth16 needs 2^p > constraints + public signals, see `newZKey` of SnarkJS
-    // TODO: PLONK & FFLONK need more (additions count too), `setup` throws if this is too small
+    // the smallest PTAU of 2^p powers that the setup of SnarkJS accepts
     const {constraints, publicInputs, publicOutputs} = await this.info(circuit);
-    const ptauName = getPtauName(constraints + publicInputs + publicOutputs + 1);
+    const publicSignals = publicInputs + publicOutputs;
+    let size: number;
+    if (config.protocol === 'groth16') {
+      // 2^p > constraints + public signals, see https://github.com/iden3/snarkjs/blob/v0.7.5/src/zkey_new.js#L60
+      size = constraints + publicSignals + 1;
+    } else {
+      const r1cs = readR1CSConstraints(this.path.ofCircuit(circuit, 'r1cs'));
+      const gates = countPlonkGates(r1cs, publicSignals, config.protocol);
+      if (config.protocol === 'plonk') {
+        // 2^p >= gates, see https://github.com/iden3/snarkjs/blob/v0.7.5/src/plonk_setup.js#L77
+        size = gates;
+      } else {
+        // the domain has 2 more gates for blinding, and at least 2^3; the PTAU must have 9 * domain + 18 of its
+        // 2^(p+1) - 1 powers of tau in G1, see https://github.com/iden3/snarkjs/blob/v0.7.5/src/fflonk_setup.js#L112-L117
+        const domain = 2 ** Math.max(3, Math.ceil(Math.log2(gates + 2)));
+        size = Math.ceil((9 * domain + 19) / 2);
+      }
+    }
+    const ptauName = getPtauName(size);
     const ptauPath = `${config.dirPtau}/${ptauName}`;
     if (existsSync(ptauPath)) {
       return ptauPath;
