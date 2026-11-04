@@ -16,7 +16,6 @@ import {
   instantiateCircuit,
   isCompiled,
   type MainComponentConfig,
-  readR1CSConstraints,
   readR1CSInfo,
 } from '../functions';
 import {
@@ -231,15 +230,13 @@ export class Circomkit {
     }
 
     // the smallest PTAU of 2^p powers that the setup of SnarkJS accepts
-    const {constraints, publicInputs, publicOutputs} = await this.info(circuit);
-    const publicSignals = publicInputs + publicOutputs;
     let size: number;
     if (config.protocol === 'groth16') {
       // 2^p > constraints + public signals, see https://github.com/iden3/snarkjs/blob/v0.7.5/src/zkey_new.js#L60
-      size = constraints + publicSignals + 1;
+      const {constraints, publicInputs, publicOutputs} = await this.info(circuit);
+      size = constraints + publicInputs + publicOutputs + 1;
     } else {
-      const r1cs = readR1CSConstraints(this.path.ofCircuit(circuit, 'r1cs'));
-      const gates = countPlonkGates(r1cs, publicSignals);
+      const gates = countPlonkGates(this.path.ofCircuit(circuit, 'r1cs'));
       if (config.protocol === 'plonk') {
         // 2^p >= gates, see https://github.com/iden3/snarkjs/blob/v0.7.5/src/plonk_setup.js#L77
         size = gates;

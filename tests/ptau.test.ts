@@ -2,7 +2,7 @@ import {execFile} from 'node:child_process';
 import {mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
 import {promisify} from 'node:util';
 import {Circomkit} from '../src';
-import {countPlonkGates, readR1CSConstraints} from '../src/functions/r1cs';
+import {countPlonkGates} from '../src/functions/r1cs';
 import {primes} from '../src/utils';
 import {singleThreadOnBun, teardown} from '../src/utils/teardown';
 
@@ -100,11 +100,8 @@ describe('PTAU sizes for PLONK & FFLONK', () => {
           const r1csPath = circomkit.path.ofCircuit(circuitName, 'r1cs');
           const zkeyPath = `${dirBuild}/${circuitName}.zkey`;
 
-          const {publicInputs, publicOutputs} = await circomkit.info(circuitName);
           expect(await setup(protocol, r1csPath, zkeyPath)).toBe(true);
-          expect(countPlonkGates(readR1CSConstraints(r1csPath), publicInputs + publicOutputs)).toBe(
-            zkeyGates(zkeyPath)
-          );
+          expect(countPlonkGates(r1csPath)).toBe(zkeyGates(zkeyPath));
         });
       }
     }
@@ -165,7 +162,7 @@ describe('PTAU sizes for PLONK & FFLONK', () => {
       ]);
 
       expect(await setup(protocol, r1csPath, zkeyPath)).toBe(true);
-      const gates = countPlonkGates(readR1CSConstraints(r1csPath), 2);
+      const gates = countPlonkGates(r1csPath);
       expect(gates).toBe(22);
       if (protocol === 'plonk') expect(zkeyGates(zkeyPath)).toBe(gates);
       // an upper bound, as FFLONK drops the terms that cancel out (20 gates in SnarkJS 0.7.5, 22 in 0.7.6)

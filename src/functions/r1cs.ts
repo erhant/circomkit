@@ -96,6 +96,10 @@ function r1csReader(fd: number, r1csPath: string) {
     read,
     u32,
     toHex,
+    /** Moves past `length` bytes */
+    skip(length: number) {
+      position += length;
+    },
     /** Moves to the data of a section, throwing if it is missing */
     seek(type: number) {
       const offset = sections.get(type);
@@ -201,7 +205,7 @@ export function* iterateConstraints({
   }
 }
 
-/** Counts the gates that SnarkJS makes for PLONK or FFLONK.
+/** Counts the gates that SnarkJS makes for PLONK or FFLONK, reading the R1CS file in chunks.
  *
  * Each public signal is a gate, and so is each constraint, plus an addition gate for each term beyond the first
  * in a multiplication, or beyond the third in a linear constraint. A constraint is linear if `A` or `B` is a constant,
@@ -209,25 +213,38 @@ export function* iterateConstraints({
  *
  * FFLONK drops the terms that cancel out there, which are counted here, so its count is an upper bound for such
  * constraints. Which terms cancel differs between SnarkJS versions, and Circom does not write such constraints anyway.
+ * As cancellation is not counted, only the wires of the terms are read, and their coefficients are skipped.
  *
  * @see [`process`](https://github.com/iden3/snarkjs/blob/v0.7.5/src/plonk_setup.js#L270) & [`reduceCoefs`](https://github.com/iden3/snarkjs/blob/v0.7.5/src/plonk_setup.js#L177) for PLONK
  * @see [`processR1csConstraint`](https://github.com/iden3/snarkjs/blob/v0.7.5/src/r1cs_constraint_processor.js#L32) & [`reduceCoefs`](https://github.com/iden3/snarkjs/blob/v0.7.5/src/r1cs_constraint_processor.js#L127) for FFLONK
  */
-export function countPlonkGates(r1cs: R1CSConstraints, publicSignals: number): number {
-  // the wires other than the constant `1` at wire 0
-  const variables = (...lcs: LinearCombination[]) =>
-    new Set(lcs.flatMap(lc => [...lc.keys()]).filter(w => w !== 0)).size;
-  const isConstant = (lc: LinearCombination) => lc.size === 1 && lc.has(0);
-  const linearGates = (...lcs: LinearCombination[]) => 1 + Math.max(0, variables(...lcs) - 3);
+export function countPlonkGates(r1csPath: string): number {
+  return readR1CS(r1csPath, ({header, seek, skip, u32}) => {
+    /** The wires of a linear combination */
+    const readWires = () => {
+      const wires: number[] = [];
+      for (let t = u32(); t > 0; t--) {
+        wires.push(u32());
+        skip(header.fieldSize);
+      }
+      return wires;
+    };
+    // the wires other than the constant `1` at wire 0
+    const variables = (...lcs: number[][]) => new Set(lcs.flat().filter(w => w !== 0)).size;
+    const isConstant = (wires: number[]) => wires.length === 1 && wires[0] === 0;
+    const linearGates = (...lcs: number[][]) => 1 + Math.max(0, variables(...lcs) - 3);
 
-  let gates = publicSignals;
-  for (const [a, b, c] of iterateConstraints(r1cs)) {
-    if (a.size === 0 || b.size === 0) gates += linearGates(c);
-    else if (isConstant(a)) gates += linearGates(b, c);
-    else if (isConstant(b)) gates += linearGates(a, c);
-    else gates += 1 + Math.max(0, variables(a) - 1) + Math.max(0, variables(b) - 1) + Math.max(0, variables(c) - 1);
-  }
-  return gates;
+    seek(SECTION.CONSTRAINTS);
+    let gates = header.publicInputs + header.publicOutputs;
+    for (let k = 0; k < header.constraints; k++) {
+      const [a, b, c] = [readWires(), readWires(), readWires()];
+      if (a.length === 0 || b.length === 0) gates += linearGates(c);
+      else if (isConstant(a)) gates += linearGates(b, c);
+      else if (isConstant(b)) gates += linearGates(a, c);
+      else gates += 1 + Math.max(0, variables(a) - 1) + Math.max(0, variables(b) - 1) + Math.max(0, variables(c) - 1);
+    }
+    return gates;
+  });
 }
 
 /** Yields the symbols of a `.sym` file one by one, with their names, e.g. `main.out`.
