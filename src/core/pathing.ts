@@ -10,7 +10,9 @@ export class CircomkitPath {
   constructor(
     private readonly config: CircomkitConfig,
     /** Returns the configuration of a circuit, defaults to the global configuration. */
-    private readonly resolve: (circuit: string) => CircomkitConfig = () => config
+    private readonly resolve: (circuit: string) => CircomkitConfig = () => config,
+    /** Returns the directory of a circuit's `main` component within `dirCircuits`, defaults to `main`. */
+    private readonly mainDir: (circuit: string) => string = () => 'main'
   ) {}
 
   /**
@@ -26,7 +28,7 @@ export class CircomkitPath {
       case 'dir':
         return dir;
       case 'main':
-        return `${config.dirCircuits}/main/${circuit}.circom`;
+        return `${config.dirCircuits}/${this.mainDir(circuit)}/${circuit}.circom`;
       case 'r1cs':
         return `${dir}/${circuit}.r1cs`;
       case 'sym':

@@ -249,7 +249,7 @@ Circomkit provides two testers, which throw on failure, so they work with any te
 The witness tester computes witnesses for your inputs, and checks them against the constraints & expected outputs:
 
 - `expectPass(input)` checks that the witness is computed and satisfies the constraints.
-- `expectPass(input, output)` additionally checks the output signals.
+- `expectPass(input, output)` additionally checks the output signals. They are compared in the field, so `-1` matches `p - 1`, and can be given as numbers, bigints or strings, e.g. `'0xff'`.
 - `expectFail(input)` checks that the witness computation fails, e.g. due to a failed `assert` or `===`, a missing input or a modulo by zero. It returns the error message.
 
 ```ts
@@ -282,7 +282,7 @@ describe('multiplier', () => {
 
 > [!NOTE]
 >
-> The witness tester compiles with at most optimization level 1, even if `optimization` is higher, so that your signals are not simplified away. To test with another level, set it in the circuit's overrides, e.g. `{file, template, overrides: {optimization: 2}}`.
+> The witness tester compiles with at most optimization level 1, even if `optimization` is higher, so that fewer of your signals are simplified away. Level 1 can still remove a signal that is a constant multiple of another, e.g. `out <== 2 * in`, and reading it then throws an error. To test with another level, set it in the circuit's overrides, e.g. `{file, template, overrides: {optimization: 2}}`.
 
 #### Constraints
 

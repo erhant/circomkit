@@ -22,7 +22,7 @@ async function cli(args: string[]) {
 
       if (!pattern) pattern = '.*';
 
-      const regex = new RegExp(`^${pattern}$`);
+      const regex = new RegExp(`^(?:${pattern})$`); // the whole name, also for alternatives such as `a|b`
       const matchingCircuits = circuitNames.filter(name => regex.test(name));
 
       if (matchingCircuits.length === 0) {

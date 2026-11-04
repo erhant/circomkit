@@ -3,6 +3,7 @@ import * as snarkjs from 'snarkjs';
 import {Circomkit, type WitnessTester} from '../src';
 import {circomVersion} from '../src/functions';
 import type {WitnessType} from '../src/types';
+import {primes} from '../src/utils';
 import {C_WITNESS, prepareMultiplier} from './common';
 
 describe('witness tester', () => {
@@ -364,6 +365,25 @@ describe('witness tester optimization level', () => {
     await circuit.expectPass({a: 2, b: 3}, {out: 9});
   });
 
+  it('should use the optimization of the circuit overrides with PLONK too', async () => {
+    // PLONK needs O1 to prove, but not to compute witnesses
+    const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits, dirBuild, protocol: 'plonk'});
+    const circuit = await circomkit.WitnessTester('linear', {...config, overrides: {optimization: 2}});
+    expect(await circuit.getConstraintCount()).toBe(1);
+  });
+
+  it('should compare expected outputs in the field', async () => {
+    const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits, dirBuild});
+    const circuit = await circomkit.WitnessTester('linear', {...config});
+    await circuit.expectPass({a: -3, b: 5}, {out: -10});
+    await circuit.expectPass({a: 2, b: 3}, {out: '0x9'});
+    await circuit.expectPass({a: 2, b: 3}, {out: primes.bn128 + 9n});
+    await expect(circuit.expectPass({a: -3, b: 5}, {out: 10})).rejects.toThrow('expected 10, got');
+    await expect(circuit.expectPass({a: 2, b: 3}, {out: -9})).rejects.toThrow(
+      `expected -9 (${primes.bn128 - 9n} in the field), got 9`
+    );
+  });
+
   afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
 });
 
@@ -404,6 +424,35 @@ describe('witness testers of the same circuit', () => {
       })
     );
     expect(readdirSync(`${dirBuild}/.witness-tester`)).toHaveLength(1);
+  });
+
+  it('should compile concurrently with different parameters', async () => {
+    const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits: './tests/circuits', dirBuild});
+    // all write the same `main` component, which must not change what the others compile
+    await Promise.all(
+      [2, 3, 4, 5].map(async n => {
+        const circuit = await circomkit.WitnessTester('mul_concurrent', {
+          file: 'multiplier',
+          template: 'Multiplier',
+          params: [n],
+        });
+        const inputs = Array.from({length: n}, (_, i) => i + 2);
+        await circuit.expectPass({in: inputs}, {out: inputs.reduce((a, b) => a * b)});
+      })
+    );
+  });
+
+  it('should include the circuit relative to the main component, for any directory', async () => {
+    const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits: './tests/circuits', dirBuild});
+    for (const dir of ['test/', './test', 'test/same-circuit/']) {
+      const circuit = await circomkit.WitnessTester('mul_dir', {
+        file: 'multiplier',
+        template: 'Multiplier',
+        params: [2],
+        dir,
+      });
+      await circuit.expectPass({in: [2, 3]}, {out: 6});
+    }
   });
 
   it('should not share builds of circuits from different directories', async () => {

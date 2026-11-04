@@ -25,7 +25,9 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     /** The circuit name, i.e. the base name of the files in `dir` */
     private readonly name: string,
     /** Computes the witness for an input */
-    private readonly witnessCalculator: WitnessCalculator
+    private readonly witnessCalculator: WitnessCalculator,
+    /** Prime of the field, expected outputs are compared modulo it */
+    private readonly prime: bigint
   ) {}
 
   /** Assert that constraints are valid for a given witness. */
@@ -293,9 +295,12 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
         if (symbol === undefined) {
           throw new Error(`Output variable not defined: ${prefix}`);
         }
-        const [actual, exp] = [actualOut[symbol.varIdx].toString(), expected.toString()];
+        // in the field, e.g. -1 is p - 1, and values may be given in hexadecimal too, e.g. `0xff`
+        const exp = ((BigInt(expected) % this.prime) + this.prime) % this.prime;
+        const actual = BigInt(actualOut[symbol.varIdx]);
         if (actual !== exp) {
-          throw new Error(`Assertion failed for ${prefix}: expected ${exp}, got ${actual}`);
+          const inField = `${exp}` === `${expected}` ? '' : ` (${exp} in the field)`;
+          throw new Error(`Assertion failed for ${prefix}: expected ${expected}${inField}, got ${actual}`);
         }
       }
     };

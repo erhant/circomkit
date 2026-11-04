@@ -3,7 +3,7 @@ import {createHash, randomBytes} from 'node:crypto';
 import {existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync} from 'node:fs';
 import {readFile, rm, writeFile} from 'node:fs/promises';
 import {createRequire} from 'node:module';
-import {dirname, resolve as resolvePath} from 'node:path';
+import {dirname, relative, resolve as resolvePath, sep} from 'node:path';
 import {promisify} from 'node:util';
 import loglevel from 'loglevel';
 import * as snarkjs from 'snarkjs';
@@ -16,6 +16,7 @@ import {
   instantiateCircuit,
   isCompiled,
   type MainComponentConfig,
+  makeCircuit,
   readR1CSInfo,
 } from '../functions';
 import {
@@ -26,7 +27,7 @@ import {
 } from '../functions/witness';
 import {ProofTester, WitnessTester} from '../testers';
 import type {CircuitConfig, CircuitSignals} from '../types';
-import {prettyStringify} from '../utils';
+import {prettyStringify, primes} from '../utils';
 import {downloadPtau, getPtauName} from '../utils/ptau';
 import {singleThreadOnBun} from '../utils/teardown';
 import {CircomkitPath} from './pathing';
@@ -58,9 +59,6 @@ export class Circomkit {
   public readonly log: loglevel.Logger;
   public readonly path: CircomkitPath;
 
-  /** A logger reference to be passed into SnarkJS functions. If `verbose` is set to `false`, this logger will be undefined. */
-  private readonly snarkjsLogger: loglevel.Logger | undefined;
-
   constructor(overrides: Partial<CircomkitConfig> = {}) {
     // override default options with the user-provided ones
     // we can do this via two simple spreads because both objects are single depth
@@ -73,11 +71,17 @@ export class Circomkit {
     this.log = loglevel.getLogger('Circomkit');
     this.log.setLevel(this.config.logLevel);
 
-    // logger for SnarkJS, accepted as an optional argument within their functions
-    this.snarkjsLogger = this.config.verbose ? this.log : undefined;
-
     this.sanitize(this.config, (...msg) => this.log.warn(...msg));
-    this.path = new CircomkitPath(this.config, circuit => this.resolve(circuit));
+    this.path = new CircomkitPath(
+      this.config,
+      circuit => this.resolve(circuit),
+      circuit => this.findCircuitConfig(circuit)?.dir || 'main'
+    );
+  }
+
+  /** The logger to pass into SnarkJS functions for a circuit, `undefined` unless it is `verbose`. */
+  private snarkjsLogger(circuit: string): loglevel.Logger | undefined {
+    return this.resolve(circuit).verbose ? this.log : undefined;
   }
 
   /** Validates a configuration in place, fixing what can be fixed with a log message. */
@@ -153,8 +157,6 @@ export class Circomkit {
   /** Clear build files, witness tester builds and the `main` component of a circuit. */
   async clear(circuit: string): Promise<void> {
     const config = this.resolve(circuit);
-    // the main component is under the circuit's `dir`, see `instantiate`
-    const dir = this.findCircuitConfig(circuit)?.dir || 'main';
 
     // witness tester builds are named `<circuit>-<hash>`, see `WitnessTester`
     const testerDir = `${config.dirBuild}/.witness-tester`;
@@ -166,7 +168,7 @@ export class Circomkit {
 
     await Promise.all([
       rm(this.path.ofCircuit(circuit, 'dir'), {recursive: true, force: true}),
-      rm(`${config.dirCircuits}/${dir}/${circuit}.circom`, {force: true}),
+      rm(this.path.ofCircuit(circuit, 'main'), {force: true}), // under the circuit's `dir`, see `instantiate`
       ...testerBuilds.map(name => rm(`${testerDir}/${name}`, {recursive: true, force: true})),
     ]);
   }
@@ -186,7 +188,7 @@ export class Circomkit {
 
     // extract it
     await singleThreadOnBun();
-    const vkey = await snarkjs.zKey.exportVerificationKey(pkeyPath, this.snarkjsLogger);
+    const vkey = await snarkjs.zKey.exportVerificationKey(pkeyPath, this.snarkjsLogger(circuit));
     writeFileSync(vkeyPath, prettyStringify(vkey));
 
     return vkeyPath;
@@ -292,7 +294,11 @@ export class Circomkit {
     // resolve snarkjs like the user's project would (also when hoisted), its main entry is `<root>/build/main.cjs`
     const snarkjsRoot = dirname(dirname(createRequire(`${process.cwd()}/`).resolve('snarkjs')));
     const template = readFileSync(`${snarkjsRoot}/templates/verifier_${protocol}.sol.ejs`, 'utf-8');
-    const contractCode = await snarkjs.zKey.exportSolidityVerifier(pkey, {[protocol]: template}, this.snarkjsLogger);
+    const contractCode = await snarkjs.zKey.exportSolidityVerifier(
+      pkey,
+      {[protocol]: template},
+      this.snarkjsLogger(circuit)
+    );
 
     const contractPath = this.path.ofCircuit(circuit, 'sol');
     writeFileSync(contractPath, contractCode);
@@ -328,6 +334,16 @@ export class Circomkit {
    * @returns path of the created main component
    */
   instantiate(circuit: string, circuitConfig?: CircuitConfig) {
+    const {targetPath, code} = this.mainComponent(circuit, circuitConfig);
+    instantiateCircuit(code(dirname(targetPath)), targetPath);
+    return targetPath;
+  }
+
+  /** Returns where the `main` component of a circuit is instantiated, and its code for a given directory.
+   *
+   * The code includes the circuit file relative to that directory, so it can be written elsewhere too.
+   */
+  private mainComponent(circuit: string, circuitConfig?: CircuitConfig) {
     const {dirCircuits, version} = this.resolve(circuit, circuitConfig);
     if (!circuitConfig) {
       const circuitConfigFile = this.readCircuitConfig(circuit);
@@ -337,40 +353,28 @@ export class Circomkit {
       };
     }
 
-    const circomSource = readFileSync(`${dirCircuits}/${circuitConfig.file}.circom`, 'utf8');
-
+    const circuitPath = `${dirCircuits}/${circuitConfig.file}.circom`;
+    const circomSource = readFileSync(circuitPath, 'utf8');
     const usesCustomTemplates =
       circuitConfig.usesCustomTemplates ??
       /\bpragma\s+custom_templates\s*;/.test(circomSource.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '')); // without comments
 
-    // directory to output the file
-    const directory = circuitConfig.dir || 'test';
-
-    // add "../" to the filename in include, one for each "/" in directory name
-    // if none, the prefix becomes empty string
-    const filePrefixMatches = directory.match(/\//g);
-    let file = circuitConfig.file;
-    if (filePrefixMatches !== null) {
-      file = '../'.repeat(filePrefixMatches.length) + file;
-    }
-
-    const config: MainComponentConfig = {
-      file: file,
+    const config: Omit<MainComponentConfig, 'file'> = {
       template: circuitConfig.template,
       // circuit `version` > `overrides.version` > global `version`, which defaults to 2.1.0
       version: circuitConfig.version || version,
-      dir: directory,
       pubs: circuitConfig.pubs || [],
       params: circuitConfig.params || [],
       usesCustomTemplates,
     };
+    // `include` paths use `/`, also on Windows
+    const file = (dir: string) => relative(dir, circuitPath).split(sep).join('/').slice(0, -'.circom'.length);
 
-    const targetDir = `${dirCircuits}/${directory}`;
-    const targetPath = `${targetDir}/${circuit}.circom`;
-
-    instantiateCircuit(config, targetDir, targetPath);
-
-    return targetPath;
+    return {
+      targetPath: `${dirCircuits}/${circuitConfig.dir || 'test'}/${circuit}.circom`,
+      circuitPath,
+      code: (dir: string) => makeCircuit({...config, file: file(dir)}),
+    };
   }
 
   /** Generate a proof.
@@ -402,7 +406,7 @@ export class Circomkit {
       jsonInput,
       wasmPath,
       pkeyPath,
-      this.snarkjsLogger
+      this.snarkjsLogger(circuit)
     );
 
     const dir = this.path.ofCircuitWithInput(circuit, input, 'dir');
@@ -452,7 +456,7 @@ export class Circomkit {
 
       // generate genesis zKey
       let curZkey = this.path.ofZkey(circuit, 0);
-      if ((await snarkjs.zKey.newZKey(r1csPath, ptauPath, curZkey, this.snarkjsLogger)) === -1) {
+      if ((await snarkjs.zKey.newZKey(r1csPath, ptauPath, curZkey, this.snarkjsLogger(circuit))) === -1) {
         throw setupError;
       }
 
@@ -467,7 +471,7 @@ export class Circomkit {
           nextZkey,
           `${circuit}_${contrib}`,
           config.groth16askForEntropy ? undefined : randomBytes(32), // entropy
-          this.snarkjsLogger
+          this.snarkjsLogger(circuit)
         );
 
         // remove current key, and move on to next one
@@ -480,14 +484,19 @@ export class Circomkit {
     } else {
       // PLONK or FFLONK don't need specific setup
       if (
-        ((await snarkjs[config.protocol].setup(r1csPath, ptauPath, pkeyPath, this.snarkjsLogger)) as unknown) === -1
+        ((await snarkjs[config.protocol].setup(
+          r1csPath,
+          ptauPath,
+          pkeyPath,
+          this.snarkjsLogger(circuit)
+        )) as unknown) === -1
       ) {
         throw setupError;
       }
     }
 
     // export verification key
-    const vkey = await snarkjs.zKey.exportVerificationKey(pkeyPath, this.snarkjsLogger);
+    const vkey = await snarkjs.zKey.exportVerificationKey(pkeyPath, this.snarkjsLogger(circuit));
     writeFileSync(vkeyPath, prettyStringify(vkey));
     return {verifierKeyPath: vkeyPath, proverKeyPath: pkeyPath};
   }
@@ -507,7 +516,7 @@ export class Circomkit {
     ).map(content => JSON.parse(content));
 
     await singleThreadOnBun();
-    return await snarkjs[this.resolve(circuit).protocol].verify(vkey, pubs, proof, this.snarkjsLogger);
+    return await snarkjs[this.resolve(circuit).protocol].verify(vkey, pubs, proof, this.snarkjsLogger(circuit));
   }
 
   /** Calculates the witness for the given circuit and input.
@@ -654,44 +663,50 @@ export class Circomkit {
     circuitConfig = {...circuitConfig, dir: circuitConfig.dir ?? 'test'}; // defaults to test directory
 
     const resolved = this.resolve(circuit, circuitConfig);
+    const {optimization} = circuitConfig.overrides ?? {};
     const config: CircomkitConfig = {
       ...resolved,
-      // the global optimization is capped at O1 as it always was, an explicit per-circuit override is not
+      // the global optimization is capped at O1 as it always was, an explicit per-circuit override is not,
+      // and is kept even for PLONK, which needs O1 to prove but not to compute witnesses
       optimization:
-        circuitConfig.overrides?.optimization === undefined && typeof resolved.optimization === 'number'
-          ? Math.min(resolved.optimization, 1)
-          : resolved.optimization,
+        typeof optimization === 'number'
+          ? Math.max(optimization, 0)
+          : typeof resolved.optimization === 'number'
+            ? Math.min(resolved.optimization, 1)
+            : resolved.optimization,
       wasmWitness: tester === 'wasm',
       cWitness: tester === 'c',
     };
-    const targetPath = this.instantiate(circuit, circuitConfig);
+    // the `main` component is also written under `dirCircuits`, but another tester of the same circuit name may rewrite
+    // it meanwhile, so the hash is of this tester's code, and Circom compiles a copy of it within the build directory
+    const {targetPath, circuitPath, code} = this.mainComponent(circuit, circuitConfig);
+    const mainCode = code(dirname(targetPath));
+    instantiateCircuit(mainCode, targetPath);
 
     const hash = createHash('sha256')
       .update(
-        JSON.stringify([
-          tester,
-          config.prime,
-          config.optimization,
-          config.include,
-          resolvePath(targetPath), // the template is included relative to it
-          readFileSync(targetPath, 'utf-8'),
-        ])
+        JSON.stringify([tester, config.prime, config.optimization, config.include, resolvePath(circuitPath), mainCode])
       )
       .digest('hex')
       .slice(0, WITNESS_TESTER_HASH_LENGTH);
     const output = `${config.dirBuild}/.witness-tester/${circuit}-${hash}`;
+    const mainCopy = `${output}/${circuit}.circom`;
     const artifact =
       tester === 'wasm' ? `${output}/${circuit}_js/${circuit}.wasm` : cWitnessCalculatorPath(output, circuit);
 
-    const recompile = circuitConfig.recompile ?? !isCompiled(artifact, targetPath, config.include);
+    const recompile =
+      circuitConfig.recompile ?? !(existsSync(mainCopy) && isCompiled(artifact, mainCopy, config.include));
     if (recompile) {
       // concurrent testers of the same circuit (e.g. test files run in parallel) must not write to the same files,
       // so each compiles into its own directory, which is moved in place unless another tester did so meanwhile
       const builtAt = () => (existsSync(artifact) ? statSync(artifact).mtimeMs : undefined);
       const previousBuild = builtAt();
+      // a sibling of `output`, so that the include path of the copy stays the same once it is moved there
       const tmpOutput = `${output}.tmp-${randomBytes(4).toString('hex')}`;
       try {
-        const {stderr} = await compileCircuit(config, targetPath, tmpOutput);
+        const tmpMain = `${tmpOutput}/${circuit}.circom`;
+        instantiateCircuit(code(tmpOutput), tmpMain);
+        const {stderr} = await compileCircuit(config, tmpMain, tmpOutput);
         if (stderr) this.log.error(stderr);
         if (tester === 'c') await buildCWitnessCalculator(tmpOutput, circuit);
 
@@ -713,7 +728,7 @@ export class Circomkit {
 
     const calculator =
       tester === 'wasm' ? await wasmWitnessCalculator(output, circuit) : cWitnessCalculator(output, circuit);
-    return new WitnessTester<IN, OUT>(output, circuit, calculator);
+    return new WitnessTester<IN, OUT>(output, circuit, calculator, primes[config.prime]);
   }
 
   /** Returns a proof tester, for a circuit that is compiled & set up.

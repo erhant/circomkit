@@ -16,7 +16,7 @@ npx circomkit contract multiplier_3  # writes build/multiplier_3/groth16_verifie
 
 [The test](./test/Verifier.t.sol) reads the proof & public signals with Foundry's JSON cheatcodes, and calls the verifier. Note that the contract takes the coordinates of `pi_b` in reverse order.
 
-To call a deployed verifier with `cast` instead, print the calldata with:
+To call a deployed verifier yourself, print the arguments of `verifyProof` with the command below. Each value is quoted, so remove the quotes for `cast`.
 
 ```sh
 npx circomkit calldata multiplier_3

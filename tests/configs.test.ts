@@ -365,3 +365,23 @@ describe('ptau download', () => {
     expect(readdirSync(dir)).toEqual(['powersOfTau28_hez_final_08.ptau']);
   });
 });
+
+describe('circuit paths', () => {
+  const circomkit = new Circomkit({
+    logLevel: 'silent',
+    dirCircuits: './tests/circuits',
+    dirBuild: './tests/build/paths',
+    circuits: {foo: {file: 'multiplier', template: 'Multiplier', params: [2], dir: 'test/foo'}},
+  });
+
+  it('should find the main component under the circuit `dir`', () => {
+    expect(circomkit.path.ofCircuit('foo', 'main')).toBe('./tests/circuits/test/foo/foo.circom');
+    expect(circomkit.path.ofCircuit('bar', 'main')).toBe('./tests/circuits/main/bar.circom');
+  });
+
+  it('should ask to compile a circuit that has no R1CS', async () => {
+    await expect(circomkit.info('foo')).rejects.toThrow(
+      'No R1CS file at ./tests/build/paths/foo/foo.r1cs, compile the circuit first'
+    );
+  });
+});

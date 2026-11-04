@@ -1,4 +1,4 @@
-import {closeSync, fstatSync, openSync, readSync} from 'node:fs';
+import {closeSync, existsSync, fstatSync, openSync, readSync} from 'node:fs';
 import {StringDecoder} from 'node:string_decoder';
 import type {CircomkitConfig} from '../configs';
 import type {SymbolsType} from '../types';
@@ -34,6 +34,7 @@ const SECTION = {
  * the file is a list of sections that may come in any order, and the header section describes the others.
  */
 function readR1CS<T>(r1csPath: string, callback: (r1cs: ReturnType<typeof r1csReader>) => T): T {
+  if (!existsSync(r1csPath)) throw new Error(`No R1CS file at ${r1csPath}, compile the circuit first`);
   const fd = openSync(r1csPath, 'r');
   try {
     return callback(r1csReader(fd, r1csPath));
