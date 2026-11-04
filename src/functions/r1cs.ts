@@ -205,31 +205,26 @@ export function* iterateConstraints({
  *
  * Each public signal is a gate, and so is each constraint, plus an addition gate for each term beyond the first
  * in a multiplication, or beyond the third in a linear constraint. A constraint is linear if `A` or `B` is a constant,
- * in which case `A * B - C` is a single linear combination: FFLONK drops the terms that cancel out there, PLONK does not.
+ * in which case `A * B - C` is a single linear combination, with a term for each wire of `A * B` and `C`.
  *
- * @see: [`process`](https://github.com/iden3/snarkjs/blob/v0.7.5/src/plonk_setup.js#L270) & [`reduceCoefs`](https://github.com/iden3/snarkjs/blob/v0.7.5/src/plonk_setup.js#L177) for PLONK
- * @see: [`processR1csConstraint`](https://github.com/iden3/snarkjs/blob/v0.7.5/src/r1cs_constraint_processor.js#L32) & [`reduceCoefs`](https://github.com/iden3/snarkjs/blob/v0.7.5/src/r1cs_constraint_processor.js#L127) for FFLONK
+ * FFLONK drops the terms that cancel out there, which are counted here, so its count is an upper bound for such
+ * constraints. Which terms cancel differs between SnarkJS versions, and Circom does not write such constraints anyway.
+ *
+ * @see [`process`](https://github.com/iden3/snarkjs/blob/v0.7.5/src/plonk_setup.js#L270) & [`reduceCoefs`](https://github.com/iden3/snarkjs/blob/v0.7.5/src/plonk_setup.js#L177) for PLONK
+ * @see [`processR1csConstraint`](https://github.com/iden3/snarkjs/blob/v0.7.5/src/r1cs_constraint_processor.js#L32) & [`reduceCoefs`](https://github.com/iden3/snarkjs/blob/v0.7.5/src/r1cs_constraint_processor.js#L127) for FFLONK
  */
-export function countPlonkGates(r1cs: R1CSConstraints, publicSignals: number, protocol: 'plonk' | 'fflonk'): number {
-  // terms of the wires other than the constant `1` at wire 0
-  const variables = (lc: LinearCombination) => lc.size - (lc.has(0) ? 1 : 0);
-  const isZero = (lc: LinearCombination) => lc.size === 0;
+export function countPlonkGates(r1cs: R1CSConstraints, publicSignals: number): number {
+  // the wires other than the constant `1` at wire 0
+  const variables = (...lcs: LinearCombination[]) =>
+    new Set(lcs.flatMap(lc => [...lc.keys()]).filter(w => w !== 0)).size;
   const isConstant = (lc: LinearCombination) => lc.size === 1 && lc.has(0);
-  const linearGates = (lc: LinearCombination) => 1 + Math.max(0, variables(lc) - 3);
-
-  /** `k * lc + c`, as a single linear combination */
-  const join = (k: bigint, lc: LinearCombination, c: LinearCombination) => {
-    const sum = new Map(c);
-    for (const [wire, coefficient] of lc) sum.set(wire, ((sum.get(wire) ?? 0n) + k * coefficient) % r1cs.prime);
-    if (protocol === 'fflonk') for (const [wire, value] of sum) if (value === 0n) sum.delete(wire);
-    return sum;
-  };
+  const linearGates = (...lcs: LinearCombination[]) => 1 + Math.max(0, variables(...lcs) - 3);
 
   let gates = publicSignals;
   for (const [a, b, c] of iterateConstraints(r1cs)) {
-    if (isZero(a) || isZero(b)) gates += linearGates(c);
-    else if (isConstant(a)) gates += linearGates(join(a.get(0) as bigint, b, c));
-    else if (isConstant(b)) gates += linearGates(join(b.get(0) as bigint, a, c));
+    if (a.size === 0 || b.size === 0) gates += linearGates(c);
+    else if (isConstant(a)) gates += linearGates(b, c);
+    else if (isConstant(b)) gates += linearGates(a, c);
     else gates += 1 + Math.max(0, variables(a) - 1) + Math.max(0, variables(b) - 1) + Math.max(0, variables(c) - 1);
   }
   return gates;

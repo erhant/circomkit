@@ -1,5 +1,6 @@
+import {execFile} from 'node:child_process';
 import {mkdirSync, readFileSync, rmSync, writeFileSync} from 'node:fs';
-import * as snarkjs from 'snarkjs';
+import {promisify} from 'node:util';
 import {Circomkit} from '../src';
 import {countPlonkGates, readR1CSConstraints} from '../src/functions/r1cs';
 import {primes} from '../src/utils';
@@ -46,14 +47,21 @@ function zkeyGates(path: string): number {
   return zkey.readUInt32LE(position + 16);
 }
 
-/** Runs the setup of SnarkJS, which fails if the PTAU is too small. */
+/** Runs the setup of SnarkJS, which fails if the PTAU is too small.
+ *
+ * It runs in a child process, as SnarkJS leaves its files open when it fails, which Node 26 & Bun throw for.
+ * The child process is always Node, as SnarkJS crashes with its worker threads on Bun.
+ */
 async function setup(protocol: 'plonk' | 'fflonk', r1csPath: string, zkeyPath: string): Promise<boolean> {
-  try {
-    // PLONK returns -1 on failure, FFLONK throws
-    return ((await snarkjs[protocol].setup(r1csPath, PTAU_PATH, zkeyPath)) as unknown) !== -1;
-  } catch {
-    return false;
-  }
+  // PLONK returns -1 on failure, FFLONK throws
+  const script = `require('snarkjs')[process.env.PROTOCOL]
+    .setup(process.env.R1CS, process.env.PTAU, process.env.ZKEY)
+    .then(result => process.exit(result === -1 ? 1 : 0), () => process.exit(1))`;
+  const env = {...process.env, PROTOCOL: protocol, R1CS: r1csPath, PTAU: PTAU_PATH, ZKEY: zkeyPath};
+  return promisify(execFile)('node', ['-e', script], {env}).then(
+    () => true,
+    () => false
+  );
 }
 
 describe('PTAU sizes for PLONK & FFLONK', () => {
@@ -94,7 +102,7 @@ describe('PTAU sizes for PLONK & FFLONK', () => {
 
           const {publicInputs, publicOutputs} = await circomkit.info(circuitName);
           expect(await setup(protocol, r1csPath, zkeyPath)).toBe(true);
-          expect(countPlonkGates(readR1CSConstraints(r1csPath), publicInputs + publicOutputs, protocol)).toBe(
+          expect(countPlonkGates(readR1CSConstraints(r1csPath), publicInputs + publicOutputs)).toBe(
             zkeyGates(zkeyPath)
           );
         });
@@ -110,7 +118,7 @@ describe('PTAU sizes for PLONK & FFLONK', () => {
       const p = primes.bn128;
       const sum: Term[] = [1, 2, 3, 4, 5].map(wire => [wire, BigInt(wire)]);
       writeR1CS(r1csPath, 2, [
-        // 3 * sum = C, where the terms of wire 1 cancel out, which only FFLONK drops
+        // 3 * sum = C, where the terms of wire 1 cancel out in SnarkJS 0.7.5, which only FFLONK drops
         [
           [[0, 3n]],
           sum,
@@ -157,9 +165,11 @@ describe('PTAU sizes for PLONK & FFLONK', () => {
       ]);
 
       expect(await setup(protocol, r1csPath, zkeyPath)).toBe(true);
-      const gates = countPlonkGates(readR1CSConstraints(r1csPath), 2, protocol);
-      expect(gates).toBe(zkeyGates(zkeyPath));
-      expect(gates).toBe(protocol === 'plonk' ? 22 : 20);
+      const gates = countPlonkGates(readR1CSConstraints(r1csPath), 2);
+      expect(gates).toBe(22);
+      if (protocol === 'plonk') expect(zkeyGates(zkeyPath)).toBe(gates);
+      // an upper bound, as FFLONK drops the terms that cancel out (20 gates in SnarkJS 0.7.5, 22 in 0.7.6)
+      else expect(zkeyGates(zkeyPath)).toBeLessThanOrEqual(gates);
     });
   }
 

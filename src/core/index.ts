@@ -239,7 +239,7 @@ export class Circomkit {
       size = constraints + publicSignals + 1;
     } else {
       const r1cs = readR1CSConstraints(this.path.ofCircuit(circuit, 'r1cs'));
-      const gates = countPlonkGates(r1cs, publicSignals, config.protocol);
+      const gates = countPlonkGates(r1cs, publicSignals);
       if (config.protocol === 'plonk') {
         // 2^p >= gates, see https://github.com/iden3/snarkjs/blob/v0.7.5/src/plonk_setup.js#L77
         size = gates;
