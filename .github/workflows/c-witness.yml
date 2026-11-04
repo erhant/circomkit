@@ -1,7 +1,7 @@
 name: c-witness
 
-# the C witness calculator on each OS & architecture, with the setup from the README
-# manual only, as it is slow (Circom is built from source on ARM), and on PRs that change this workflow
+# the C witness calculator, with the setup from the README, on each platform that Circom releases a binary for
+# manual only, and on PRs that change this workflow
 on:
   workflow_dispatch:
     inputs:
@@ -20,12 +20,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        runner:
-          - ubuntu-24.04 # x86-64, with assembly
-          - ubuntu-24.04-arm # ARM, with `--no_asm`
-          - macos-15 # Apple Silicon, with `--no_asm`
-          - macos-15-intel # x86-64, with assembly
-        # Windows is left out: Circom's C code needs POSIX headers such as `sys/mman.h`
+        include:
+          - runner: ubuntu-24.04 # x86-64, with assembly
+            circom: circom-linux-amd64
+          - runner: macos-15 # Apple Silicon, with `--no_asm`
+            circom: circom-macos-amd64 # despite its name, built for arm64
+        # left out: Windows, as Circom's C code needs POSIX headers such as `sys/mman.h`,
+        # and ARM Linux & Intel macOS, as Circom has no binaries for them
     runs-on: ${{ matrix.runner }}
 
     steps:
@@ -35,30 +36,20 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes build-essential libgmp-dev nlohmann-json3-dev ${{ runner.arch == 'X64' && 'nasm' || '' }}
+          sudo apt-get install --yes build-essential libgmp-dev nlohmann-json3-dev nasm
 
       - name: Install C dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install gmp nlohmann-json ${{ runner.arch == 'X64' && 'nasm' || '' }}
+          brew install gmp nlohmann-json
           echo "CPATH=$(brew --prefix)/include" >> "$GITHUB_ENV"
           echo "LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
 
-      - name: Install Circom (released binary)
-        if: runner.arch == 'X64'
+      - name: Install Circom
         run: |
           sudo curl -fsSL -o /usr/local/bin/circom \
-            https://github.com/iden3/circom/releases/download/v$CIRCOM_VERSION/circom-${{ runner.os == 'macOS' && 'macos' || 'linux' }}-amd64
+            https://github.com/iden3/circom/releases/download/v$CIRCOM_VERSION/${{ matrix.circom }}
           sudo chmod +x /usr/local/bin/circom
-
-      # only x86-64 binaries are released
-      - name: Install Rust
-        if: runner.arch == 'ARM64'
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install Circom (from source)
-        if: runner.arch == 'ARM64'
-        run: cargo install --locked --git https://github.com/iden3/circom --tag v$CIRCOM_VERSION circom
 
       - name: Print versions
         run: |
