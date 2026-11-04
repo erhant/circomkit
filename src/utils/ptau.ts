@@ -33,7 +33,7 @@ export function getPtauName(n: number): string {
 }
 
 /**
- * Downloads phase-1 powers of tau from Polygon Hermez.
+ * Downloads the phase-1 powers of tau of the Hermez ceremony.
  * @see https://github.com/iden3/snarkjs#7-prepare-phase-2
  * @param ptauName name of PTAU file
  * @param ptauDir directory to download to

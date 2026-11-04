@@ -26,7 +26,7 @@ export function getCalldata(
       proofCalldata = fflonkCalldata(proof, pretty);
       break;
     default:
-      throw `Unknown protocol:${proof.protocol}`;
+      throw new Error(`Unknown protocol: ${proof.protocol}`);
   }
 
   return `\n${proofCalldata}\n\n${pubsCalldata}\n`;

@@ -56,7 +56,7 @@ export type CircomkitConfig = {
   /** Whether to generate the WASM witness calculator. */
   wasmWitness: boolean;
   /** Whether to print Solidity copy-pasteable calldata. */
-  prettyCalldata: false;
+  prettyCalldata: boolean;
 };
 
 /** Default configurations */

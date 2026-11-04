@@ -191,7 +191,8 @@ async function cli(args: string[]) {
       if (ok) {
         circomkit.log.info('Verification successful.');
       } else {
-        circomkit.log.info('Verification failed!');
+        circomkit.log.error('Verification failed!');
+        process.exitCode = 1;
       }
     });
 

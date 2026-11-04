@@ -47,7 +47,7 @@ const WITNESS_TESTER_HASH_LENGTH = 8;
  * const circomkit = new Circomkit()
  * ```
  *
- * It also provides a **WitnessTester** and a **ProofTester** module which use Chai assertions within.
+ * It also provides a **WitnessTester** and a **ProofTester**, which throw on failure, so they work with any test runner.
  *
  * ```ts
  * const witnessTester = await circomkit.WitnessTester(circuitName, circuitConfig)
@@ -515,7 +515,8 @@ export class Circomkit {
 
   /** Calculates the witness for the given circuit and input.
    *
-   * If `data` is not passed, the input data will be read from `inputs/<circuit>/<input>.json`.
+   * If `data` is not passed, the input data will be read from `inputs/<circuit>/<input>.json`,
+   * or `inputs/<circuit>.json` for the `default` input.
    *
    * With `calculator: 'c'` the C witness calculator is used, which is compiled and built with `make` if
    * missing; that requires the C witness dependencies (see Circom docs).
