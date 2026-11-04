@@ -312,11 +312,40 @@ describe('init', () => {
       logLevel: 'silent',
       circuits,
       dirCircuits: `${dir}/circuits`,
+      dirInputs: `${dir}/inputs`,
       dirBuild: `${dir}/build`,
     });
     const circuit = await circomkit.WitnessTester('multiplier_3', circomkit.readCircuitConfig('multiplier_3'));
-    const input = JSON.parse(readFileSync(`${dir}/inputs/multiplier_3/default.json`, 'utf-8'));
-    await circuit.expectPass(input, {out: 30});
+    const inputPath = circomkit.path.ofCircuitWithInput('multiplier_3', 'default', 'in');
+    expect(inputPath).toBe(`${dir}/inputs/multiplier_3.json`);
+    await circuit.expectPass(JSON.parse(readFileSync(inputPath, 'utf-8')), {out: 30});
+  });
+});
+
+describe('default inputs', () => {
+  const dirInputs = './tests/build/default-inputs';
+  const circomkit = new Circomkit({logLevel: 'silent', dirInputs, circuits: {}});
+  const inputPath = (input: string) => circomkit.path.ofCircuitWithInput('foo', input, 'in');
+
+  beforeAll(() => {
+    rmSync(dirInputs, {recursive: true, force: true});
+    mkdirSync(dirInputs, {recursive: true});
+  });
+
+  it('should read the default input from `<circuit>.json`, if there is no `<circuit>/default.json`', () => {
+    expect(inputPath('default')).toBe(`${dirInputs}/foo/default.json`);
+    writeFileSync(`${dirInputs}/foo.json`, '{}');
+    expect(inputPath('default')).toBe(`${dirInputs}/foo.json`);
+    // only for the default input
+    expect(inputPath('bar')).toBe(`${dirInputs}/foo/bar.json`);
+  });
+
+  it('should prefer `<circuit>/default.json` when both exist', () => {
+    circomkit.input('foo', 'default', {}); // writes to `foo.json`, as it exists
+    expect(readdirSync(dirInputs)).toEqual(['foo.json']);
+    mkdirSync(`${dirInputs}/foo`);
+    writeFileSync(`${dirInputs}/foo/default.json`, '{}');
+    expect(inputPath('default')).toBe(`${dirInputs}/foo/default.json`);
   });
 });
 

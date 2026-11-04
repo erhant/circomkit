@@ -1,0 +1,8 @@
+{
+  "$schema": "./node_modules/circomkit/circuits.schema.json",
+  "multiplier_3": {
+    "file": "multiplier",
+    "template": "Multiplier",
+    "params": [3]
+  }
+}

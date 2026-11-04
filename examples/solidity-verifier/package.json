@@ -1,0 +1,15 @@
+{
+  "name": "circomkit-solidity-verifier",
+  "private": true,
+  "scripts": {
+    "prove": "circomkit prove multiplier_3 && circomkit contract multiplier_3",
+    "test": "npm run prove && forge test"
+  },
+  "dependencies": {
+    "circomkit": "^0.4.0",
+    "snarkjs": "^0.7.5"
+  },
+  "devDependencies": {
+    "forge-std": "github:foundry-rs/forge-std#v1.10.0"
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "$schema": "./node_modules/circomkit/circuits.schema.json",
+  "poseidon_2": {
+    "file": "poseidon",
+    "template": "PoseidonChain",
+    "params": [2, 100]
+  }
+}

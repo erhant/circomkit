@@ -1,5 +1,5 @@
-import { createHash } from 'crypto';
-import { Circomkit } from 'circomkit';
+import {createHash} from 'crypto';
+import {Circomkit} from 'circomkit';
 
 const PREIMAGE = Buffer.from('bunsbunsbunsbunsbuns');
 const PREIMAGE_BYTES = PREIMAGE.toJSON().data;

@@ -13,7 +13,7 @@ const TEMPLATE: Record<string, string> = {
     }
   }
 }
-`,
+`, ////////////////////////////////////////////////////////////////////////////
   'circuits/multiplier.circom': `pragma circom 2.0.0;
 
 // Multiplies \`n\` numbers, see \`circomkit.json\` for its instances.
@@ -28,11 +28,11 @@ template Multiplier(n) {
   }
   out <== inner[n - 1];
 }
-`,
-  'inputs/multiplier_3/default.json': `{
+`, ////////////////////////////////////////////////////////////////////////////
+  'inputs/multiplier_3.json': `{
   "in": [2, 3, 5]
 }
-`,
+`, ////////////////////////////////////////////////////////////////////////////
   '.gitignore': `build/
 ptau/
 `,

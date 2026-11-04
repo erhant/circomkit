@@ -378,7 +378,8 @@ export class Circomkit {
 
   /** Generate a proof.
    *
-   * If `data` is not passed, the input data will be read from `inputs/<circuit>/<input>.json`.
+   * If `data` is not passed, the input data will be read from `inputs/<circuit>/<input>.json`,
+   * or `inputs/<circuit>.json` for the `default` input.
    *
    * @returns path of the directory where public signals and proof are created
    */
@@ -581,6 +582,7 @@ export class Circomkit {
     if (existsSync(inputPath)) {
       this.log.warn('Input file exists already, overwriting it.');
     }
+    mkdirSync(dirname(inputPath), {recursive: true});
     writeFileSync(inputPath, prettyStringify(data));
     return inputPath;
   }

@@ -1,3 +1,4 @@
+import {existsSync} from 'node:fs';
 import type {CircomkitConfig} from '../configs';
 
 /** Utility class to handle path abstractions.
@@ -63,8 +64,12 @@ export class CircomkitPath {
         return `${dir}/public.json`;
       case 'proof':
         return `${dir}/${config.protocol}_proof.json`;
-      case 'in':
-        return `${config.dirInputs}/${circuit}/${input}.json`;
+      case 'in': {
+        const path = `${config.dirInputs}/${circuit}/${input}.json`;
+        // the default input can also be `<dirInputs>/<circuit>.json`, for circuits with a single input
+        const flat = `${config.dirInputs}/${circuit}.json`;
+        return input === 'default' && !existsSync(path) && existsSync(flat) ? flat : path;
+      }
       default:
         kind satisfies never;
         throw new Error(`Invalid type: ${kind}`);

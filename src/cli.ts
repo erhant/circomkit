@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-import {execFile} from 'node:child_process';
 import {existsSync, readdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {Command} from '@commander-js/extra-typings';
 import {version} from '../package.json';
@@ -84,24 +83,11 @@ async function cli(args: string[]) {
   const init = new Command('init')
     .description('initialize a new Circomkit project')
     .argument('[dir]', 'Directory', '.')
-    .option('--examples', 'clone the examples repository instead, needs git & network')
-    .action(async (dir, options) => {
-      if (options.examples) {
-        const args = ['clone', 'https://github.com/erhant/circomkit-examples.git', dir];
-        circomkit.log.info(`git ${args.join(' ')}`);
-        const result = await new Promise<{stdout: string; stderr: string}>((resolve, reject) =>
-          execFile('git', args, (error, stdout, stderr) => (error ? reject(error) : resolve({stdout, stderr})))
-        );
-        circomkit.log.info(result.stdout);
-        if (result.stderr) {
-          circomkit.log.info(result.stderr);
-        }
-      } else {
-        const {created, skipped} = initProject(dir);
-        for (const path of created) circomkit.log.info(`Created ${path}`);
-        for (const path of skipped) circomkit.log.warn(`Skipped ${path}, it already exists`);
-        circomkit.log.info(`\nTry: circomkit prove multiplier_3 default${dir === '.' ? '' : ` (within ${dir})`}`);
-      }
+    .action(async dir => {
+      const {created, skipped} = initProject(dir);
+      for (const path of created) circomkit.log.info(`Created ${path}`);
+      for (const path of skipped) circomkit.log.warn(`Skipped ${path}, it already exists`);
+      circomkit.log.info(`\nTry: circomkit prove multiplier_3${dir === '.' ? '' : ` (within ${dir})`}`);
 
       circomkit.log.info('Circomkit project initialized! ✨');
     });
@@ -143,7 +129,7 @@ async function cli(args: string[]) {
       new Command('wtns')
         .description('export witness')
         .argument('<circuit>', 'Circuit name')
-        .argument('<input>', 'Input name')
+        .argument('[input]', 'Input name', 'default')
         .option('-p, --print', 'Print JSON without saving it')
         .action(async (circuit, input, options) => {
           const {json, path} = await circomkit.json('wtns', circuit, input);
@@ -169,7 +155,7 @@ async function cli(args: string[]) {
   const calldata = new Command('calldata')
     .description('export calldata for a verifier contract')
     .argument('<circuit>', 'Circuit name')
-    .argument('<input>', 'Input name')
+    .argument('[input]', 'Input name', 'default')
     .action(async (circuit, input) => {
       const calldata = await circomkit.calldata(circuit, input);
       circomkit.log.info(calldata);
@@ -189,7 +175,7 @@ async function cli(args: string[]) {
   const prove = new Command('prove')
     .description('generate zk-proof')
     .argument('<circuit>', 'Circuit name')
-    .argument('<input>', 'Input name')
+    .argument('[input]', 'Input name', 'default')
     .action(async (circuit, input) => {
       const path = await circomkit.prove(circuit, input);
       circomkit.log.info(`Generated at: ${path}`);
@@ -199,7 +185,7 @@ async function cli(args: string[]) {
   const verify = new Command('verify')
     .description('verify zk-proof')
     .argument('<circuit>', 'Circuit name')
-    .argument('<input>', 'Input name')
+    .argument('[input]', 'Input name', 'default')
     .action(async (circuit, input) => {
       const ok = await circomkit.verify(circuit, input);
       if (ok) {
@@ -213,7 +199,7 @@ async function cli(args: string[]) {
   const witness = new Command('witness')
     .description('compute witness')
     .argument('<circuit>', 'Circuit name')
-    .argument('<input>', 'Input name')
+    .argument('[input]', 'Input name', 'default')
     .option('-c, --c', 'use the C witness calculator')
     .action(async (circuit, input, options) => {
       const path = await circomkit.witness(circuit, input, undefined, options.c ? 'c' : 'wasm');

@@ -1,5 +1,7 @@
 {
-  "description": "Circomkit examples",
+  "name": "circomkit-bun-sha256",
+  "private": true,
+  "type": "module",
   "scripts": {
     "start": "bun run ./src/index.ts",
     "test": "bun test"
@@ -12,9 +14,5 @@
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^5.1.3"
-  },
-  "prettier": {
-    "printWidth": 120,
-    "singleQuote": true
   }
 }

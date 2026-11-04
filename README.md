@@ -42,14 +42,12 @@ You will also need the [Circom](https://docs.circom.io) compiler, see its [insta
 Create a new project with an example circuit, then prove & verify it:
 
 ```sh
-npx circomkit init                         # creates circomkit.json, a circuit and an input
-npx circomkit prove multiplier_3 default   # compiles, sets up and proves
-npx circomkit verify multiplier_3 default
+npx circomkit init                # creates circomkit.json, a circuit and an input
+npx circomkit prove multiplier_3  # compiles, sets up and proves, with inputs/multiplier_3.json
+npx circomkit verify multiplier_3
 ```
 
-`init` never overwrites existing files, and works offline. To start from the [circomkit-examples](https://github.com/erhant/circomkit-examples) repository instead, which includes tests, use `npx circomkit init --examples`.
-
-There are more examples in the [examples](./examples/) directory.
+`init` does not overwrite existing files, and works offline. For more, see the cookbooks in [examples](#examples).
 
 ## Command Line Interface
 
@@ -92,20 +90,20 @@ npx circomkit clear <circuit>
 >
 > If you don't give `setup` a PTAU file, it picks the smallest one that fits the circuit and downloads it from [Perpetual Powers of Tau](https://github.com/privacy-scaling-explorations/perpetualpowersoftau). This only works for the `bn128` prime, for circuits of up to $2^{28}$ constraints. For other primes, you have to provide the PTAU file yourself.
 
-Commands that need signal values read them from an input file at `<dirInputs>/<circuit>/<input>.json`. For example, an input named `foo` for a circuit named `bar` is read from `inputs/bar/foo.json`.
+Commands that need signal values read them from an input file at `<dirInputs>/<circuit>/<input>.json`. For example, an input named `foo` for a circuit named `bar` is read from `inputs/bar/foo.json`. The input is named `default` if omitted, which can also be at `inputs/bar.json` for circuits with a single input.
 
 ```sh
 # Calculate a witness, add --c to use the C witness calculator
-npx circomkit witness <circuit> <input>
+npx circomkit witness <circuit> [input]
 
 # Create a proof, compiling & setting up the circuit first if needed
-npx circomkit prove <circuit> <input>
+npx circomkit prove <circuit> [input]
 
 # Verify a proof with its public signals
-npx circomkit verify <circuit> <input>
+npx circomkit verify <circuit> [input]
 
 # Print the calldata for the Solidity verifier
-npx circomkit calldata <circuit> <input>
+npx circomkit calldata <circuit> [input]
 ```
 
 Other commands:
@@ -117,7 +115,7 @@ npx circomkit list
 # Export JSON of the R1CS, the prover key (Groth16 only) or a witness, add -p to print instead of saving
 npx circomkit json r1cs <circuit>
 npx circomkit json zkey <circuit>
-npx circomkit json wtns <circuit> <input>
+npx circomkit json wtns <circuit> [input]
 ```
 
 ## Configuration
@@ -373,7 +371,7 @@ export CPATH="$(brew --prefix)/include" LIBRARY_PATH="$(brew --prefix)/lib"
 
 On machines that are not x86-64, such as Apple Silicon or ARM Linux, Circomkit compiles with `--no_asm` (Circom's assembly is x86-64 only), which needs Circom 2.2.2 or newer. There, `nasm` is not needed.
 
-To calculate witnesses with C outside of tests, set `cWitness: true` and use `npx circomkit witness <circuit> <input> --c`.
+To calculate witnesses with C outside of tests, set `cWitness: true` and use `npx circomkit witness <circuit> [input] --c`.
 
 ### Proof Tester
 
@@ -434,8 +432,9 @@ project
 │       └── sudoku_9x9.circom
 │
 ├── inputs - "input signals"
-│   └── sudoku_9x9 - "named after the circuit"
-│       └── my_solution.json - "named after the input"
+│   ├── sudoku_9x9 - "named after the circuit"
+│   │   └── my_solution.json - "named after the input"
+│   └── sudoku_9x9.json - "the default input, as an alternative to sudoku_9x9/default.json"
 │
 ├── ptau - "PTAU files"
 │   └── powersOfTau28_hez_final_08.ptau
@@ -469,6 +468,10 @@ Circomkit does not require a minimum Circom version. Features that need a newer 
 - C witness calculation on machines that are not x86-64 needs Circom 2.2.2 or newer.
 
 CI tests Circomkit with Circom 2.1.5 and 2.2.3.
+
+## Examples
+
+The [examples](./examples/) are cookbooks, small projects that each show one topic: testing, protocols, the C witness calculator, Solidity verifiers with Foundry, and Bun.
 
 ## Development
 
