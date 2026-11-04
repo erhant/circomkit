@@ -5,7 +5,7 @@ import * as snarkjs from 'snarkjs';
 import solc from 'solc';
 import {Circomkit} from '../src';
 import {PROTOCOLS} from '../src/configs';
-import {PTAU_PATH, prepareMultiplier} from './common';
+import {C_WITNESS, PTAU_PATH, prepareMultiplier} from './common';
 
 describe('circomkit', () => {
   // we are not testing all curves because PTAU is only available for bn128
@@ -211,7 +211,7 @@ describe('instantiate version fallback', () => {
 });
 
 // the C witness calculator needs nlohmann-json, gmp and nasm, which CI installs on Linux
-(process.platform === 'linux' ? describe : describe.skip)('witness with the C calculator', () => {
+(C_WITNESS ? describe : describe.skip)('witness with the C calculator', () => {
   const {circuit, signals, inputName} = prepareMultiplier(3);
   const circomkit = new Circomkit({
     verbose: false,

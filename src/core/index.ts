@@ -17,7 +17,12 @@ import {
   type MainComponentConfig,
   readR1CSInfo,
 } from '../functions';
-import {cWitnessCalculator, cWitnessCalculatorPath, wasmWitnessCalculator} from '../functions/witness';
+import {
+  buildCWitnessCalculator,
+  cWitnessCalculator,
+  cWitnessCalculatorPath,
+  wasmWitnessCalculator,
+} from '../functions/witness';
 import {ProofTester, WitnessTester} from '../testers';
 import type {CircuitConfig, CircuitSignals} from '../types';
 import {prettyStringify} from '../utils';
@@ -534,7 +539,7 @@ export class Circomkit {
           overrides: {...circuitConfig.overrides, cWitness: true},
         });
       }
-      await execFileAsync('make', ['-C', cppDir]);
+      await buildCWitnessCalculator(this.path.ofCircuit(circuit, 'dir'), circuit);
     }
 
     // the C calculator only reads inputs from a file
@@ -672,7 +677,7 @@ export class Circomkit {
       try {
         const {stderr} = await compileCircuit(config, targetPath, tmpOutput);
         if (stderr) this.log.error(stderr);
-        if (tester === 'c') await execFileAsync('make', ['-C', `${tmpOutput}/${circuit}_cpp`]);
+        if (tester === 'c') await buildCWitnessCalculator(tmpOutput, circuit);
 
         if (builtAt() === previousBuild) {
           rmSync(output, {recursive: true, force: true});

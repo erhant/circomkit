@@ -3,7 +3,7 @@ import * as snarkjs from 'snarkjs';
 import {Circomkit, type WitnessTester} from '../src';
 import {circomVersion} from '../src/functions';
 import type {WitnessType} from '../src/types';
-import {prepareMultiplier} from './common';
+import {C_WITNESS, prepareMultiplier} from './common';
 
 describe('witness tester', () => {
   let circomkit: Circomkit;
@@ -46,9 +46,15 @@ describe('witness tester', () => {
   });
 
   it('should filter constraints by signal or component', async () => {
-    expect(await circuit.constraints('isZero[1]')).toEqual(['#4: isZero[1].in * isZero[1].inv = 1', '#8: in[1] - isZero[1].in - 1 = 0']);
+    expect(await circuit.constraints('isZero[1]')).toEqual([
+      '#4: isZero[1].in * isZero[1].inv = 1',
+      '#8: in[1] - isZero[1].in - 1 = 0',
+    ]);
     expect(await circuit.constraints('main.out')).toEqual(['#2: inner[1] * in[3] = out']);
-    expect(await circuit.constraints('in[1]')).toEqual(['#0: in[0] * in[1] = inner[0]', '#8: in[1] - isZero[1].in - 1 = 0']);
+    expect(await circuit.constraints('in[1]')).toEqual([
+      '#0: in[0] * in[1] = inner[0]',
+      '#8: in[1] - isZero[1].in - 1 = 0',
+    ]);
     await expect(circuit.constraints('isZero[9]')).rejects.toThrow('No signal matches isZero[9]');
   });
 
@@ -270,7 +276,7 @@ describe('witness tester anonymous components', () => {
 });
 
 // the C witness calculator needs nlohmann-json and gmp (and nasm on x86-64), which CI installs on Linux
-(process.platform === 'linux' ? describe : describe.skip)('witness tester with the C calculator', () => {
+(C_WITNESS ? describe : describe.skip)('witness tester with the C calculator', () => {
   const circomkit = new Circomkit({
     verbose: false,
     logLevel: 'silent',
@@ -422,22 +428,41 @@ describe('witness testers of the same circuit', () => {
 
 describe('witnesses against snarkjs', () => {
   const dirBuild = './tests/build/witness-snarkjs';
-  const calculators = process.platform === 'linux' ? (['wasm', 'c'] as const) : (['wasm'] as const);
+  const calculators = C_WITNESS ? (['wasm', 'c'] as const) : (['wasm'] as const);
   afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
 
   for (const prime of ['bn128', 'goldilocks'] as const) {
     for (const calculator of calculators) {
       it(`should compute the same witness with ${prime} and the ${calculator} calculator`, async () => {
-        const circomkit = new Circomkit({verbose: false, logLevel: 'silent', prime, dirCircuits: './tests/circuits', dirBuild});
+        const circomkit = new Circomkit({
+          verbose: false,
+          logLevel: 'silent',
+          prime,
+          dirCircuits: './tests/circuits',
+          dirBuild,
+        });
         const circuit = await circomkit.WitnessTester(
           `arrays_${prime}`,
           {file: 'arrays', template: 'Arrays', params: [2, 3], pubs: ['in1D', 'in2D']},
           calculator
         );
-        const input = {in: 1, in1D: [1, 2], in2D: [[1, 2, 3], [5, 6, 7]]};
+        const input = {
+          in: 1,
+          in1D: [1, 2],
+          in2D: [
+            [1, 2, 3],
+            [5, 6, 7],
+          ],
+        };
         const witness = await circuit.calculateWitness(input);
 
-        const dir = await circomkit.compile(`arrays_${prime}`, {file: 'arrays', template: 'Arrays', params: [2, 3], pubs: ['in1D', 'in2D'], dir: 'test'});
+        const dir = await circomkit.compile(`arrays_${prime}`, {
+          file: 'arrays',
+          template: 'Arrays',
+          params: [2, 3],
+          pubs: ['in1D', 'in2D'],
+          dir: 'test',
+        });
         const wtnsPath = `${dir}/snarkjs.wtns`;
         await snarkjs.wtns.calculate(input, `${dir}/arrays_${prime}_js/arrays_${prime}.wasm`, wtnsPath);
         expect(witness.map(BigInt)).toEqual(((await snarkjs.wtns.exportJson(wtnsPath)) as bigint[]).map(BigInt));
@@ -452,12 +477,22 @@ const [major, minor] = (await circomVersion('circom')).split('.').map(Number);
   const dirBuild = './tests/build/signals';
   let circuit: WitnessTester;
   let witness: WitnessType;
-  const input = {in: [[1, 2, 3], [4, 5, 6]], p: {x: 3, y: 7}};
+  const input = {
+    in: [
+      [1, 2, 3],
+      [4, 5, 6],
+    ],
+    p: {x: 3, y: 7},
+  };
 
   beforeAll(async () => {
     const circomkit = new Circomkit({verbose: false, logLevel: 'silent', dirCircuits: './tests/circuits', dirBuild});
     // O0 keeps all signals, O1 already removes linear ones such as `d[i][j].out`
-    circuit = await circomkit.WitnessTester('signals', {file: 'signals', template: 'Signals', overrides: {optimization: 0}});
+    circuit = await circomkit.WitnessTester('signals', {
+      file: 'signals',
+      template: 'Signals',
+      overrides: {optimization: 0},
+    });
     witness = await circuit.calculateWitness(input as never);
   });
   afterAll(() => rmSync(dirBuild, {recursive: true, force: true}));
@@ -470,8 +505,16 @@ const [major, minor] = (await circomVersion('circom')).split('.').map(Number);
       [4n, 5n, 6n],
     ]);
     expect(await read('out3')).toEqual([
-      [[2n, 2n], [6n, 12n], [12n, 36n]],
-      [[20n, 80n], [30n, 150n], [42n, 252n]],
+      [
+        [2n, 2n],
+        [6n, 12n],
+        [12n, 36n],
+      ],
+      [
+        [20n, 80n],
+        [30n, 150n],
+        [42n, 252n],
+      ],
     ]);
     expect(await read('out3[1][2]')).toEqual([42n, 252n]);
   });
@@ -498,7 +541,14 @@ const [major, minor] = (await circomVersion('circom')).split('.').map(Number);
 
   it('should compute & assert outputs of all shapes', async () => {
     const output = await circuit.compute(input as never, ['sum', 'q', 'qs']);
-    expect(output).toEqual({sum: 572n, q: {x: 21n, y: 10n}, qs: [{x: 3n, y: 147n}, {x: 6n, y: 147n}]});
+    expect(output).toEqual({
+      sum: 572n,
+      q: {x: 21n, y: 10n},
+      qs: [
+        {x: 3n, y: 147n},
+        {x: 6n, y: 147n},
+      ],
+    });
     await circuit.expectPass(input as never, output as never);
   });
 

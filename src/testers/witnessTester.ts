@@ -1,6 +1,12 @@
 import {AssertionError} from 'node:assert';
 import path from 'node:path';
-import {formatConstraints, iterateSymbols, type R1CSConstraints, readR1CSConstraints, readSymbols} from '../functions/r1cs';
+import {
+  formatConstraints,
+  iterateSymbols,
+  type R1CSConstraints,
+  readR1CSConstraints,
+  readSymbols,
+} from '../functions/r1cs';
 import {cWitnessCalculatorPath, type WitnessCalculator} from '../functions/witness';
 import type {CircuitSignals, SignalValueType, SymbolsType, WitnessType} from '../types/';
 

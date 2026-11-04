@@ -1,0 +1,84 @@
+name: c-witness
+
+# the C witness calculator on each OS & architecture, with the setup from the README
+# manual only, as it is slow (Circom is built from source on ARM), and on PRs that change this workflow
+on:
+  workflow_dispatch:
+    inputs:
+      circom:
+        description: 'Circom version, 2.2.2 or newer for `--no_asm` on ARM'
+        default: '2.2.3'
+  pull_request:
+    paths:
+      - '.github/workflows/c-witness.yml'
+
+env:
+  CIRCOM_VERSION: ${{ inputs.circom || '2.2.3' }}
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        runner:
+          - ubuntu-24.04 # x86-64, with assembly
+          - ubuntu-24.04-arm # ARM, with `--no_asm`
+          - macos-15 # Apple Silicon, with `--no_asm`
+          - macos-15-intel # x86-64, with assembly
+        # Windows is left out: Circom's C code needs POSIX headers such as `sys/mman.h`
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install C dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes build-essential libgmp-dev nlohmann-json3-dev ${{ runner.arch == 'X64' && 'nasm' || '' }}
+
+      - name: Install C dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install gmp nlohmann-json ${{ runner.arch == 'X64' && 'nasm' || '' }}
+          echo "CPATH=$(brew --prefix)/include" >> "$GITHUB_ENV"
+          echo "LIBRARY_PATH=$(brew --prefix)/lib" >> "$GITHUB_ENV"
+
+      - name: Install Circom (released binary)
+        if: runner.arch == 'X64'
+        run: |
+          sudo curl -fsSL -o /usr/local/bin/circom \
+            https://github.com/iden3/circom/releases/download/v$CIRCOM_VERSION/circom-${{ runner.os == 'macOS' && 'macos' || 'linux' }}-amd64
+          sudo chmod +x /usr/local/bin/circom
+
+      # only x86-64 binaries are released
+      - name: Install Rust
+        if: runner.arch == 'ARM64'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Circom (from source)
+        if: runner.arch == 'ARM64'
+        run: cargo install --locked --git https://github.com/iden3/circom --tag v$CIRCOM_VERSION circom
+
+      - name: Print versions
+        run: |
+          circom --version
+          uname -m
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      # `CI` is set, so the C tests fail instead of being skipped if the C witness calculator can not be built
+      - name: Run tests
+        run: pnpm test

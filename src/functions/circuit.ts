@@ -10,7 +10,7 @@ export type MainComponentConfig = Required<Omit<CircuitConfig, 'overrides'>>;
 
 import type {CircomkitConfig} from '../configs';
 
-// @todo make compilation config a separate entity derived from CircomkitConfig and be Partial.
+// TODO: make compilation config a separate entity derived from CircomkitConfig and be Partial.
 
 /** Splits `circomPath` into a command and its arguments.
  *

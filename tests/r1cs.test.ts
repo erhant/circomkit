@@ -85,7 +85,10 @@ describe('reading r1cs files', () => {
 
     it('should throw for other files', async () => {
       await expectError(Buffer.from('{"not": "an r1cs file"}'), 'Not an R1CS file');
-      await expectError(Buffer.concat([valid.subarray(0, 4), Buffer.from([2, 0, 0, 0]), valid.subarray(8)]), 'Unsupported R1CS version 2');
+      await expectError(
+        Buffer.concat([valid.subarray(0, 4), Buffer.from([2, 0, 0, 0]), valid.subarray(8)]),
+        'Unsupported R1CS version 2'
+      );
     });
 
     it('should throw for missing sections', async () => {
@@ -99,7 +102,10 @@ describe('reading r1cs files', () => {
     const first = '0,0,0,main.';
     const lines = [
       `${first}${'x'.repeat(2 ** 20 - 1 - first.length)}é`,
-      ...Array.from({length: 60000}, (_, i) => `${i + 1},${i % 7 === 0 ? -1 : i},${i % 13},main.c[${i}].é${'x'.repeat(i % 17)}`),
+      ...Array.from(
+        {length: 60000},
+        (_, i) => `${i + 1},${i % 7 === 0 ? -1 : i},${i % 13},main.c[${i}].é${'x'.repeat(i % 17)}`
+      ),
     ];
     const symPath = `${dirBuild}/chunks.sym`;
     mkdirSync(dirBuild, {recursive: true});
