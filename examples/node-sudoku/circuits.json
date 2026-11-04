@@ -23,5 +23,11 @@
     "overrides": {
       "protocol": "fflonk"
     }
+  },
+  "sudoku_9x9": {
+    "file": "sudoku",
+    "template": "Sudoku",
+    "pubs": ["puzzle"],
+    "params": [3]
   }
 }

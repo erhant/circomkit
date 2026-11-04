@@ -471,7 +471,7 @@ CI tests Circomkit with Circom 2.1.5 and 2.2.3.
 
 ## Examples
 
-The [examples](./examples/) are cookbooks, small projects that each show one topic: testing, protocols, the C witness calculator, Solidity verifiers with Foundry, and Bun.
+The [examples](./examples/) are two small projects, each a full stack: [Sudoku with Node.js](./examples/node-sudoku/), with witness tests, Groth16, PLONK & FFLONK and the C witness calculator, and [SHA-256 with Bun](./examples/bun-sha256/), with a Solidity verifier tested with Foundry.
 
 ## Development
 
