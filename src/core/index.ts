@@ -323,12 +323,9 @@ export class Circomkit {
 
     const circomSource = readFileSync(`${dirCircuits}/${circuitConfig.file}.circom`, 'utf8');
 
-    // TODO: do we need regex here?
     const usesCustomTemplates =
       circuitConfig.usesCustomTemplates ??
-      circomSource
-        .replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '') // remove single and multi-line comments
-        .includes('pragma custom_templates;');
+      /\bpragma\s+custom_templates\s*;/.test(circomSource.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, '')); // without comments
 
     // directory to output the file
     const directory = circuitConfig.dir || 'test';
@@ -344,8 +341,8 @@ export class Circomkit {
     const config: MainComponentConfig = {
       file: file,
       template: circuitConfig.template,
-      // Precedence: circuit `version` > `overrides.version` > global `version` > "2.0.0".
-      version: circuitConfig.version || version || '2.0.0',
+      // circuit `version` > `overrides.version` > global `version`, which defaults to 2.1.0
+      version: circuitConfig.version || version,
       dir: directory,
       pubs: circuitConfig.pubs || [],
       params: circuitConfig.params || [],

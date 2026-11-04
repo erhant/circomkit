@@ -14,7 +14,7 @@ type PreparedTestCircuit<S extends Record<string, CircuitSignals>> = {
     /** Circuit configuration. */
     config: CircuitConfig;
     /** Circuit size, i.e. constraint count. */
-    size?: number; // TODO: we should support bigint for this
+    size?: number;
     /**
      * If `exact`, the circuit size MUST exactly match the computed size.
      * Otherwise, the circuit can be a bit larger (i.e. over-constrained).

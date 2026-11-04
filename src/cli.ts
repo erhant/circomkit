@@ -10,7 +10,7 @@ import {teardown} from './utils/teardown';
 
 const CONFIG_PATH = './circomkit.json';
 
-function cli(args: string[]) {
+async function cli(args: string[]) {
   const circomkit = new Circomkit(existsSync(CONFIG_PATH) ? JSON.parse(readFileSync(CONFIG_PATH, 'utf-8')) : {});
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -264,7 +264,7 @@ function cli(args: string[]) {
   });
 
   ///////////////////////////////////////////////////////////////////////////////
-  new Command()
+  await new Command()
     .name('circomkit')
     .version(version)
     .description('Circom testing & development toolkit')
@@ -288,29 +288,13 @@ function cli(args: string[]) {
     .addCommand(witness)
     .addCommand(verify)
     .addCommand(calldata)
-    // teardown to terminate SnarkJS, otherwise hangs the program
-    .hook('postAction', async () => await teardown())
-    .parse(args);
-
-  // TODO: test graceful exits
-  /**
-   * We have to exit forcefully, as SnarkJS CLI does too.
-   * In their code, each function returns a code, with the
-   * succesfull ones returning 0. If an error is thrown,
-   * that error is logged and process is exited with error code 1.
-   *
-   * See https://github.com/iden3/snarkjs/blob/master/cli.js#L348
-   */
-  // function exit(code: number) {
-  //   process.exit(code);
-  // }
-
-  // cli()
-  //   .then(code => exit(code))
-  //   .catch(err => {
-  //     console.error(err);
-  //     exit(1);
-  //   });
+    .parseAsync(args);
 }
 
-cli(process.argv);
+// errors are printed without a stack trace, and SnarkJS is torn down to exit even after an error
+cli(process.argv)
+  .catch(error => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(teardown);
