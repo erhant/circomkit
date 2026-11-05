@@ -54,7 +54,7 @@
     "@types/node": "^18.19.67",
     "pkgroll": "^2.29.0",
     "prettier": "^3.4.1",
-    "solc": "^0.8.28",
+    "solc": "^0.8.38",
     "typescript": "^5.7.2",
     "vitest": "^5.1.0"
   },
@@ -81,5 +81,11 @@
   },
   "bugs": {
     "url": "https://github.com/erhant/circomkit/issues/"
+  },
+  "pnpm": {
+    "overrides": {
+      "jsonpath>underscore": "^1.13.8",
+      "solc>tmp": "^0.2.7"
+    }
   }
 }

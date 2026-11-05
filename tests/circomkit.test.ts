@@ -1,7 +1,6 @@
 import {existsSync, readFileSync, rmSync} from 'node:fs';
 import {createEVM} from '@ethereumjs/evm';
 import * as snarkjs from 'snarkjs';
-// @ts-expect-error
 import solc from 'solc';
 import {Circomkit} from '../src';
 import {PROTOCOLS} from '../src/configs';
