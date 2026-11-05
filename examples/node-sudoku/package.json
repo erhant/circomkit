@@ -1,0 +1,16 @@
+{
+  "name": "circomkit-node-sudoku",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run tests/sudoku.test.ts tests/proofs.test.ts",
+    "test:c": "vitest run tests/c-witness.test.ts"
+  },
+  "dependencies": {
+    "circomkit": "^0.4.0",
+    "snarkjs": "^0.7.5"
+  },
+  "devDependencies": {
+    "vitest": "^5.1.0"
+  }
+}

@@ -1,9 +1,9 @@
-import { describe, it, beforeAll } from 'bun:test';
-import { WitnessTester } from 'circomkit';
-import { createHash } from 'crypto';
-import { Circomkit } from 'circomkit';
+import {describe, it, beforeAll} from 'bun:test';
+import {WitnessTester} from 'circomkit';
+import {createHash} from 'crypto';
+import {Circomkit} from 'circomkit';
 
-const circomkit = new Circomkit({ verbose: false });
+const circomkit = new Circomkit({verbose: false});
 
 describe('sha256', () => {
   let circuit: WitnessTester<['in'], ['out']>;
@@ -20,8 +20,8 @@ describe('sha256', () => {
   const DIGEST_BYTES = Buffer.from(DIGEST, 'hex').toJSON().data;
 
   // circuit signals
-  const INPUT = { in: PREIMAGE_BYTES };
-  const OUTPUT = { out: DIGEST_BYTES };
+  const INPUT = {in: PREIMAGE_BYTES};
+  const OUTPUT = {out: DIGEST_BYTES};
 
   beforeAll(async () => {
     circuit = await circomkit.WitnessTester(`sha256_${NUM_BYTES}`, {

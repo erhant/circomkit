@@ -1,3 +1,5 @@
+import type {CircomkitConfig} from '../configs';
+
 /** An integer value is a numerical string, a number, or a bigint. */
 export type IntegerValueType = `${number}` | number | bigint;
 
@@ -30,6 +32,9 @@ export type SymbolsType = {
   };
 };
 
+/** Circomkit configurations that can be overridden for a single circuit. */
+export type CircuitOverrides = Partial<Omit<CircomkitConfig, 'circuits' | 'logLevel'>>;
+
 /** A configuration object for circuit main components. */
 export type CircuitConfig = {
   /** File to read the template from */
@@ -46,23 +51,6 @@ export type CircuitConfig = {
   params?: (number | bigint)[];
   /** Include `pragma custom_templates;` in instantiation */
   usesCustomTemplates?: boolean;
-};
-
-/**
- * A simple type-wrapper for `circom_tester` WASM tester class.
- * Not all functions may exist here, some are omitted.
- * @see https://github.com/iden3/circom_tester/blob/main/wasm/tester.js
- */
-export type CircomTester = {
-  checkConstraints: (witness: WitnessType) => Promise<void>;
-  release: () => Promise<void>;
-  assertOut: (actualOut: WitnessType, expectedOut: CircuitSignals) => Promise<void>;
-  calculateWitness: (input: CircuitSignals, sanityCheck: boolean) => Promise<WitnessType>;
-  loadConstraints: () => Promise<void>;
-  constraints: unknown[] | undefined;
-  loadSymbols: () => Promise<void>;
-  symbols: SymbolsType | undefined;
-  getDecoratedOutput: (witness: WitnessType) => Promise<string>;
-  dir: string;
-  baseName: string;
+  /** Circomkit configurations for this circuit only, e.g. `{"protocol": "plonk"}` */
+  overrides?: CircuitOverrides;
 };

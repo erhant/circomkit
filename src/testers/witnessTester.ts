@@ -1,25 +1,52 @@
 import {AssertionError} from 'node:assert';
-import type {CircomTester, WitnessType, CircuitSignals, SymbolsType, SignalValueType} from '../types/';
 import path from 'node:path';
-import fs from 'node:fs';
-
-// @todo detect optimized symbols https://github.com/erhant/circomkit/issues/80
+import {
+  formatConstraints,
+  iterateSymbols,
+  type R1CSConstraints,
+  readR1CSConstraints,
+  readSymbols,
+} from '../functions/r1cs';
+import {cWitnessCalculatorPath, type WitnessCalculator} from '../functions/witness';
+import type {CircuitSignals, SignalValueType, SymbolsType, WitnessType} from '../types/';
 
 /** A utility class to test your circuits. Use `expectFail` and `expectPass` to test out evaluations. */
 export class WitnessTester<IN extends readonly string[] = [], OUT extends readonly string[] = []> {
   /** A dictionary of symbols, see {@link loadSymbols} */
-  private symbols: SymbolsType | undefined;
-  /** List of constraints, see {@link loadConstraints} */
-  private constraints: unknown[] | undefined;
+  private symbols: SymbolsType = {};
+  /** Whether all symbols are loaded, see {@link loadSymbols} and {@link loadSpecificSymbols} */
+  private allSymbolsLoaded = false;
+  /** Constraints `A * B = C`, see {@link loadConstraints} */
+  private r1csConstraints: R1CSConstraints | undefined;
 
   constructor(
-    /** The underlying `circom_tester` object */
-    private readonly circomTester: CircomTester
+    /** The build directory of the circuit */
+    private readonly dir: string,
+    /** The circuit name, i.e. the base name of the files in `dir` */
+    private readonly name: string,
+    /** Computes the witness for an input */
+    private readonly witnessCalculator: WitnessCalculator,
+    /** Prime of the field, expected outputs are compared modulo it */
+    private readonly prime: bigint
   ) {}
 
   /** Assert that constraints are valid for a given witness. */
   async expectConstraintPass(witness: WitnessType): Promise<void> {
-    return this.circomTester.checkConstraints(witness);
+    const {prime: p, offsets, wires, coefficientIds, coefficients} = this.loadConstraints();
+    const evaluate = (k: number) => {
+      let sum = 0n;
+      for (let t = offsets[k]; t < offsets[k + 1]; t++) {
+        sum = (sum + coefficients[coefficientIds[t]] * BigInt(witness[wires[t]])) % p;
+      }
+      return sum;
+    };
+
+    for (let k = 0; k < offsets.length - 1; k += 3) {
+      // edited witnesses may hold values out of the field, hence the double modulo
+      if ((((evaluate(k) * evaluate(k + 1) - evaluate(k + 2)) % p) + p) % p !== 0n) {
+        throw new Error("Constraint doesn't match");
+      }
+    }
   }
 
   /**
@@ -43,16 +70,25 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
   /** Compute witness given the input signals. */
   async calculateWitness(input: CircuitSignals<IN>): Promise<WitnessType> {
-    return this.circomTester.calculateWitness(input, false);
+    return this.witnessCalculator(input);
+  }
+
+  /** Returns the constraints as human-readable formulas, e.g. `in[0] * in[1] = inner[0]`.
+   *
+   * With a `filter`, only the constraints using that signal or component are returned, e.g. `isZero[0]`.
+   */
+  async constraints(filter?: string): Promise<string[]> {
+    const lines: string[] = [];
+    const r1csPath = path.join(this.dir, `${this.name}.r1cs`);
+    for await (const line of formatConstraints(r1csPath, path.join(this.dir, `${this.name}.sym`), filter)) {
+      lines.push(line);
+    }
+    return lines;
   }
 
   /** Returns the number of constraints. */
   async getConstraintCount() {
-    if (this.constraints === undefined) {
-      await this.loadConstraints();
-    }
-    const numConstraints = this.constraints!.length;
-    return numConstraints;
+    return (this.loadConstraints().offsets.length - 1) / 3;
   }
 
   /** Asserts that the circuit has enough constraints.
@@ -106,6 +142,15 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
           'Not enough values for input signal', // few inputs than expected for a signal
           'Too many values for input signal', // more inputs than expected for a signal
           'Not all inputs have been set.', // few inputs than expected for many signals
+          // other run-time errors of the witness calculator
+          'Error: Out of bounds array access.',
+          'Error: Input signal array access exceeds the size.',
+          'Error: Signal already set.',
+          'Error: Too many signals set.',
+          'Error: Signal not found.',
+          'RuntimeError:', // a WASM trap, e.g. modulo by zero
+          // the C witness calculator exits with an error (or a signal, e.g. SIGFPE on modulo by zero)
+          `Command failed: ${cWitnessCalculatorPath(this.dir, this.name)} `,
         ].some(msg => errorMessage.startsWith(msg));
 
         // throw unhandled error anyways
@@ -151,6 +196,8 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * - `main.signal`
    * - `main.component.signal`
    * - `main.component.signal[n][m]`
+   * - `main.Template_line_offset.signal` for anonymous components, e.g. `main.Square_3_158.out` for a
+   *   `Square()(...)` call at line 3, where `158` is the byte offset of the call in its file
    *
    * You will likely call `expectConstraintPass` on the resulting fake witness to see if it can indeed fool
    * a verifier.
@@ -160,18 +207,11 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
     witness: Readonly<WitnessType>,
     symbolValues: {[symbolName: string]: bigint}
   ): Promise<WitnessType> {
-    await this.loadSymbols();
+    this.loadSymbols();
 
     const fakeWitness = witness.slice();
     for (const symbolName in symbolValues) {
-      // get corresponding symbol
-      const symbolInfo = this.symbols![symbolName];
-      if (symbolInfo === undefined) {
-        throw new Error('Invalid symbol name: ' + symbolName);
-      }
-
-      // override with user value
-      fakeWitness[symbolInfo.varIdx] = symbolValues[symbolName];
+      fakeWitness[this.varIdx(symbolName)] = symbolValues[symbolName];
     }
 
     return fakeWitness;
@@ -183,14 +223,7 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
 
     const ans: Record<string, bigint> = {};
     for (const symbolName of symbols) {
-      // get corresponding symbol
-      const symbolInfo = this.symbols![symbolName];
-      if (symbolInfo === undefined) {
-        throw new Error('Invalid symbol name: ' + symbolName);
-      }
-
-      // override with user value
-      ans[symbolName] = witness[symbolInfo.varIdx];
+      ans[symbolName] = witness[this.varIdx(symbolName)];
     }
 
     return ans;
@@ -203,86 +236,44 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * will be returned here. For example, instead of reading `main.out[0], main.out[1], main.out[2]` with `readWitness`,
    * you can simply query `out` in this function and an object with `{out: [...]}` will be returned.
    *
-   * To read signals within a component, simply refer to them as `component.signal`. In other words, omit the `main.` prefix
-   * and array dimensions.
+   * Signals are named as in the `main` component, i.e. without the `main.` prefix. Arrays are returned as arrays and
+   * buses as objects, and parts of them can be read too, e.g. `out[1]` or `point.x`. To read signals within a
+   * component, refer to them as `component.signal`, e.g. `hasher.out` or `hashers[0].out`.
+   * Anonymous components are named like `Square_3_158`, see {@link editWitness}.
    */
   async readWitnessSignals(witness: Readonly<WitnessType>, signals: string[] | OUT): Promise<CircuitSignals> {
-    await this.loadSymbols();
+    const symbols = this.loadSymbols();
 
-    // for each out signal, process the respective symbol
-    const entries: [OUT[number], SignalValueType][] = [];
+    // places the value at the path of indices & bus fields within the value of a signal
+    type Value = bigint | Value[] | {[field: string]: Value};
+    const place = (into: Value | undefined, path: (number | string)[], value: bigint): Value => {
+      if (path.length === 0) return value;
+      const [key, ...rest] = path;
+      const container = (into ?? (typeof key === 'number' ? [] : {})) as Record<number | string, Value>;
+      container[key] = place(container[key], rest, value);
+      return container;
+    };
 
-    // returns the dot count in the symbol
-    // for example `main.inner.in` has 2 dots
-    function dotCount(s: string): number {
-      return s.split('.').length;
-    }
-
+    const entries: [string, Value][] = [];
     for (const signal of signals) {
-      // if our symbol has N dots (0 for `main` signals), we must filter symbols that have different
-      // amount of dots. this shall speed-up the rest of the algorithm, as symbol count may be large
-      // non-main signals have an additional `.` in them after `main.symbol`
-      const signalDotCount = dotCount(signal) + 1; // +1 for the dot in `main.`
-      const signalLength = signal.length + 5; // +5 for prefix `main.`
-      const symbolNames = Object.keys(this.symbols!).filter(
-        s => s.startsWith(`main.${signal}`) && signalDotCount === dotCount(s)
-      );
+      const prefix = `main.${signal}`;
+      let value: Value | undefined;
+      for (const symbol in symbols) {
+        if (symbol !== prefix && !symbol.startsWith(`${prefix}[`) && !symbol.startsWith(`${prefix}.`)) continue;
 
-      // get the symbol values from symbol names, ignoring `main.` prefix
-      // the matched symbols must exactly equal the signal
-      const matchedSymbols = symbolNames.filter(s => {
-        const i = s.indexOf('[');
-        if (i === -1) {
-          // not an array signal
-          return s.length === signalLength;
-        } else {
-          // an array signal, we only care about the symbol name
-          return s.slice(0, i).length === signalLength;
-        }
-      });
-
-      if (matchedSymbols.length === 0) {
-        // no matches!
-        throw new Error('No symbols matched for signal: ' + signal);
-      } else if (matchedSymbols.length === 1) {
-        // easy case, just return the witness of this symbol
-        entries.push([signal, witness[this.symbols![matchedSymbols[0]].varIdx]]);
-      } else {
-        // since signal names are consequent, we only need to know the witness index of the first symbol
-        let idx = this.symbols![matchedSymbols[0]].varIdx;
-
-        // we can assume that a symbol with this name appears only once in a component, and that the depth is same for
-        // all occurrences of this symbol, given the type system used in Circom. So, we can just count the number
-        // of `[`s in any symbol of this signal to find the number of dimensions of this signal.
-        // we particularly choose the last symbol in the array, as that holds the maximum index of each dimension of this array.
-        const splits = matchedSymbols.at(-1)!.split('[');
-
-        // since we chose the last symbol, we have something like `main.signal[dim1][dim2]...[dimN]` which we can parse
-        const dims = splits.slice(1).map(dim => parseInt(dim.slice(0, -1)) + 1); // +1 is needed because the final value is 0-indexed
-
-        // at this point, we have an array of signals like `main.signal[0..dim1][0..dim2]..[0..dimN]`
-        // and we must construct the necessary multi-dimensional array out of it.
-        // eslint-disable-next-line no-inner-declarations
-        function processDepth(d: number): SignalValueType {
-          const acc: SignalValueType = [];
-          if (d === dims.length - 1) {
-            // final depth, count witnesses
-            for (let i = 0; i < dims[d]; i++) {
-              acc.push(witness[idx++]);
-            }
-          } else {
-            // not final depth, recurse to next
-            for (let i = 0; i < dims[d]; i++) {
-              acc.push(processDepth(d + 1));
-            }
-          }
-          return acc;
-        }
-        entries.push([signal, processDepth(0)]);
+        // e.g. `[1][0]` for an array element, or `.x` for a bus field
+        const path = [...symbol.slice(prefix.length).matchAll(/\[(\d+)\]|\.([^.[]+)/g)].map(([, index, field]) =>
+          index !== undefined ? Number(index) : field
+        );
+        value = place(value, path, witness[this.varIdx(symbol)]);
       }
+      if (value === undefined) {
+        throw new Error(`No symbols matched for signal: ${signal}`);
+      }
+      entries.push([signal, value]);
     }
 
-    return Object.fromEntries(entries) as CircuitSignals<OUT>;
+    return Object.fromEntries(entries) as CircuitSignals;
   }
 
   /**
@@ -290,18 +281,58 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * @param actualOut expected witness
    * @param expectedOut computed output signals
    */
-  private assertOut(actualOut: WitnessType, expectedOut: CircuitSignals<OUT>): Promise<void> {
-    return this.circomTester.assertOut(actualOut, expectedOut);
+  private async assertOut(actualOut: WitnessType, expectedOut: CircuitSignals<OUT>): Promise<void> {
+    const symbols = this.loadSymbols();
+
+    // objects are not in the types, but are accepted at run-time, e.g. for buses
+    const check = (prefix: string, expected: SignalValueType | {[key: string]: SignalValueType}) => {
+      if (Array.isArray(expected)) {
+        for (const [i, e] of expected.entries()) check(`${prefix}[${i}]`, e);
+      } else if (typeof expected === 'object') {
+        for (const key in expected) check(`${prefix}.${key}`, expected[key]);
+      } else {
+        const symbol = symbols[prefix];
+        if (symbol === undefined) {
+          throw new Error(`Output variable not defined: ${prefix}`);
+        }
+        // in the field, e.g. -1 is p - 1, and values may be given in hexadecimal too, e.g. `0xff`
+        const exp = ((BigInt(expected) % this.prime) + this.prime) % this.prime;
+        const actual = BigInt(actualOut[symbol.varIdx]);
+        if (actual !== exp) {
+          const inField = `${exp}` === `${expected}` ? '' : ` (${exp} in the field)`;
+          throw new Error(`Assertion failed for ${prefix}: expected ${expected}${inField}, got ${actual}`);
+        }
+      }
+    };
+    for (const signal in expectedOut) {
+      check(`main.${signal}`, expectedOut[signal as OUT[number]]);
+    }
   }
 
-  /** Loads the list of R1CS constraints to `this.constraints`. */
-  private async loadConstraints(): Promise<void> {
-    await this.circomTester.loadConstraints();
-    this.constraints = this.circomTester.constraints;
+  /** Returns the witness index of a loaded symbol, throwing if it is unknown or optimized away. */
+  private varIdx(symbolName: string): number {
+    const symbolInfo = this.symbols[symbolName];
+    if (symbolInfo === undefined) {
+      throw new Error(`Invalid symbol name: ${symbolName}`);
+    }
+    if (symbolInfo.varIdx === -1) {
+      throw new Error(
+        `Symbol ${symbolName} was optimized away by the compiler, use a lower optimization level to keep it`
+      );
+    }
+    return symbolInfo.varIdx;
+  }
+
+  /** Returns the R1CS constraints, reading them on the first call. */
+  private loadConstraints(): R1CSConstraints {
+    if (!this.r1csConstraints) {
+      this.r1csConstraints = readR1CSConstraints(path.join(this.dir, `${this.name}.r1cs`));
+    }
+    return this.r1csConstraints;
   }
 
   /**
-   * Loads the symbols in a dictionary at `this.symbols`
+   * Returns all symbols, reading them to `this.symbols` on the first call.
    * Symbols are stored under the .sym file
    *
    * Each line has 4 comma-separated values:
@@ -311,58 +342,25 @@ export class WitnessTester<IN extends readonly string[] = [], OUT extends readon
    * 3.  variable index
    * 4.  component index
    */
-  private async loadSymbols(): Promise<void> {
-    // no need to check if symbols are already defined
-    // that check happens within circomWasmTester
-    await this.circomTester.loadSymbols();
-    this.symbols = this.circomTester.symbols;
+  private loadSymbols(): SymbolsType {
+    if (!this.allSymbolsLoaded) {
+      this.symbols = readSymbols(path.join(this.dir, `${this.name}.sym`));
+      this.allSymbolsLoaded = true;
+    }
+    return this.symbols;
   }
 
-  /** Faster alternative to this.circomTester.loadSymbols(),
-   *  stops once all the requested symbols are found */
+  /** Faster alternative to {@link loadSymbols}, stops once all the requested symbols are found */
   private async loadSpecificSymbols(symbolsRequested: string[]): Promise<void> {
-    if (!this.symbols) this.symbols = {}; // Init if missing
-
     // Identify which symbols are still needed
-    const symbolsToFind = new Set(symbolsRequested.filter(s => !this.symbols?.[s]));
+    const symbolsToFind = new Set(symbolsRequested.filter(s => !this.symbols[s]));
     if (symbolsToFind.size === 0) return;
 
-    // Read the symbols file into memory
-    const symbolsFile = await fs.promises.readFile(
-      path.join(this.circomTester.dir, this.circomTester.baseName + '.sym'),
-      'utf8'
-    );
-
-    // Start looking for the requested symbols
-    for (const line of symbolsFile.split('\n')) {
-      if (symbolsToFind.size === 0) return; // Stop when all found
-
-      const [labelIdx, varIdx, componentIdx, symbolName] = line.split(',');
-      if (!symbolName || !symbolsToFind.has(symbolName)) continue; // Skip non-requested symbols
-
-      // Add found symbols to the symbols map, like circomTester.loadSymbols()
-      this.symbols[symbolName] = {
-        labelIdx: Number(labelIdx),
-        varIdx: Number(varIdx),
-        componentIdx: Number(componentIdx),
-      };
-      symbolsToFind.delete(symbolName); // Remove from list
+    for (const [name, symbol] of iterateSymbols(path.join(this.dir, `${this.name}.sym`))) {
+      if (!symbolsToFind.has(name)) continue;
+      this.symbols[name] = symbol;
+      symbolsToFind.delete(name);
+      if (symbolsToFind.size === 0) return; // stops reading once all are found
     }
-  }
-
-  /**
-   * @deprecated this is buggy right now
-   * @param witness witness
-   */
-  private getDecoratedOutput(witness: WitnessType): Promise<string> {
-    return this.circomTester.getDecoratedOutput(witness);
-  }
-
-  /**
-   * Cleanup directory, should probably be called upon test completion (?)
-   * @deprecated this is buggy right now
-   */
-  private release(): Promise<void> {
-    return this.circomTester.release();
   }
 }

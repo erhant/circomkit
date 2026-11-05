@@ -1,0 +1,8 @@
+[profile.default]
+src = "contracts"
+test = "contracts"
+libs = ["node_modules"]
+ignored_warnings_from = ["node_modules"]
+remappings = ["forge-std/=node_modules/forge-std/src/"]
+# the tests read the input, proof & public signals that Circomkit uses & writes
+fs_permissions = [{ access = "read", path = "./build" }, { access = "read", path = "./inputs" }]

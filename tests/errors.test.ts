@@ -1,4 +1,4 @@
-import {Circomkit, WitnessTester} from '../src';
+import {Circomkit, type WitnessTester} from '../src';
 
 describe('errors', () => {
   let circuit: WitnessTester<['in', 'inin'], ['out']>;
@@ -32,16 +32,42 @@ describe('errors', () => {
   });
 
   it('should fail due to missing signal', async () => {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     await circuit.expectFail({inin: [1, 2]});
     // Not all inputs have been set. Only 2 out of 3.
   });
 
   it('should fail due to extra signal', async () => {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-expect-error
     await circuit.expectFail({inin: [1, 2, 3], idontexist: 1});
     // Too many values for input signal inin
+  });
+});
+
+describe('runtime errors', () => {
+  it('should fail due to modulo by zero', async () => {
+    const circomkit = new Circomkit({
+      verbose: false,
+      logLevel: 'silent',
+      dirCircuits: './tests/circuits',
+      dirBuild: './tests/build',
+    });
+    const circuit = await circomkit.WitnessTester('error_mod', {file: 'errors', template: 'ModuloByZero'});
+    await circuit.expectPass({in: 2}, {out: 1});
+    const message = await circuit.expectFail({in: 0});
+    expect(message.toLowerCase()).toContain('by zero');
+  });
+
+  it('should fail due to deep recursion', async () => {
+    const circomkit = new Circomkit({
+      verbose: false,
+      logLevel: 'silent',
+      dirCircuits: './tests/circuits',
+      dirBuild: './tests/build',
+    });
+    const circuit = await circomkit.WitnessTester('error_rec', {file: 'errors', template: 'Recursion'});
+    await circuit.expectPass({in: 10}, {out: 10});
+    const message = await circuit.expectFail({in: 100000});
+    expect(message.toLowerCase()).toContain('out of bounds');
   });
 });

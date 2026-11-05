@@ -1,0 +1,3 @@
+# `bun test` runs only the tests of Circomkit, not those of the examples, which are projects of their own
+[test]
+root = "./tests"

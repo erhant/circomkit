@@ -1,37 +1,47 @@
-# Circomkit with Bun
+# SHA-256 with Bun & Solidity
 
-In this example, we use [Bun](https://bun.sh/) with the [SHA256](https://en.wikipedia.org/wiki/SHA-2) circuit.
-
-## Installation
-
-Simply do:
+The [SHA-256](https://en.wikipedia.org/wiki/SHA-2) circuit of [`circomlib`](https://github.com/iden3/circomlib), proving "I know the preimage of this digest", with [Bun](https://bun.sh/), and a Solidity verifier tested with [Foundry](https://getfoundry.sh/).
 
 ```sh
 bun install
+bun start         # compiles, proves & verifies from code
+bun test          # witness tests
+bun run test:sol  # the Solidity verifier, needs Foundry
 ```
 
-## Usage
+## Proving from code
 
-You can see an example within [`src/index.ts`](./src/index.ts). Run it with:
+[`src/index.ts`](./src/index.ts) compiles the circuit, computes a witness, proves & verifies, with the Circomkit API.
+
+## Witness tests
+
+[`tests/sha256.test.ts`](./tests/sha256.test.ts) checks the digest against Node's `crypto`, and that a fake witness, edited deep within the SHA-256 compression, does not satisfy the constraints.
+
+## Solidity verifier
+
+`bun run test:sol` runs the following, then `forge test`:
 
 ```sh
-bun start
+bunx circomkit prove sha256_32     # reads inputs/sha256_32.json, writes build/sha256_32/default/groth16_proof.json & public.json
+bunx circomkit contract sha256_32  # writes build/sha256_32/groth16_verifier.sol
 ```
 
-For the CLI, you can test the entire flow as follows:
+[`contracts/Verifier.t.sol`](./contracts/Verifier.t.sol) reads the proof & public signals with Foundry's JSON cheatcodes and calls the verifier. Note that the contract takes the coordinates of `pi_b` in reverse order. It also checks that the public signals, the bytes of the digest, are what Solidity's `sha256` computes for the input.
 
-1. Compile circuit: `bunx circomkit compile sha256_32`
-2. Prove with default input: `bunx circomkit prove sha256_32 default`
-3. Verify the proof: `bunx circomkit verify sha256_32 default`
-4. Create contract: `bunx circomkit contract sha256_32`
-5. Create calldata: `bunx circomkit calldata sha256_32 default`
-
-Notice that we use `bunx` instead of `npx` to use Bun!
-
-## Testing
-
-Run tests with:
+To call a deployed verifier yourself, print the arguments of `verifyProof` with the command below. Each value is quoted, so remove the quotes for `cast`.
 
 ```sh
-bun test
+bunx circomkit calldata sha256_32
+```
+
+[forge-std](https://github.com/foundry-rs/forge-std) is installed as a package, so that there are no git submodules.
+
+## CLI
+
+With `bunx` instead of `npx`, the CLI runs with Bun too:
+
+```sh
+bunx circomkit compile sha256_32
+bunx circomkit prove sha256_32
+bunx circomkit verify sha256_32
 ```

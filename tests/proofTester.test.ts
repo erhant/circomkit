@@ -1,4 +1,4 @@
-import {Circomkit, ProofTester} from '../src';
+import {Circomkit, type ProofTester, teardown} from '../src';
 import {PTAU_PATH, prepareMultiplier} from './common';
 
 describe('proof tester', () => {
@@ -18,7 +18,7 @@ describe('proof tester', () => {
       dirPtau: './tests/ptau',
       dirCircuits: './tests/circuits',
       dirInputs: './tests/inputs',
-      dirBuild: './tests/build',
+      dirBuild: './tests/build/proof-tester',
     });
     circomkit.instantiate(name, config);
     await circomkit.setup(name, PTAU_PATH);
@@ -34,5 +34,19 @@ describe('proof tester', () => {
   it('should NOT verify a proof with invalid public signals', async () => {
     const {proof} = await circuit.prove(input);
     await circuit.expectFail(proof, ['1']);
+  });
+
+  it('should prove again after a teardown', async () => {
+    await teardown();
+    const {proof, publicSignals} = await circuit.prove(input);
+    await circuit.expectPass(proof, publicSignals);
+    await teardown();
+  });
+
+  it('should use the protocol of the config by default', async () => {
+    const circomkit = new Circomkit({protocol, dirBuild: './tests/build/proof-tester', logLevel: 'silent'});
+    const tester = await circomkit.ProofTester(name);
+    expect(tester.protocol).toBe(protocol);
+    await expect(circomkit.ProofTester(name, 'plonk')).rejects.toThrow(`is for ${protocol}, not plonk`);
   });
 });

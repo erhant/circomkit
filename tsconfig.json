@@ -9,13 +9,13 @@
     "pretty": true,
     "strict": true,
     "skipLibCheck": true,
-    "types": ["jest", "node"],
+    "types": ["vitest/globals", "node"],
     // to be used with bundler: pkgroll
     "moduleResolution": "Bundler",
     "module": "Preserve",
-    "target": "ES6"
+    "target": "ES2022"
   },
-  "files": ["./hardhat.config.ts"],
+  "files": ["./vitest.config.mts"],
   "include": ["src/**/*.*", "tests/**/*.*"],
   "exclude": ["node_modules"]
 }

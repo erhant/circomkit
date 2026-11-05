@@ -1,14 +1,15 @@
 #!/usr/bin/env node
+import {existsSync, readdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {Command} from '@commander-js/extra-typings';
+import {version} from '../package.json';
 import {Circomkit} from './core';
-import {existsSync, readFileSync, readdirSync, writeFileSync} from 'fs';
 import {prettyStringify} from './utils';
-import {exec} from 'child_process';
+import {initProject} from './utils/init';
 import {teardown} from './utils/teardown';
 
 const CONFIG_PATH = './circomkit.json';
 
-function cli(args: string[]) {
+async function cli(args: string[]) {
   const circomkit = new Circomkit(existsSync(CONFIG_PATH) ? JSON.parse(readFileSync(CONFIG_PATH, 'utf-8')) : {});
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -21,7 +22,7 @@ function cli(args: string[]) {
 
       if (!pattern) pattern = '.*';
 
-      const regex = new RegExp(`^${pattern}$`);
+      const regex = new RegExp(`^(?:${pattern})$`); // the whole name, also for alternatives such as `a|b`
       const matchingCircuits = circuitNames.filter(name => regex.test(name));
 
       if (matchingCircuits.length === 0) {
@@ -51,13 +52,22 @@ function cli(args: string[]) {
     .argument('<circuit>', 'Circuit name')
     .action(async circuit => {
       const info = await circomkit.info(circuit);
-      console.log(`Prime Field: ${info.primeName}`);
+      console.log(`Prime Field: ${info.primeName ?? info.prime}`);
       console.log(`Number of Wires: ${info.wires}`);
       console.log(`Number of Constraints: ${info.constraints}`);
       console.log(`Number of Private Inputs: ${info.privateInputs}`);
       console.log(`Number of Public Inputs: ${info.publicInputs}`);
       console.log(`Number of Public Outputs: ${info.publicOutputs}`);
       console.log(`Number of Labels: ${info.labels}`);
+    });
+
+  ///////////////////////////////////////////////////////////////////////////////
+  const constraints = new Command('constraints')
+    .description('print the constraints of a compiled circuit')
+    .argument('<circuit>', 'Circuit name')
+    .option('-f, --filter <signal>', 'only the constraints using this signal or component, e.g. isZero[0]')
+    .action(async (circuit, options) => {
+      for await (const line of circomkit.streamConstraints(circuit, options.filter)) console.log(line);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -72,19 +82,12 @@ function cli(args: string[]) {
   ///////////////////////////////////////////////////////////////////////////////
   const init = new Command('init')
     .description('initialize a new Circomkit project')
-    .argument('[dir]', 'Directory')
+    .argument('[dir]', 'Directory', '.')
     .action(async dir => {
-      const cmd = `git clone https://github.com/erhant/circomkit-examples.git ${dir ?? '.'}`;
-      circomkit.log.info(cmd);
-
-      const result = await new Promise<{stdout: string; stderr: string}>((resolve, reject) =>
-        exec(cmd, (error, stdout, stderr) => (error ? reject(error) : resolve({stdout, stderr})))
-      );
-
-      circomkit.log.info(result.stdout);
-      if (result.stderr) {
-        circomkit.log.info(result.stderr);
-      }
+      const {created, skipped} = initProject(dir);
+      for (const path of created) circomkit.log.info(`Created ${path}`);
+      for (const path of skipped) circomkit.log.warn(`Skipped ${path}, it already exists`);
+      circomkit.log.info(`\nTry: circomkit prove multiplier_3${dir === '.' ? '' : ` (within ${dir})`}`);
 
       circomkit.log.info('Circomkit project initialized! ✨');
     });
@@ -103,7 +106,7 @@ function cli(args: string[]) {
             console.log(prettyStringify(json));
           } else {
             writeFileSync(path, prettyStringify(json));
-            circomkit.log.info('Exported R1CS at: ' + path);
+            circomkit.log.info(`Exported R1CS at: ${path}`);
           }
         })
     )
@@ -118,7 +121,7 @@ function cli(args: string[]) {
             console.log(prettyStringify(json));
           } else {
             writeFileSync(path, prettyStringify(json));
-            circomkit.log.info('Exported prover key at: ' + path);
+            circomkit.log.info(`Exported prover key at: ${path}`);
           }
         })
     )
@@ -126,7 +129,7 @@ function cli(args: string[]) {
       new Command('wtns')
         .description('export witness')
         .argument('<circuit>', 'Circuit name')
-        .argument('<input>', 'Input name')
+        .argument('[input]', 'Input name', 'default')
         .option('-p, --print', 'Print JSON without saving it')
         .action(async (circuit, input, options) => {
           const {json, path} = await circomkit.json('wtns', circuit, input);
@@ -134,7 +137,7 @@ function cli(args: string[]) {
             console.log(prettyStringify(json));
           } else {
             writeFileSync(path, prettyStringify(json));
-            circomkit.log.info('Exported witness at: ' + path);
+            circomkit.log.info(`Exported witness at: ${path}`);
           }
         })
     );
@@ -145,14 +148,14 @@ function cli(args: string[]) {
     .argument('<circuit>', 'Circuit name')
     .action(async circuit => {
       const path = await circomkit.contract(circuit);
-      circomkit.log.info('Created at: ' + path);
+      circomkit.log.info(`Created at: ${path}`);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
   const calldata = new Command('calldata')
     .description('export calldata for a verifier contract')
     .argument('<circuit>', 'Circuit name')
-    .argument('<input>', 'Input name')
+    .argument('[input]', 'Input name', 'default')
     .action(async (circuit, input) => {
       const calldata = await circomkit.calldata(circuit, input);
       circomkit.log.info(calldata);
@@ -165,30 +168,31 @@ function cli(args: string[]) {
     .argument('[pkeyPath]', 'Prover key path')
     .action(async (circuit, pkeyPath) => {
       const path = await circomkit.vkey(circuit, pkeyPath);
-      circomkit.log.info('Created at: ' + path);
+      circomkit.log.info(`Created at: ${path}`);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
   const prove = new Command('prove')
     .description('generate zk-proof')
     .argument('<circuit>', 'Circuit name')
-    .argument('<input>', 'Input name')
+    .argument('[input]', 'Input name', 'default')
     .action(async (circuit, input) => {
       const path = await circomkit.prove(circuit, input);
-      circomkit.log.info('Generated at: ' + path);
+      circomkit.log.info(`Generated at: ${path}`);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
   const verify = new Command('verify')
     .description('verify zk-proof')
     .argument('<circuit>', 'Circuit name')
-    .argument('<input>', 'Input name')
+    .argument('[input]', 'Input name', 'default')
     .action(async (circuit, input) => {
       const ok = await circomkit.verify(circuit, input);
       if (ok) {
         circomkit.log.info('Verification successful.');
       } else {
-        circomkit.log.info('Verification failed!');
+        circomkit.log.error('Verification failed!');
+        process.exitCode = 1;
       }
     });
 
@@ -196,10 +200,11 @@ function cli(args: string[]) {
   const witness = new Command('witness')
     .description('compute witness')
     .argument('<circuit>', 'Circuit name')
-    .argument('<input>', 'Input name')
-    .action(async (circuit, input) => {
-      const path = await circomkit.witness(circuit, input);
-      circomkit.log.info('Witness created: ' + path);
+    .argument('[input]', 'Input name', 'default')
+    .option('-c, --c', 'use the C witness calculator')
+    .action(async (circuit, input, options) => {
+      const path = await circomkit.witness(circuit, input, undefined, options.c ? 'c' : 'wasm');
+      circomkit.log.info(`Witness created: ${path}`);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -209,8 +214,8 @@ function cli(args: string[]) {
     .argument('[ptauPath]', 'Path to PTAU')
     .action(async (circuit, ptauPath) => {
       const {proverKeyPath, verifierKeyPath} = await circomkit.setup(circuit, ptauPath);
-      circomkit.log.info('Prover key created: ' + proverKeyPath);
-      circomkit.log.info('Verifier key created: ' + verifierKeyPath);
+      circomkit.log.info(`Prover key created: ${proverKeyPath}`);
+      circomkit.log.info(`Verifier key created: ${verifierKeyPath}`);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -219,7 +224,7 @@ function cli(args: string[]) {
     .argument('<circuit>', 'Circuit name')
     .action(async circuit => {
       const path = await circomkit.ptau(circuit);
-      circomkit.log.info('PTAU ready at: ' + path);
+      circomkit.log.info(`PTAU ready at: ${path}`);
     });
 
   ///////////////////////////////////////////////////////////////////////////////
@@ -228,12 +233,12 @@ function cli(args: string[]) {
       .filter(path => path.endsWith('.circom'))
       .map(path => path.slice(0, -'.circom'.length));
     circomkit.log.info(
-      `Template Files (${circomkit.config.dirCircuits}):\n` + templates.map((c, i) => `  ${i + 1}. ${c}`).join('\n')
+      `Template Files (${circomkit.config.dirCircuits}):\n${templates.map((c, i) => `  ${i + 1}. ${c}`).join('\n')}`
     );
 
     const circuits = circomkit.readCircuits();
     circomkit.log.info(
-      `\nCircuit Names (${circomkit.config.circuits}):\n` +
+      `\nCircuit Names (${typeof circomkit.config.circuits === 'string' ? circomkit.config.circuits : 'inline'}):\n` +
         Object.keys(circuits)
           .map((c, i) => `  ${i + 1}. ${c}`)
           .join('\n')
@@ -246,8 +251,9 @@ function cli(args: string[]) {
   });
 
   ///////////////////////////////////////////////////////////////////////////////
-  new Command()
+  await new Command()
     .name('circomkit')
+    .version(version)
     .description('Circom testing & development toolkit')
     // none
     .addCommand(init)
@@ -258,6 +264,7 @@ function cli(args: string[]) {
     .addCommand(circuit)
     .addCommand(instantiate)
     .addCommand(info)
+    .addCommand(constraints)
     .addCommand(clear)
     .addCommand(contract)
     .addCommand(vkey)
@@ -268,30 +275,13 @@ function cli(args: string[]) {
     .addCommand(witness)
     .addCommand(verify)
     .addCommand(calldata)
-    // teardown to terminate SnarkJS, otherwise hangs the program
-    .hook('postAction', async () => await teardown())
-    .parse(args);
-
-  // TODO: test graceful exits
-  /**
-   * We have to exit forcefully, as SnarkJS CLI does too.
-   * In their code, each function returns a code, with the
-   * succesfull ones returning 0. If an error is thrown,
-   * that error is logged and process is exited with error code 1.
-   *
-   * See https://github.com/iden3/snarkjs/blob/master/cli.js#L348
-   */
-  // function exit(code: number) {
-  //   // eslint-disable-next-line no-process-exit
-  //   process.exit(code);
-  // }
-
-  // cli()
-  //   .then(code => exit(code))
-  //   .catch(err => {
-  //     console.error(err);
-  //     exit(1);
-  //   });
+    .parseAsync(args);
 }
 
-cli(process.argv);
+// errors are printed without a stack trace, and SnarkJS is torn down to exit even after an error
+cli(process.argv)
+  .catch(error => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  })
+  .finally(teardown);

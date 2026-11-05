@@ -110,9 +110,10 @@ dist
 # is this still a thing lol
 .DS_Store
 
-# Hardhat files
-/cache
-/artifacts
 
 # test inputs
 input.test.json
+
+# generated main components of test circuits
+tests/circuits/**/main/
+tests/circuits/**/test/

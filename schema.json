@@ -1,0 +1,332 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Circomkit configuration (circomkit.json)",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "protocol": {
+      "$ref": "#/definitions/options/properties/protocol"
+    },
+    "prime": {
+      "$ref": "#/definitions/options/properties/prime"
+    },
+    "dirCircuits": {
+      "$ref": "#/definitions/options/properties/dirCircuits"
+    },
+    "dirInputs": {
+      "$ref": "#/definitions/options/properties/dirInputs"
+    },
+    "dirPtau": {
+      "$ref": "#/definitions/options/properties/dirPtau"
+    },
+    "dirBuild": {
+      "$ref": "#/definitions/options/properties/dirBuild"
+    },
+    "circomPath": {
+      "$ref": "#/definitions/options/properties/circomPath"
+    },
+    "groth16numContributions": {
+      "$ref": "#/definitions/options/properties/groth16numContributions"
+    },
+    "groth16askForEntropy": {
+      "$ref": "#/definitions/options/properties/groth16askForEntropy"
+    },
+    "version": {
+      "$ref": "#/definitions/options/properties/version"
+    },
+    "optimization": {
+      "$ref": "#/definitions/options/properties/optimization"
+    },
+    "inspect": {
+      "$ref": "#/definitions/options/properties/inspect"
+    },
+    "include": {
+      "$ref": "#/definitions/options/properties/include"
+    },
+    "verbose": {
+      "$ref": "#/definitions/options/properties/verbose"
+    },
+    "logLevel": {
+      "$ref": "#/definitions/options/properties/logLevel"
+    },
+    "cWitness": {
+      "$ref": "#/definitions/options/properties/cWitness"
+    },
+    "wasmWitness": {
+      "$ref": "#/definitions/options/properties/wasmWitness"
+    },
+    "prettyCalldata": {
+      "$ref": "#/definitions/options/properties/prettyCalldata"
+    },
+    "circuits": {
+      "description": "Circuit configurations: a path to a JSON file such as `./circuits.json`, or the circuits themselves keyed by name.",
+      "default": "./circuits.json",
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "$ref": "#/definitions/circuits"
+        }
+      ]
+    }
+  },
+  "definitions": {
+    "options": {
+      "properties": {
+        "protocol": {
+          "description": "Protocol (proof system) to be used.",
+          "enum": [
+            "groth16",
+            "plonk",
+            "fflonk"
+          ],
+          "default": "groth16"
+        },
+        "prime": {
+          "description": "Prime field used by Circom, as described for its `-p` option.",
+          "enum": [
+            "bn128",
+            "bls12381",
+            "bls12377",
+            "goldilocks",
+            "grumpkin",
+            "pallas",
+            "vesta",
+            "secq256r1"
+          ],
+          "default": "bn128"
+        },
+        "dirCircuits": {
+          "description": "Directory to read circuits from.",
+          "type": "string",
+          "default": "./circuits"
+        },
+        "dirInputs": {
+          "description": "Directory to read inputs from.",
+          "type": "string",
+          "default": "./inputs"
+        },
+        "dirPtau": {
+          "description": "Directory to download PTAU files to.",
+          "type": "string",
+          "default": "./ptau"
+        },
+        "dirBuild": {
+          "description": "Directory to output circuit build files.",
+          "type": "string",
+          "default": "./build"
+        },
+        "circomPath": {
+          "description": "Path to the circom executable, or a command such as `npx circom2`.",
+          "type": "string",
+          "default": "circom"
+        },
+        "groth16numContributions": {
+          "description": "Number of phase-2 contributions in Groth16 setup.",
+          "type": "integer",
+          "minimum": 0,
+          "default": 1
+        },
+        "groth16askForEntropy": {
+          "description": "Ask for user input to create entropy in Groth16 setup.",
+          "type": "boolean",
+          "default": false
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Circom version in the `pragma` of main components.",
+          "default": "2.1.0"
+        },
+        "optimization": {
+          "description": "Optimization level: 0 (--O0), 1 (--O1), 2 (--O2), or a number of rounds above 2 (--O2round). Omit to follow the Circom default. PLONK requires 1.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "inspect": {
+          "description": "Does an additional check over the constraints produced (--inspect).",
+          "type": "boolean",
+          "default": true
+        },
+        "include": {
+          "description": "Library paths for includes during compilation (-l).",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "./node_modules"
+          ]
+        },
+        "verbose": {
+          "description": "Show compiler & SnarkJS logs in addition to Circomkit.",
+          "type": "boolean",
+          "default": true
+        },
+        "logLevel": {
+          "description": "Log level of the internal logger.",
+          "enum": [
+            "TRACE",
+            "DEBUG",
+            "INFO",
+            "WARN",
+            "ERROR",
+            "SILENT",
+            "trace",
+            "debug",
+            "info",
+            "warn",
+            "error",
+            "silent",
+            0,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "default": "INFO"
+        },
+        "cWitness": {
+          "description": "Generate the C witness calculator (--c).",
+          "type": "boolean",
+          "default": false
+        },
+        "wasmWitness": {
+          "description": "Generate the WASM witness calculator (--wasm).",
+          "type": "boolean",
+          "default": true
+        },
+        "prettyCalldata": {
+          "description": "Print Solidity copy-pasteable calldata.",
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "circuit": {
+      "type": "object",
+      "required": [
+        "file",
+        "template"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "file": {
+          "description": "File to read the template from, relative to `dirCircuits` and without `.circom`.",
+          "type": "string"
+        },
+        "template": {
+          "description": "The template name to instantiate.",
+          "type": "string"
+        },
+        "dir": {
+          "description": "Directory under `dirCircuits` to instantiate the main component at.",
+          "type": "string",
+          "default": "main"
+        },
+        "version": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$",
+          "description": "Circom version in the `pragma` of this main component."
+        },
+        "pubs": {
+          "description": "Public input signal names.",
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "params": {
+          "description": "Template parameters.",
+          "type": "array",
+          "items": {
+            "type": [
+              "number",
+              "string"
+            ]
+          },
+          "default": []
+        },
+        "usesCustomTemplates": {
+          "description": "Include `pragma custom_templates;` in the main component. Detected from the source when omitted.",
+          "type": "boolean"
+        },
+        "overrides": {
+          "description": "Circomkit configurations for this circuit only, e.g. {\"protocol\": \"plonk\"}.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "protocol": {
+              "$ref": "#/definitions/options/properties/protocol"
+            },
+            "prime": {
+              "$ref": "#/definitions/options/properties/prime"
+            },
+            "dirCircuits": {
+              "$ref": "#/definitions/options/properties/dirCircuits"
+            },
+            "dirInputs": {
+              "$ref": "#/definitions/options/properties/dirInputs"
+            },
+            "dirPtau": {
+              "$ref": "#/definitions/options/properties/dirPtau"
+            },
+            "dirBuild": {
+              "$ref": "#/definitions/options/properties/dirBuild"
+            },
+            "circomPath": {
+              "$ref": "#/definitions/options/properties/circomPath"
+            },
+            "groth16numContributions": {
+              "$ref": "#/definitions/options/properties/groth16numContributions"
+            },
+            "groth16askForEntropy": {
+              "$ref": "#/definitions/options/properties/groth16askForEntropy"
+            },
+            "version": {
+              "$ref": "#/definitions/options/properties/version"
+            },
+            "optimization": {
+              "$ref": "#/definitions/options/properties/optimization"
+            },
+            "inspect": {
+              "$ref": "#/definitions/options/properties/inspect"
+            },
+            "include": {
+              "$ref": "#/definitions/options/properties/include"
+            },
+            "verbose": {
+              "$ref": "#/definitions/options/properties/verbose"
+            },
+            "cWitness": {
+              "$ref": "#/definitions/options/properties/cWitness"
+            },
+            "wasmWitness": {
+              "$ref": "#/definitions/options/properties/wasmWitness"
+            },
+            "prettyCalldata": {
+              "$ref": "#/definitions/options/properties/prettyCalldata"
+            }
+          }
+        }
+      }
+    },
+    "circuits": {
+      "type": "object",
+      "properties": {
+        "$schema": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/circuit"
+      }
+    }
+  }
+}

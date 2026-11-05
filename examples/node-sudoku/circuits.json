@@ -1,0 +1,33 @@
+{
+  "$schema": "./node_modules/circomkit/circuits.schema.json",
+  "sudoku_groth16": {
+    "file": "sudoku",
+    "template": "Sudoku",
+    "pubs": ["puzzle"],
+    "params": [2]
+  },
+  "sudoku_plonk": {
+    "file": "sudoku",
+    "template": "Sudoku",
+    "pubs": ["puzzle"],
+    "params": [2],
+    "overrides": {
+      "protocol": "plonk"
+    }
+  },
+  "sudoku_fflonk": {
+    "file": "sudoku",
+    "template": "Sudoku",
+    "pubs": ["puzzle"],
+    "params": [2],
+    "overrides": {
+      "protocol": "fflonk"
+    }
+  },
+  "sudoku_9x9": {
+    "file": "sudoku",
+    "template": "Sudoku",
+    "pubs": ["puzzle"],
+    "params": [3]
+  }
+}

@@ -1,7 +1,17 @@
 import type {LogLevelDesc} from 'loglevel';
+import type {CircuitConfig} from '../types';
 
 export const PROTOCOLS = ['groth16', 'plonk', 'fflonk'] as const;
-export const PRIMES = ['bn128', 'bls12381', 'goldilocks', 'grumpkin', 'pallas', 'vesta', 'secq256r1'] as const;
+export const PRIMES = [
+  'bn128',
+  'bls12381',
+  'bls12377',
+  'goldilocks',
+  'grumpkin',
+  'pallas',
+  'vesta',
+  'secq256r1',
+] as const;
 
 export type CircomkitConfig = {
   /** Protocol (proof system) to be used. */
@@ -11,8 +21,11 @@ export type CircomkitConfig = {
    * @see https://github.com/iden3/circom/blob/master/program_structure/src/utils/constants.rs
    */
   prime: (typeof PRIMES)[number];
-  /** Circuit configurations path. */
-  circuits: string;
+  /**
+   * Circuit configurations, either a path to a JSON file (e.g. `./circuits.json`)
+   * or the circuit configurations themselves, keyed by circuit name.
+   */
+  circuits: string | Record<string, CircuitConfig>;
   /** Directory to read circuits from. */
   dirCircuits: string;
   /** Directory to read inputs from. */
@@ -52,7 +65,7 @@ export type CircomkitConfig = {
   /** Whether to generate the WASM witness calculator. */
   wasmWitness: boolean;
   /** Whether to print Solidity copy-pasteable calldata. */
-  prettyCalldata: false;
+  prettyCalldata: boolean;
 };
 
 /** Default configurations */

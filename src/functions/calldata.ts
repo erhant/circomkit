@@ -26,7 +26,7 @@ export function getCalldata(
       proofCalldata = fflonkCalldata(proof, pretty);
       break;
     default:
-      throw 'Unknown protocol:' + proof.protocol;
+      throw new Error(`Unknown protocol: ${proof.protocol}`);
   }
 
   return `\n${proofCalldata}\n\n${pubsCalldata}\n`;
@@ -110,8 +110,8 @@ function groth16Calldata(proof: Groth16Proof, pretty: boolean) {
 /** Converts each hex-string in the array to 32-bytes long hexadecimal with 0x prefix. */
 function valuesToPaddedUint256s(values: string[]) {
   return values.map(hexStr => {
-    const ans = '0x' + BigInt(hexStr).toString(16).padStart(64, '0');
-    if (ans.length !== 66) throw new Error('uint256 overflow: ' + hexStr);
+    const ans = `0x${BigInt(hexStr).toString(16).padStart(64, '0')}`;
+    if (ans.length !== 66) throw new Error(`uint256 overflow: ${hexStr}`);
     return ans;
   });
 }

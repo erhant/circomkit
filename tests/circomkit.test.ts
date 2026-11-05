@@ -1,16 +1,16 @@
-import hre from 'hardhat';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
+import {existsSync, readFileSync, rmSync} from 'node:fs';
+import {createEVM} from '@ethereumjs/evm';
+import * as snarkjs from 'snarkjs';
+// @ts-expect-error
 import solc from 'solc';
 import {Circomkit} from '../src';
-import {existsSync, rmSync, readFileSync} from 'fs';
-import {PTAU_PATH, prepareMultiplier} from './common';
 import {PROTOCOLS} from '../src/configs';
+import {C_WITNESS, PTAU_PATH, prepareMultiplier} from './common';
 
 describe('circomkit', () => {
   // we are not testing all curves because PTAU is only available for bn128
   PROTOCOLS.map(protocol =>
-    describe('protocol: ' + protocol, () => {
+    describe(`protocol: ${protocol}`, () => {
       let circomkit: Circomkit;
       const {circuit, signals, inputName} = prepareMultiplier(3);
 
@@ -37,6 +37,12 @@ describe('circomkit', () => {
         const outPath = await circomkit.compile(circuit.name);
         expect(existsSync(`${outPath}/${circuit.name}_js`)).toBe(true); // js is built by default
         expect(existsSync(`${outPath}/${circuit.name}_cpp`)).toBe(false); // cpp is NOT built by default
+      });
+
+      it('should format constraints', async () => {
+        const constraints = await circomkit.constraints(circuit.name);
+        expect(constraints).toHaveLength((await circomkit.info(circuit.name)).constraints);
+        expect(constraints[0]).toBe('in[0] * in[1] = inner[0]');
       });
 
       it('should export circuit information', async () => {
@@ -93,11 +99,7 @@ describe('circomkit', () => {
       it('should export verifier contract and valid calldata', async () => {
         const path = await circomkit.contract(circuit.name);
         expect(existsSync(path)).toBe(true);
-        const source = readFileSync(path, {encoding: 'utf-8'})
-          // XXX: snarkjs plonk template has an erroneous hardhat import
-          //      See https://github.com/iden3/snarkjs/pull/464
-          //      @todo Remove this fix when the PR is merged
-          .replace('import "hardhat/console.sol";\n', '');
+        const source = readFileSync(path, {encoding: 'utf-8'});
 
         // compile the contract
         const input = {
@@ -110,33 +112,46 @@ describe('circomkit', () => {
           settings: {
             outputSelection: {
               '*': {
-                '*': ['abi', 'evm.bytecode.object'],
+                '*': ['evm.bytecode.object', 'evm.methodIdentifiers'],
               },
             },
           },
         };
 
         const output = JSON.parse(solc.compile(JSON.stringify(input)));
-        const contractName = Object.keys(output.contracts['TestVerifier.sol'])[0];
-        const bytecode = output.contracts['TestVerifier.sol'][contractName].evm.bytecode.object;
-        const abi = output.contracts['TestVerifier.sol'][contractName].abi;
+        const contract = Object.values(output.contracts['TestVerifier.sol'])[0] as {
+          evm: {bytecode: {object: string}; methodIdentifiers: Record<string, string>};
+        };
+        const selector = Object.entries(contract.evm.methodIdentifiers).find(([f]) => f.startsWith('verifyProof('))![1];
 
         // deploy the contract
-        const signer = (await hre.ethers.getSigners())[0];
-        const ContractFactory = new hre.ethers.ContractFactory(abi, bytecode, signer);
-        const contract = await ContractFactory.deploy();
-        await contract.waitForDeployment();
+        const evm = await createEVM();
+        const gasLimit = 30_000_000n;
+        const deployment = await evm.runCall({data: Buffer.from(contract.evm.bytecode.object, 'hex'), gasLimit});
+        expect(deployment.execResult.exceptionError).toBeUndefined();
 
-        // interaction with the contract
+        // all arguments of `verifyProof` are fixed-size arrays of words, so their ABI encoding is
+        // simply the words one after another
+        const verifyProof = async (words: string[]) => {
+          const args = words.map(w => BigInt(w).toString(16).padStart(64, '0')).join('');
+          const call = await evm.runCall({
+            to: deployment.createdAddress,
+            data: Buffer.from(selector + args, 'hex'),
+            gasLimit,
+          });
+          expect(call.execResult.exceptionError).toBeUndefined();
+          return BigInt(`0x${Buffer.from(call.execResult.returnValue).toString('hex')}`) === 1n;
+        };
+
         const calldata = await circomkit.calldata(circuit.name, inputName);
-        const args = calldata
+        const words: string[] = calldata
           .split('\n')
           .filter(x => !!x)
-          .map(x => JSON.parse(x));
+          .flatMap(x => JSON.parse(x).flat(2));
+        expect(await verifyProof(words)).toBe(true);
 
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        //@ts-ignore
-        expect(await contract.verifyProof(...args)).toBe(true);
+        // a different public signal must not verify
+        expect(await verifyProof([...words.slice(0, -1), '0x1'])).toBe(false);
       });
 
       it('should export JSON files', async () => {
@@ -158,7 +173,7 @@ describe('circomkit', () => {
   );
 });
 
-describe('instantiate version fallback (#123)', () => {
+describe('instantiate version fallback', () => {
   const {circuit} = prepareMultiplier(3);
   const baseConfig = {
     verbose: false,
@@ -192,5 +207,43 @@ describe('instantiate version fallback (#123)', () => {
     expect(content).toContain('pragma circom 2.2.0;');
 
     rmSync(path);
+  });
+});
+
+// the C witness calculator needs nlohmann-json, gmp and nasm, which CI installs on Linux
+(C_WITNESS ? describe : describe.skip)('witness with the C calculator', () => {
+  const {circuit, signals, inputName} = prepareMultiplier(3);
+  const circomkit = new Circomkit({
+    verbose: false,
+    logLevel: 'silent',
+    circuits: './tests/circuits.json',
+    dirPtau: './tests/ptau',
+    dirCircuits: './tests/circuits',
+    dirInputs: './tests/inputs',
+    dirBuild: './tests/build/cwitness',
+  });
+
+  it('should match the WASM witness', async () => {
+    circomkit.input(circuit.name, inputName, signals.input);
+    const wasmWtns = await snarkjs.wtns.exportJson(await circomkit.witness(circuit.name, inputName));
+    const cWtns = await snarkjs.wtns.exportJson(await circomkit.witness(circuit.name, inputName, undefined, 'c'));
+    const cDataWtns = await snarkjs.wtns.exportJson(
+      await circomkit.witness(circuit.name, inputName, signals.input, 'c')
+    );
+    expect(cWtns).toEqual(wasmWtns);
+    expect(cDataWtns).toEqual(wasmWtns);
+  });
+
+  it('should create the main component where the CLI does', async () => {
+    const inline = new Circomkit({
+      verbose: false,
+      logLevel: 'silent',
+      dirCircuits: './tests/circuits',
+      dirBuild: './tests/build/cwitness-dir',
+      circuits: {mul3_cdir: {file: 'multiplier', template: 'Multiplier', params: [3]}},
+    });
+    await inline.witness('mul3_cdir', 'default', {in: [2, 3, 5]}, 'c');
+    expect(existsSync('./tests/circuits/main/mul3_cdir.circom')).toBe(true);
+    expect(existsSync('./tests/circuits/test/mul3_cdir.circom')).toBe(false);
   });
 });
