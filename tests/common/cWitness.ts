@@ -4,6 +4,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {promisify} from 'node:util';
 import {requireCircom} from '../../src/functions';
+import {cBuildEnv} from '../../src/functions/witness';
 
 /** Whether the C witness calculator can be built here, i.e. whether its tests can run.
  *
@@ -14,7 +15,7 @@ export const C_WITNESS = await canBuildCWitness();
 
 async function canBuildCWitness(): Promise<boolean> {
   const succeeds = (command: string, args: string[]) =>
-    promisify(execFile)(command, args).then(
+    promisify(execFile)(command, args, {env: cBuildEnv()}).then(
       () => true,
       () => false
     );

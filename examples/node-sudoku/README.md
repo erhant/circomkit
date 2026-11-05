@@ -39,11 +39,13 @@ sudo apt install build-essential libgmp-dev nlohmann-json3-dev nasm
 On macOS, with the Xcode command line tools (`xcode-select --install`) and [Homebrew](https://brew.sh):
 
 ```sh
-brew install gmp nlohmann-json # and nasm on Intel Macs
-export CPATH="$(brew --prefix)/include" LIBRARY_PATH="$(brew --prefix)/lib"
+brew install gmp nlohmann-json # and `nasm` on Intel Macs
+# circomkit automatically wires brew path to Makefile
 ```
 
-On machines that are not x86-64, such as Apple Silicon, it needs Circom 2.2.2 or newer.
+> [!WARNING]
+>
+> On machines that are not x86-64, such as Apple Silicon, it needs Circom 2.2.2 or newer.
 
 ## CLI
 

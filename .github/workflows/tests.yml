@@ -18,43 +18,58 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
-        # the oldest & the newest of what we support, paired instead of all combinations
+        # the oldest & the newest of what we support, paired instead of all combinations,
+        # and the newest on macOS, for the C witness calculator on ARM
         include:
           - name: oldest
+            runner: ubuntu-latest # x86-64, with assembly
             circom: '2.1.5'
             node: 22
             snarkjs: '0.7.5'
           - name: newest
+            runner: ubuntu-latest
             circom: '2.2.3'
             node: 26
             snarkjs: 'latest'
+          - name: macos
+            runner: macos-15 # Apple Silicon, with `--no_asm` that needs Circom 2.2.2 or newer
+            circom: '2.2.3'
+            node: 26
+            snarkjs: 'latest'
+        # left out: Windows, as Circom's C code needs POSIX headers such as `sys/mman.h`,
+        # and ARM Linux & Intel macOS, as Circom has no binaries for them
     name: test (${{ matrix.name }}, circom ${{ matrix.circom }}, node ${{ matrix.node }}, snarkjs ${{ matrix.snarkjs }})
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install dependencies
+      # for the C witness calculator, as in the README
+      - name: Install C dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install --yes \
-            build-essential \
-            libgmp-dev \
-            libsodium-dev \
-            nasm \
-            nlohmann-json3-dev
+          sudo apt-get install --yes build-essential libgmp-dev nlohmann-json3-dev nasm
 
-      - name: Download Circom Binary v${{ matrix.circom }}
+      # Circomkit finds Homebrew's headers & libraries itself
+      - name: Install C dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install gmp nlohmann-json
+
+      # despite its name, the macOS binary is built for arm64
+      - name: Install Circom v${{ matrix.circom }}
         run: |
-          wget -qO /home/runner/work/circom https://github.com/iden3/circom/releases/download/v${{ matrix.circom }}/circom-linux-amd64
-          chmod +x /home/runner/work/circom
-          sudo mv /home/runner/work/circom /bin/circom
+          sudo curl -fsSL -o /usr/local/bin/circom \
+            https://github.com/iden3/circom/releases/download/v${{ matrix.circom }}/circom-${{ runner.os == 'macOS' && 'macos' || 'linux' }}-amd64
+          sudo chmod +x /usr/local/bin/circom
 
-      - name: Print Circom version
-        run: circom --version
+      - name: Print versions
+        run: |
+          circom --version
+          uname -m
 
       - name: Install pnpm
         uses: pnpm/action-setup@v3

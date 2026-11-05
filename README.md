@@ -365,9 +365,9 @@ On macOS, with the Xcode command line tools (`xcode-select --install`) and [Home
 
 ```sh
 brew install gmp nlohmann-json # and nasm on Intel Macs
-# Homebrew's libraries are not found by the compiler on Apple Silicon otherwise
-export CPATH="$(brew --prefix)/include" LIBRARY_PATH="$(brew --prefix)/lib"
 ```
+
+Circomkit adds the headers & libraries of Homebrew when it builds, as the compiler does not look for them on Apple Silicon.
 
 On machines that are not x86-64, such as Apple Silicon or ARM Linux, Circomkit compiles with `--no_asm` (Circom's assembly is x86-64 only), which needs Circom 2.2.2 or newer. There, `nasm` is not needed.
 
