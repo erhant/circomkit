@@ -1,8 +1,14 @@
 name: npm
 
+# trusted publishing, without tokens: https://docs.npmjs.com/trusted-publishers
+# npm only accepts it from this file, as configured for the package on npmjs.com
 on:
   release:
     types: [published]
+
+permissions:
+  contents: read
+  id-token: write # for npm to verify that the package is published from here
 
 jobs:
   publish:
@@ -19,16 +25,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'pnpm'
+          node-version: 24
+          registry-url: 'https://registry.npmjs.org'
+
+      # trusted publishing needs npm 11.5.1 or newer
+      - name: Update npm
+        run: npm install -g npm@latest
 
       - name: Install dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Build package
         run: pnpm build
 
-      - uses: JS-DevTools/npm-publish@v3
-        id: publish
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
+      # with provenance, as the repository is public
+      - name: Publish
+        run: npm publish
