@@ -22,17 +22,20 @@ function circomCommand(circomPath: string): string[] {
   return existsSync(circomPath) ? [circomPath] : circomPath.split(' ');
 }
 
-const circomVersions = new Map<string, Promise<string>>();
+/** A Circom version, e.g. `2.2.3` */
+export type CircomVersion = `${number}.${number}.${number}`;
+
+const circomVersions = new Map<string, Promise<CircomVersion>>();
 
 /** Returns the version of the Circom compiler at `circomPath`, e.g. `2.2.3`. Cached per path. */
-export function circomVersion(circomPath: string): Promise<string> {
+export function circomVersion(circomPath: string): Promise<CircomVersion> {
   let version = circomVersions.get(circomPath);
   if (!version) {
     const [command, ...args] = circomCommand(circomPath);
     version = promisify(execFile)(command, [...args, '--version']).then(({stdout}) => {
       const match = stdout.match(/(\d+)\.(\d+)\.(\d+)/);
       if (!match) throw new Error(`Could not read the Circom version from: ${stdout}`);
-      return match[0];
+      return match[0] as CircomVersion;
     });
     circomVersions.set(circomPath, version);
   }
@@ -40,7 +43,11 @@ export function circomVersion(circomPath: string): Promise<string> {
 }
 
 /** Throws if the Circom compiler at `circomPath` is older than `minimum`, which `feature` requires. */
-export async function requireCircom(circomPath: string, minimum: string, feature: string): Promise<void> {
+export async function requireCircom(
+  circomPath: string,
+  minimum: CircomVersion,
+  feature: string
+): Promise<void> {
   const version = await circomVersion(circomPath);
   const [a, b] = [version, minimum].map(v => v.split('.').map(Number));
   const older = a[0] - b[0] || a[1] - b[1] || a[2] - b[2];
@@ -48,6 +55,15 @@ export async function requireCircom(circomPath: string, minimum: string, feature
     throw new Error(`${feature} requires Circom ${minimum} or newer, found ${version} (${circomPath})`);
   }
 }
+
+/** The Circom version that added each prime, for those added after 2.0.6 */
+const PRIMES_SINCE: Partial<Record<CircomkitConfig['prime'], CircomVersion>> = {
+  grumpkin: '2.1.6',
+  pallas: '2.1.6',
+  vesta: '2.1.6',
+  secq256r1: '2.1.8',
+  bls12377: '2.2.2',
+};
 
 /** Compile the circuit using the given configuration.
  *
@@ -58,6 +74,10 @@ export async function requireCircom(circomPath: string, minimum: string, feature
  */
 export async function compileCircuit(config: CircomkitConfig, targetPath: string, outDir: string) {
   mkdirSync(outDir, {recursive: true});
+
+  // older versions only say "invalid prime number"
+  const since = PRIMES_SINCE[config.prime];
+  if (since) await requireCircom(config.circomPath, since, `The ${config.prime} prime`);
 
   // arguments are passed as-is without a shell, so paths may contain spaces
   const args = ['--sym', '--r1cs', '-p', config.prime, '-o', outDir];

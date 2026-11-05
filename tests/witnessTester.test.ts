@@ -1,7 +1,7 @@
 import {mkdirSync, readdirSync, rmSync, statSync, utimesSync, writeFileSync} from 'node:fs';
 import * as snarkjs from 'snarkjs';
 import {Circomkit, type WitnessTester} from '../src';
-import {circomVersion} from '../src/functions';
+import {circomVersion, requireCircom} from '../src/functions';
 import type {WitnessType} from '../src/types';
 import {primes} from '../src/utils';
 import {C_WITNESS, prepareMultiplier} from './common';
@@ -314,27 +314,41 @@ describe('witness tester anonymous components', () => {
   });
 });
 
-describe('witness tester with another prime', () => {
+describe('witness tester with other primes', () => {
   // goldilocks has 8-byte field elements, instead of 32 bytes as in bn128
-  const circomkit = new Circomkit({
-    verbose: false,
-    logLevel: 'silent',
-    prime: 'goldilocks',
-    dirCircuits: './tests/circuits',
-    dirBuild: './tests/build',
-  });
+  for (const [prime, since] of [
+    ['goldilocks', '2.0.6'],
+    ['bls12377', '2.2.2'],
+  ] as const) {
+    it(`should check constraints with ${prime}`, async () => {
+      const circomkit = new Circomkit({
+        verbose: false,
+        logLevel: 'silent',
+        prime,
+        dirCircuits: './tests/circuits',
+        dirBuild: './tests/build',
+      });
+      const tester = () =>
+        circomkit.WitnessTester(`mul3_${prime}`, {file: 'multiplier', template: 'Multiplier', params: [3]});
 
-  it('should check constraints', async () => {
-    const circuit = await circomkit.WitnessTester('mul3_goldilocks', {
-      file: 'multiplier',
-      template: 'Multiplier',
-      params: [3],
+      const supported = await requireCircom('circom', since, '').then(
+        () => true,
+        () => false
+      );
+      if (!supported) {
+        // instead of Circom's "invalid prime number"
+        await expect(tester()).rejects.toThrow(`The ${prime} prime requires Circom ${since} or newer`);
+        return;
+      }
+
+      const circuit = await tester();
+      // -1 is p - 1 in the field of the prime
+      await circuit.expectPass({in: [-1, 2, 3]}, {out: primes[prime] - 6n});
+
+      const witness = await circuit.calculateWitness({in: [2, 3, 5]});
+      await circuit.expectConstraintFail(await circuit.editWitness(witness, {'main.out': 31n}));
     });
-    await circuit.expectPass({in: [2, 3, 5]}, {out: 30});
-
-    const witness = await circuit.calculateWitness({in: [2, 3, 5]});
-    await circuit.expectConstraintFail(await circuit.editWitness(witness, {'main.out': 31n}));
-  });
+  }
 });
 
 describe('witness tester optimization level', () => {

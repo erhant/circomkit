@@ -125,7 +125,7 @@ Circomkit is configured with `circomkit.json`. Every field is optional, as each 
 | Field          | Default              | Description                                                                                     |
 | -------------- | -------------------- | ----------------------------------------------------------------------------------------------- |
 | `protocol`     | `"groth16"`          | Proof system: `groth16`, `plonk` or `fflonk`.                                                   |
-| `prime`        | `"bn128"`            | Prime field: `bn128`, `bls12381`, `goldilocks`, `grumpkin`, `pallas`, `vesta` or `secq256r1`.   |
+| `prime`        | `"bn128"`            | Prime field: `bn128`, `bls12381`, `bls12377`, `goldilocks`, `grumpkin`, `pallas`, `vesta` or `secq256r1`. |
 | `circuits`     | `"./circuits.json"`  | The circuits, or a path to a JSON file with them, see [Circuits](#circuits).                    |
 | `dirCircuits`  | `"./circuits"`       | Directory of your circuit files.                                                                |
 | `dirInputs`    | `"./inputs"`         | Directory of input files.                                                                       |

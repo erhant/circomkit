@@ -2,7 +2,16 @@ import type {LogLevelDesc} from 'loglevel';
 import type {CircuitConfig} from '../types';
 
 export const PROTOCOLS = ['groth16', 'plonk', 'fflonk'] as const;
-export const PRIMES = ['bn128', 'bls12381', 'goldilocks', 'grumpkin', 'pallas', 'vesta', 'secq256r1'] as const;
+export const PRIMES = [
+  'bn128',
+  'bls12381',
+  'bls12377',
+  'goldilocks',
+  'grumpkin',
+  'pallas',
+  'vesta',
+  'secq256r1',
+] as const;
 
 export type CircomkitConfig = {
   /** Protocol (proof system) to be used. */
