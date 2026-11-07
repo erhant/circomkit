@@ -99,6 +99,10 @@ export class Circomkit {
       logFix('Optimization level must be at least 0, setting it to 0.');
       config.optimization = 0;
     }
+    // a single path is accepted as well, from a hand-written JSON config
+    if (typeof config.include === 'string') {
+      config.include = [config.include];
+    }
 
     // PLONK protocol requires optimization level to be 1
     if (config.protocol === 'plonk' && config.optimization !== 1) {

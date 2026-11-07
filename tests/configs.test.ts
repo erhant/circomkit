@@ -20,6 +20,17 @@ describe('overriding configurations', () => {
     // @ts-expect-error
     expect(() => new Circomkit({protocol: 'fhdskfhjdk'})).toThrow('Invalid protocol in configuration.');
   });
+
+  it('should accept a single include path', () => {
+    const circomkit = new Circomkit({
+      // @ts-expect-error
+      include: './node_modules',
+      // @ts-expect-error
+      circuits: {mul: {file: 'm', template: 'M', overrides: {include: './lib'}}},
+    });
+    expect(circomkit.config.include).toEqual(['./node_modules']);
+    expect(circomkit.resolve('mul').include).toEqual(['./lib']);
+  });
 });
 
 describe('json schema', () => {
